@@ -1,88 +1,125 @@
 # claude-creative-stack
 
-Drop-in reference + scaffolding for building **art, animation, asset creation, UX/UI, graphics, design, games, and advanced creative workflows** with Claude (Artifacts, Skills, MCP, API).
+Scaffolding + reference pack for building **art, animation, graphics, UX/UI, games, audio, and dataviz** with Claude-native tooling — Artifacts, Skills, MCP, and the API.
 
-Designed to be mounted into a [Claude Project](https://support.claude.com/en/articles/9517075-what-are-projects) so that any conversation in that project is grounded in up-to-date Claude ecosystem facts and has ready-made scaffolds to work against.
+Designed to be mounted into a [Claude Project](https://support.claude.com/en/articles/9517075-what-are-projects) so every conversation is grounded in the same facts, follows the same defaults, and has ready-made scaffolds to build against.
+
+> Targets the Claude ecosystem as of **April 2026** — Opus 4.7, Sonnet 4.6, Haiku 4.5. See [`knowledge/99-caveats.md`](knowledge/99-caveats.md) for values Anthropic rotates silently.
 
 ---
 
-## What's in here
+## What's inside
 
-| Folder | Purpose |
+```
+knowledge/   11 re-chunked reference docs + index (the Project knowledge payload)
+skills/       7 Agent Skills in SKILL.md format
+artifacts/   12 single-file starters (7 HTML, 5 React/JSX)
+prompts/     10 ready-to-paste prompt scaffolds
+recipes/      4 end-to-end workflow narratives
+mcp/          1 working TypeScript MCP server + drop-in .mcp.json
+playground/  optional Vite + React + TS harness for off-sandbox iteration
+CLAUDE.md    routing rules + defaults (loaded into Project custom instructions)
+```
+
+### knowledge/ — the reference layer
+
+| File | Covers |
 |---|---|
-| `knowledge/` | Re-chunked reference — Claude ecosystem, skills, artifacts, animation, graphics, games, audio, dataviz, prompting, workflows, caveats. Load these into Claude Project knowledge. |
-| `prompts/` | Ready-to-paste prompt scaffolds for common creative tasks. |
-| `skills/` | Agent Skills (`SKILL.md` format) for artifact-game-builder, animation-composer, shader-smith, palette-generator, sprite-atlas-builder, ui-design-kit, procgen-toolkit. Drop into `~/.claude/skills/` or load per-project. |
-| `artifacts/` | Canonical single-file starters (HTML + React/JSX) that respect the real artifact sandbox — r128 Three.js, no arbitrary fetch, no localStorage. |
-| `mcp/` | A drop-in `.mcp.json` and a working TypeScript MCP server (`palette-oklch`). |
-| `recipes/` | End-to-end workflow narratives tying skills + prompts + artifacts + MCP together. |
-| `playground/` | *(Optional)* Vite + React + TS harness for iterating outside the artifact sandbox. |
+| [`01-claude-ecosystem.md`](knowledge/01-claude-ecosystem.md) | Models, pricing, tool use, caching, batch, thinking, MCP basics |
+| [`02-skills-system.md`](knowledge/02-skills-system.md) | Writing and evaluating a Skill |
+| [`03-artifacts.md`](knowledge/03-artifacts.md) | Artifact sandbox constraints — read before building in-artifact |
+| [`04-animation.md`](knowledge/04-animation.md) | CSS, GSAP, Motion, Anime, SVG, Canvas, easing |
+| [`05-graphics-design.md`](knowledge/05-graphics-design.md) | Design, typography, color, icons, Tailwind |
+| [`06-games.md`](knowledge/06-games.md) | Engines, ECS, 2D/3D, juice, procgen, pathfinding, AI, netcode |
+| [`07-audio.md`](knowledge/07-audio.md) | Tone.js, Web Audio, Howler, SFX, procedural music |
+| [`08-dataviz.md`](knowledge/08-dataviz.md) | Dataviz patterns and libraries |
+| [`09-prompting.md`](knowledge/09-prompting.md) | XML, few-shot, CoT, caching strategy, long-context |
+| [`10-workflows.md`](knowledge/10-workflows.md) | Skills + Artifacts + MCP together, critique loops, Claudeception |
+| [`99-caveats.md`](knowledge/99-caveats.md) | Values Anthropic silently rotates — check before hardcoding |
+
+### skills/ — 7 Agent Skills
+
+[`artifact-game-builder`](skills/artifact-game-builder/SKILL.md) · [`animation-composer`](skills/animation-composer/SKILL.md) · [`shader-smith`](skills/shader-smith/SKILL.md) · [`palette-generator`](skills/palette-generator/SKILL.md) · [`sprite-atlas-builder`](skills/sprite-atlas-builder/SKILL.md) · [`ui-design-kit`](skills/ui-design-kit/SKILL.md) · [`procgen-toolkit`](skills/procgen-toolkit/SKILL.md)
+
+### artifacts/ — sandbox-correct starters
+
+HTML: Three.js (r128), GSAP scroll story, Kaplay, Phaser 3, shader playground, procgen dungeon, Tone.js procedural music.
+React: bento-grid landing, kinetic typography, dataviz dashboard, ECS game starter, Claudeception critic loop.
+
+All respect the real artifact constraints: composite-only CSS, `window.storage` (not `localStorage`), allow-listed fetch, Three.js **r128 only**, no `CapsuleGeometry`, no `OrbitControls` from addons. See [`artifacts/README.md`](artifacts/README.md).
+
+### mcp/ — working server
+
+[`palette-oklch`](mcp/servers/palette-oklch) is a real TypeScript MCP server (not a placeholder) for generating WCAG-checked oklch color palettes. See [`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json) for the drop-in client config.
 
 ---
 
-## How to install into a Claude Project
+## Install
 
-1. Create a new Claude Project (`claude.ai` → New Project).
-2. **Paste** the contents of `CLAUDE.md` into the project's **Custom Instructions** field.
-3. **Upload** every file in `knowledge/` to the project's knowledge base. (Markdown, ≤30MB each, up to the project's 200k-token context.)
-4. Optionally upload any file from `prompts/` or `recipes/` you want Claude to reference directly.
-5. Start a new chat in the project. Claude now has the full reference plus routing instructions.
+### Into a Claude Project (primary use case)
 
-## How to use the skills
+1. Create a new Claude Project at [claude.ai](https://claude.ai).
+2. Paste [`CLAUDE.md`](CLAUDE.md) into the project's **Custom Instructions** field.
+3. Upload every file in [`knowledge/`](knowledge/) to the project's knowledge base.
+4. *(Optional)* Upload any [`prompts/`](prompts/) or [`recipes/`](recipes/) files you want Claude to reference directly.
+5. Start a new chat — Claude now has the full reference plus routing rules.
 
-- **Claude Code:** copy a skill folder into `~/.claude/skills/<skill-name>/` or run `/plugin add /path/to/claude-creative-stack/skills/<skill-name>` from the repo root.
-- **Claude.ai (Pro/Max/Team/Enterprise):** upload skills via the Skills panel.
-- **API:** upload to `/v1/skills` (requires `code-execution` tool).
+### Skills
 
-See [`skills/README.md`](skills/README.md) for details.
+- **Claude Code** — copy a skill folder into `~/.claude/skills/<skill-name>/`, or `/plugin add /path/to/claude-creative-stack/skills/<skill-name>`.
+- **Claude.ai (Pro/Max/Team/Enterprise)** — upload via the Skills panel.
+- **API** — upload to `/v1/skills` (requires `code-execution` tool).
 
-## How to use the artifacts
-
-- **Preview locally:** open any `artifacts/html/*.html` file directly in a browser. No build step.
-- **React artifacts:** they're `.jsx` files written against the artifact runtime's library whitelist. Paste into a Claude chat as a new artifact, or import into `playground/` to iterate.
-- **Remember the sandbox rules:** `artifacts/README.md` lists the real constraints (Three.js r128, allow-listed fetch, no `localStorage`, etc.).
-
-## How to use the MCP server
+### MCP server
 
 ```bash
 cd mcp/servers/palette-oklch
-npm install
-npm run build
+npm install && npm run build
 ```
 
-Then add to your `~/.claude.json` or project `.mcp.json` (see `mcp/configs/creative-stack.mcp.json` for a template).
+Then add it to `~/.claude.json` or a project `.mcp.json` using the template at [`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json).
+
+### Artifacts
+
+Open any [`artifacts/html/*.html`](artifacts/html/) directly in a browser — no build step. React starters are `.jsx` written against the artifact runtime's library whitelist; paste into a Claude chat, or import into [`playground/`](playground/) to iterate outside the sandbox.
 
 ---
 
-## Versioning
+## Defaults (enforced via `CLAUDE.md`)
 
-Targets **Claude ecosystem as of April 2026** (Opus 4.7, Sonnet 4.6, Haiku 4.5). Anthropic rotates pinned values (artifact library versions, artifact-embedded model IDs) silently — see [`knowledge/99-caveats.md`](knowledge/99-caveats.md).
+- Composite-only CSS props for animation (`transform`, `opacity`, `filter`) — never animate layout-triggering properties.
+- `oklch()` over hex/hsl; check WCAG contrast on paired text/background.
+- Three.js **r128** inside artifacts; no `CapsuleGeometry`; no `OrbitControls` from the addons path.
+- `window.storage`, not `localStorage`. Fetch only `api.anthropic.com/v1/messages` (key-less, billed to viewer).
+- Three-layer pipeline when shipping: **Skill** (determinism) → **Artifact** (live preview) → **MCP** (side-effects).
 
-## Related work (install these alongside)
+---
 
-This repo intentionally **does not duplicate** prior art. Install these alongside for deeper coverage:
+## Related work (install alongside)
 
-- **[anthropics/skills](https://github.com/anthropics/skills)** — official Anthropic skills (`docx`, `pptx`, `xlsx`, `pdf`, `algorithmic-art`, `canvas-design`, `frontend-design`, `web-artifacts-builder`, `theme-factory`, `skill-creator`, `mcp-builder`, `slack-gif-creator`, `brand-guidelines`). Load first; treat as the canonical layer.
-- **[greensock/gsap-skills](https://github.com/greensock/gsap-skills)** — official GSAP skills for AI agents. Our `animation-composer` skill references it rather than duplicating.
-- **[freshtechbro/claudedesignskills](https://github.com/freshtechbro/claudedesignskills)** — maintained 3D/animation skills marketplace for Claude Code (Three.js, R3F, Babylon.js, A-Frame, PlayCanvas, PixiJS, Motion, React Spring, Magic UI, Lottie, Anime.js, Rive, Blender, Spline). Install for deep 3D/animation work.
-- **[HermeticOrmus/claude-code-game-development](https://github.com/HermeticOrmus/claude-code-game-development)** — game dev patterns and workflows.
-- **[awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills)** / **[awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills)** — curated discovery lists.
-- **Plugin registries:** [buildwithclaude.com](https://buildwithclaude.com), [claudemarketplaces.com](https://claudemarketplaces.com), [claudepluginhub.com](https://www.claudepluginhub.com).
+This repo does **not** duplicate prior art. For deeper coverage, install in parallel:
 
-### What this repo adds on top
+- [anthropics/skills](https://github.com/anthropics/skills) — official skills (`docx`, `pptx`, `xlsx`, `pdf`, `algorithmic-art`, `canvas-design`, `frontend-design`, `web-artifacts-builder`, `theme-factory`, `skill-creator`, `mcp-builder`, `slack-gif-creator`, `brand-guidelines`).
+- [greensock/gsap-skills](https://github.com/greensock/gsap-skills) — official GSAP skills for agents.
+- [freshtechbro/claudedesignskills](https://github.com/freshtechbro/claudedesignskills) — maintained 3D/animation skills marketplace (Three.js, R3F, Babylon, A-Frame, PlayCanvas, Pixi, Motion, React Spring, Magic UI, Lottie, Anime, Rive, Blender, Spline).
+- [HermeticOrmus/claude-code-game-development](https://github.com/HermeticOrmus/claude-code-game-development) — game-dev patterns.
+- [awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills) / [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) — discovery lists.
+- Plugin registries: [buildwithclaude.com](https://buildwithclaude.com) · [claudemarketplaces.com](https://claudemarketplaces.com) · [claudepluginhub.com](https://www.claudepluginhub.com).
+
+### What this repo adds
 
 | Others | This repo |
 |---|---|
-| Claude Code-first skills marketplaces | **Claude Project-first** (web app + API), with `knowledge/` as the primary deliverable |
-| Skills only | Knowledge + prompts + skills + single-file artifacts + MCP + recipes, unified |
-| Configs and docs | A **real working MCP server** (`palette-oklch`) you can `npm install && run` |
-| Silent on version drift | `knowledge/99-caveats.md` calls out Anthropic-rotating values explicitly |
-| Animation/3D only | Full scope: art, animation, UX/UI, graphics, games, audio, dataviz, prompting, workflows |
+| Claude Code-first | **Claude Project-first** — `knowledge/` is the primary deliverable |
+| Skills only | Knowledge + prompts + skills + artifacts + MCP + recipes, unified |
+| Configs and docs | A **real** working MCP server you can `npm install && run` |
+| Silent on version drift | [`knowledge/99-caveats.md`](knowledge/99-caveats.md) calls it out explicitly |
+| Animation/3D only | Full creative scope: art, animation, UX/UI, graphics, games, audio, dataviz |
 
-## License
+---
+
+## License & contributing
 
 MIT — see [`LICENSE`](LICENSE).
 
-## Contributing
-
-Small team / friendly. Open an issue with a starter idea or a PR with a new skill; follow the `SKILL.md` format documented in [`knowledge/02-skills-system.md`](knowledge/02-skills-system.md).
+PRs welcome. New skills should follow the `SKILL.md` format documented in [`knowledge/02-skills-system.md`](knowledge/02-skills-system.md). Starter ideas → open an issue.
