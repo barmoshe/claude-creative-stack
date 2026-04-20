@@ -106,6 +106,36 @@ This repo does **not** duplicate prior art. For deeper coverage, install in para
 - [awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills) / [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) — discovery lists.
 - Plugin registries: [buildwithclaude.com](https://buildwithclaude.com) · [claudemarketplaces.com](https://claudemarketplaces.com) · [claudepluginhub.com](https://www.claudepluginhub.com).
 
+#### One-shot install via Claude Code plugin marketplaces
+
+```sh
+# Add the four marketplaces
+claude plugin marketplace add anthropics/skills
+claude plugin marketplace add greensock/gsap-skills
+claude plugin marketplace add freshtechbro/claudedesignskills
+claude plugin marketplace add HermeticOrmus/claude-code-game-development
+
+# Core skills
+claude plugin install example-skills@anthropic-agent-skills
+claude plugin install claude-api@anthropic-agent-skills
+claude plugin install gsap-skills@gsap-skills
+claude plugin install game-development@claude-code-workflows
+
+# Design-stack skills (3D, motion, scroll, components)
+for p in threejs-webgl react-three-fiber pixijs-2d animejs motion-framer \
+         lottie-animations rive-interactive gsap-scrolltrigger react-spring-physics \
+         babylonjs-engine playcanvas-engine aframe-webxr spline-interactive \
+         blender-web-pipeline modern-web-design lightweight-3d-effects \
+         scroll-reveal-libraries locomotive-scroll barba-js \
+         animated-component-libraries animation-components authoring-motion \
+         core-3d-animation extended-3d-scroll web3d-integration-patterns \
+         substance-3d-texturing meta-skills; do
+  claude plugin install "$p@claude-design-skillstack"
+done
+```
+
+Browse with `claude plugin list --available --json`; remove with `claude plugin uninstall <name>`.
+
 ### What this repo adds
 
 | Others | This repo |
