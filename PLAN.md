@@ -103,7 +103,7 @@ claude-creative-stack/
 │   ├── README.md
 │   ├── html/
 │   │   ├── three-r128-scene.html      # Three.js r128 scene w/ OrbitControls polyfill note
-│   │   ├── phaser3-platformer.html    # Phaser 3 w/ coyote + jump buffer
+│   │   ├── phaser3-platformer.html    # Phaser 4 w/ coyote + jump buffer
 │   │   ├── shader-playground.html     # Fragment shader live editor
 │   │   ├── gsap-scroll-story.html     # GSAP ScrollTrigger hero
 │   │   ├── procgen-dungeon.html       # BSP dungeon on canvas

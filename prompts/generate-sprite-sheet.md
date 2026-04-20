@@ -21,7 +21,7 @@ Style: {{PIXEL|CHIBI|MONO_SILHOUETTE|FLAT_VECTOR}}
 - Single HTML artifact; no external assets.
 - Draw frames to an offscreen `<canvas>` and export with `toDataURL`.
 - Keep final PNG under 2 MB (respect artifact 20 MB cap + other slots).
-- Atlas JSON compatible with Phaser 3 and Pixi v8 conventions.
+- Atlas JSON compatible with Phaser 4 and Pixi v8 conventions.
 - Include a 1 px transparent border per frame to avoid bleed.
 </constraints>
 
@@ -29,5 +29,5 @@ Style: {{PIXEL|CHIBI|MONO_SILHOUETTE|FLAT_VECTOR}}
 1. **Atlas plan** — table of animations, frame count, FPS.
 2. **JSON manifest** fenced code block.
 3. **HTML artifact** fenced code block — draws, exports, previews.
-4. **Integration snippet** — how to load the atlas in Phaser 3 + Pixi v8 (2 short code blocks).
+4. **Integration snippet** — how to load the atlas in Phaser 4 + Pixi v8 (2 short code blocks).
 </output_format>

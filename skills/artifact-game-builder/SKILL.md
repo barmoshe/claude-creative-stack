@@ -1,6 +1,6 @@
 ---
 name: artifact-game-builder
-description: Build a complete single-file playable game that runs as a Claude artifact. Use when the user wants a mini-game, game prototype, jam entry, playable demo, or interactive toy that must live in one HTML or React artifact. Handles engine selection (Canvas 2D, Phaser 3 via CDN, Pixi v8, Kaplay), fixed-timestep loop, input, state persistence via window.storage, and game-feel (hit-stop, screen shake). Do NOT use for full multi-file game projects or engine-specific deep-dives; use the engine's dedicated skills marketplaces for that.
+description: Build a complete single-file playable game that runs as a Claude artifact. Use when the user wants a mini-game, game prototype, jam entry, playable demo, or interactive toy that must live in one HTML or React artifact. Handles engine selection (Canvas 2D, Phaser 4 via CDN, Pixi v8, Kaplay), fixed-timestep loop, input, state persistence via window.storage, and game-feel (hit-stop, screen shake). Do NOT use for full multi-file game projects or engine-specific deep-dives; use the engine's dedicated skills marketplaces for that.
 license: MIT
 ---
 
@@ -26,7 +26,7 @@ Not this skill:
 1. **Clarify scope (one question, not three).** Genre, controls, win condition.
 2. **Pick an engine by scope:**
    - Micro (<200 LOC goal) → vanilla Canvas 2D.
-   - Small 2D with physics / tilemaps → Phaser 3 via CDN.
+   - Small 2D with physics / tilemaps → Phaser 4 via CDN (rebuilt renderer, unified Filter system, `SpriteGPULayer`).
    - High-perf 2D sprites / particles → Pixi v8 via CDN.
    - Fast, opinionated, tiny-API → Kaplay via CDN.
    - 3D → Three.js r128 (sandbox-pinned).
@@ -59,9 +59,9 @@ function frame(now){
 requestAnimationFrame(frame);
 ```
 
-### Phaser 3 via CDN (HTML artifact)
+### Phaser 4 via CDN (HTML artifact)
 ```html
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@4.0.0/dist/phaser.min.js"></script>
 <script>
   new Phaser.Game({
     type: Phaser.AUTO, width: 800, height: 600,

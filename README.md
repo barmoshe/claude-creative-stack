@@ -43,7 +43,7 @@ CLAUDE.md    routing rules + defaults (loaded into Project custom instructions)
 
 ### artifacts/ — sandbox-correct starters
 
-HTML: Three.js (r128), GSAP scroll story, Kaplay, Phaser 3, shader playground, procgen dungeon, Tone.js procedural music.
+HTML: Three.js (r128), GSAP scroll story, Kaplay, Phaser 4, shader playground, procgen dungeon, Tone.js procedural music.
 React: bento-grid landing, kinetic typography, dataviz dashboard, ECS game starter, Claudeception critic loop.
 
 All respect the real artifact constraints: composite-only CSS, `window.storage` (not `localStorage`), allow-listed fetch, Three.js **r128 only**, no `CapsuleGeometry`, no `OrbitControls` from addons. See [`artifacts/README.md`](artifacts/README.md).

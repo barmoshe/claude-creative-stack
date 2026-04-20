@@ -18,7 +18,7 @@ From `../knowledge/03-artifacts.md` and `../knowledge/99-caveats.md`:
 | File | What it demonstrates |
 |---|---|
 | [`html/three-r128-scene.html`](html/three-r128-scene.html) | Three.js r128 scene with inline OrbitControls polyfill. |
-| [`html/phaser3-platformer.html`](html/phaser3-platformer.html) | Phaser 3 via CDN — arcade physics, sprite, jump, ground collision. |
+| [`html/phaser3-platformer.html`](html/phaser3-platformer.html) | Phaser 4 via CDN — arcade physics, sprite, jump, ground collision. (Filename kept for link stability; file uses `phaser@4.0.0`.) |
 | [`html/shader-playground.html`](html/shader-playground.html) | WebGL2 + GLSL ES 3.00 fragment shader with uTime/uMouse/uResolution uniforms. |
 | [`html/gsap-scroll-story.html`](html/gsap-scroll-story.html) | GSAP ScrollTrigger horizontal-pin storytelling with reduced-motion fallback. |
 | [`html/procgen-dungeon.html`](html/procgen-dungeon.html) | Seeded BSP dungeon with regenerate button and editable seed. |

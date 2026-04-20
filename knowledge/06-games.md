@@ -4,8 +4,8 @@
 
 | Engine | Version | npm | CDN |
 |---|---|---|---|
-| Phaser 3 | 3.90.0 "Tsugumi" (likely last v3) | `phaser@3` | `https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js` |
-| Phaser 4 | 4.0.0 GA | `phaser` | `https://cdn.jsdelivr.net/npm/phaser@4.0.0/dist/phaser.min.js` |
+| **Phaser 4** (recommended) | 4.0.0 GA | `phaser` | `https://cdn.jsdelivr.net/npm/phaser@4.0.0/dist/phaser.min.js` |
+| Phaser 3 (legacy / migration only) | 3.90.0 "Tsugumi" (last v3) | `phaser@3` | `https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js` |
 | Pixi.js | v8.18.1 | `pixi.js` | `https://cdn.jsdelivr.net/npm/pixi.js@8.18.1/dist/pixi.min.mjs` |
 | Three.js | r183 / 0.183.2 | `three` | import map + `three/addons/` |
 | Three.js (artifacts) | r128 | — | `https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js` |
@@ -17,10 +17,10 @@
 | LittleJS | latest | `littlejsengine` | tiny zero-dep |
 | Cocos Creator | 3.x | — | IDE-driven, Web export |
 
-Phaser 3 minimal:
+Phaser 4 minimal:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@4.0.0/dist/phaser.min.js"></script>
 <script>
 const config = { type: Phaser.AUTO, width: 800, height: 600,
   physics: { default:'arcade', arcade: { gravity: { y: 300 }}},
@@ -38,6 +38,25 @@ function update(){
 }
 </script>
 ```
+
+**Why Phaser 4 over v3:**
+- Ground-up rebuilt WebGL renderer (node-based), proper context-loss handling, significantly faster across the board.
+- `SpriteGPULayer` — up to **1M sprites in a single draw call**, ~100× faster than v3 for heavy sprite loads.
+- **Unified Filter system** — v3's separate FX + Masks merged. Apply Blur, Glow, Shadow, Pixelate, ColorMatrix, Bloom, Vignette, Wipe, ImageLight, GradientMap, Quantize, etc. to any game object *or* camera.
+- New game objects: **Gradient**, **Noise** (Cell 2D/3D/4D, Simplex 2D/3D), **CaptureFrame**, **Stamp**.
+- Simpler lighting: `sprite.setLighting(true)` with self-shadows and explicit light height, works across most game objects.
+- Cleaner config-based Shader API with `#pragma` GLSL directives; TileSprite supports atlas frames and tile rotation.
+- Tint is split into color + mode with 6 modes: `MULTIPLY, FILL, ADD, SCREEN, OVERLAY, HARD_LIGHT`.
+
+**Migrating a v3 project:** standard-API projects usually port in a few hours — the common API surface (`Phaser.Game`, `Phaser.Scene`, `Phaser.AUTO`, arcade physics, `this.load.*`, `this.add.*`, keyboard input, `Phaser.Geom.Intersects.*`) is unchanged. Breaking changes to watch for:
+- `setTintFill()` removed → use `setTint()` + `setTintMode()`.
+- `Geom.Point` → `Vector2`.
+- `Mesh`, `Plane`, `Camera3D`, `Layer3D` removed.
+- Custom Phaser data structures replaced by native `Set` / `Map`.
+- Custom v3 WebGL pipelines must be rewritten as render nodes.
+- IE9 support dropped.
+
+Official migration guide: https://phaser.io/news/2026/04/migrating-from-phaser-3-to-phaser-4-what-you-need-to-know
 
 Pixi.js v8:
 

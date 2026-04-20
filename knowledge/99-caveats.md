@@ -8,7 +8,7 @@ When you're about to hardcode a version, model ID, or CDN URL, check here first.
 - **Artifact-pinned model** `claude-sonnet-4-20250514` is confirmed via community writeups (Simon Willison, artifact runner repos); not on a public Anthropic page.
 - **Extended thinking with `budget_tokens`** is deprecated on Opus 4.6+/Sonnet 4.6 — use adaptive thinking. Haiku 4.5 still supports legacy extended thinking.
 - **MCP SSE transport** is deprecated in favor of Streamable HTTP (spec 2025-03-26).
-- **Phaser 4** is GA but mostly backwards-compatible with v3; renderer rewrite may require migration.
+- **Phaser 4** is the recommended default (4.0.0 GA, April 2026). Rebuilt WebGL renderer, unified Filter system, `SpriteGPULayer` (~100× faster for large sprite counts). Standard-API v3 projects usually port in a few hours; only **custom v3 WebGL pipelines** must be rewritten as render nodes. Minor breaking changes: `setTintFill` → `setTint`+`setTintMode`, `Geom.Point` → `Vector2`, `Mesh`/`Plane`/`Camera3D`/`Layer3D` removed, custom data structures replaced by native `Set`/`Map`.
 - **Theatre.js 1.0** and **R3F v10** are in-development; v0.7.2 / v9.6 are the current stable releases.
 - **WebGPU** is cross-browser since Safari 26 (Sep 2025); WebGL2 remains the safer default fallback.
 - **View Transitions (same-document)** reached Baseline Newly Available in Oct 2025; cross-document requires Chrome 126+/Safari 18.2+ and is not in Firefox.

@@ -1,6 +1,6 @@
 ---
 name: sprite-atlas-builder
-description: Plan a sprite atlas — frame dimensions, animation list, layout, and JSON manifest — and optionally generate placeholder frames procedurally into a single exportable PNG. Use when the user asks for a sprite sheet, sprite atlas, character animation frames, tile atlas, or game-ready asset layout. Produces manifests compatible with Phaser 3 and Pixi v8 and documents the integration path.
+description: Plan a sprite atlas — frame dimensions, animation list, layout, and JSON manifest — and optionally generate placeholder frames procedurally into a single exportable PNG. Use when the user asks for a sprite sheet, sprite atlas, character animation frames, tile atlas, or game-ready asset layout. Produces manifests compatible with Phaser 4 and Pixi v8 and documents the integration path.
 license: MIT
 ---
 
@@ -25,7 +25,7 @@ Then decide layout:
 - Row-per-animation up to ~50 frames.
 - Packer (MaxRects) beyond that — implement a rect-packer in-skill or call the `scripts/packer.js` helper if present.
 
-## JSON manifest (Phaser + Pixi friendly)
+## JSON manifest (Phaser 4 + Pixi v8 friendly)
 
 ```json
 {
@@ -41,7 +41,7 @@ Then decide layout:
 }
 ```
 
-This format loads directly with `scene.load.atlas(key, imageUrl, jsonUrl)` in Phaser 3 and `Assets.load(jsonUrl)` in Pixi v8 (with a small adapter).
+This format loads directly with `scene.load.atlas(key, imageUrl, jsonUrl)` in Phaser 4 and `Assets.load(jsonUrl)` in Pixi v8 (with a small adapter).
 
 ## Placeholder generation strategy
 
@@ -55,7 +55,7 @@ Keep the PNG under 2 MB so it fits comfortably within the 20 MB `window.storage`
 
 ## Integration snippets
 
-### Phaser 3
+### Phaser 4
 ```js
 this.load.atlas("player", "atlas.png", "atlas.json");
 // in create:
@@ -75,7 +75,7 @@ sprite.play();
 1. **Atlas plan** — table of animations with frame counts and FPS.
 2. **JSON manifest** fenced block.
 3. **HTML generator artifact** fenced block (if placeholder art requested).
-4. **Integration snippet** — Phaser 3 + Pixi v8.
+4. **Integration snippet** — Phaser 4 + Pixi v8.
 
 ## Further reading
 
