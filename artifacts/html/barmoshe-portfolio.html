@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BAR MOSHE — v1.0.0</title>
+<meta name="description" content="Bar Moshe — Backend engineer, DevOps, AI. Systems that ship.">
+<script>
+  /* Pre-paint theme resolver — avoid flash. Runs before <body>. */
+  (function(){
+    try{
+      var saved = localStorage.getItem("bm:theme"); // "light" | "dark" | null (auto)
+      var mq = matchMedia("(prefers-color-scheme: dark)");
+      var dark = saved === "dark" || (saved !== "light" && mq.matches);
+      if (dark) document.documentElement.classList.add("dark");
+      document.documentElement.dataset.themePref = saved || "auto";
+    }catch(e){}
+  })();
+</script>
+<style>
+  :root{
+    --paper:    oklch(0.93 0.02 85);
+    --paper-2:  oklch(0.88 0.03 80);
+    --ink:      oklch(0.18 0.03 40);
+    --ink-soft: oklch(0.34 0.04 40);
+    --red:      oklch(0.58 0.22 25);
+    --blue:     oklch(0.45 0.16 250);
+    --green:    oklch(0.55 0.16 145);
+    --yellow:   oklch(0.86 0.17 90);
+    --magenta:  oklch(0.62 0.22 340);
+    --cyan:     oklch(0.80 0.14 200);
+    --shadow:   oklch(0.2 0.04 40 / .22);
+    --serif: "Iowan Old Style", "Georgia", ui-serif, serif;
+    --display: "Bodoni 72", "Didot", "Playfair Display", ui-serif, serif;
+    --mono: ui-monospace, "Courier New", "JetBrains Mono", monospace;
+    --hand: "Marker Felt", "Bradley Hand", "Comic Sans MS", cursive;
+  }
+  /* ── Dark theme (applied via html.dark, set by pre-paint script) ── */
+  html.dark{
+    --paper:    oklch(0.20 0.015 260);
+    --paper-2:  oklch(0.15 0.015 260);
+    --ink:      oklch(0.94 0.015 85);
+    --ink-soft: oklch(0.74 0.025 85);
+    --red:      oklch(0.72 0.20 25);
+    --blue:     oklch(0.78 0.14 240);
+    --green:    oklch(0.78 0.17 145);
+    --yellow:   oklch(0.88 0.17 90);
+    --magenta:  oklch(0.78 0.20 340);
+    --cyan:     oklch(0.85 0.14 200);
+    --shadow:   oklch(0 0 0 / .55);
+    --band:     oklch(0.08 0.02 260);
+    --band-fg:  oklch(0.94 0.015 85);
+  }
+  html.dark body{background-image:
+    radial-gradient(oklch(0.55 0.03 70 / .14) 1px, transparent 1px),
+    radial-gradient(oklch(0.55 0.03 70 / .08) 1px, transparent 1px),
+    linear-gradient(180deg, var(--paper), var(--paper-2))}
+  html.dark .grain{opacity:.18;mix-blend-mode:screen}
+  html.dark .crease{background:oklch(1 0 0 / .08);box-shadow:0 -1px 2px oklch(0 0 0 / .5)}
+  html.dark ::selection{background:var(--blue);color:var(--band)}
+
+  html.dark .page + .page{border-top-color:oklch(1 0 0 / .16)}
+
+  /* Dark-accent band (strip) — deeper than paper, light text */
+  html.dark .strip{background:var(--band);color:var(--band-fg);border-bottom-color:oklch(1 0 0 / .08)}
+  html.dark .strip a{color:var(--band-fg)}
+  html.dark .strip a:hover{background:transparent;color:var(--blue)}
+  html.dark .strip .toggle{color:var(--band-fg)}
+  html.dark .strip .toggle:hover{background:transparent;color:var(--blue)}
+  html.dark .strip .mark{color:var(--blue)}
+
+  /* CTAs — keep dark button, blue offset */
+  html.dark .enter{background:var(--band);color:var(--band-fg);box-shadow:6px 6px 0 var(--blue)}
+  html.dark .enter:hover{background:var(--blue);color:var(--band);box-shadow:8px 8px 0 var(--band-fg)}
+  html.dark .enter:active{box-shadow:2px 2px 0 var(--blue)}
+
+  /* Letter form */
+  html.dark .letter input,html.dark .letter textarea{color:var(--ink)}
+  html.dark .letter input{background-image:repeating-linear-gradient(0deg, transparent 0 28px, oklch(1 0 0 / .10) 28px 29px)}
+  html.dark .letter textarea{background-image:repeating-linear-gradient(0deg, transparent 0 28px, oklch(1 0 0 / .14) 28px 29px)}
+  html.dark .letter .send{background:var(--band);color:var(--band-fg);box-shadow:6px 6px 0 var(--blue)}
+  html.dark .letter .send:hover{background:var(--blue);color:var(--band);box-shadow:6px 6px 0 var(--band-fg)}
+
+  /* Cards / surfaces */
+  html.dark .skill{background:oklch(0.26 0.02 260)}
+  html.dark .clip article{background:oklch(0.24 0.02 260)}
+  html.dark .clip article .head{background:oklch(0.18 0.02 260)}
+  html.dark .clip article .t{color:var(--paper)}
+  html.dark .clip article .go{border-top-color:oklch(0.4 0.02 260)}
+  html.dark .id-card{background:oklch(0.24 0.02 260)}
+  html.dark .letter{background:oklch(0.24 0.02 260)}
+  html.dark .lb-panel{background:oklch(0.24 0.02 260)}
+
+  /* Misc */
+  html.dark .lb-close{color:var(--band)}
+  html.dark .rule{background:var(--ink-soft)}
+  html.dark .rule::after{background:var(--ink-soft)}
+  html.dark .clip article .num{color:var(--band)}
+  html.dark .letter .send,html.dark .enter{color:var(--band-fg)}
+
+  /* Theme toggle button */
+  .theme-btn{font-family:var(--mono);font-size:14px;letter-spacing:.1em;line-height:1;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--serif);line-height:1.55}
+  body{overflow-x:hidden;
+    background-image:
+      radial-gradient(oklch(0.78 0.05 70 / .35) 1px, transparent 1px),
+      radial-gradient(oklch(0.78 0.05 70 / .22) 1px, transparent 1px),
+      linear-gradient(180deg, var(--paper), var(--paper-2));
+    background-size: 3px 3px, 7px 7px, 100% 100%;
+    background-position: 0 0, 1px 2px, 0 0;
+  }
+  ::selection{background:var(--yellow);color:var(--ink)}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+  a{color:var(--blue);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+  a:hover{background:var(--yellow)}
+  :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+  .grain{position:fixed;inset:0;pointer-events:none;z-index:40;opacity:.4;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.15  0 0 0 0 0.1  0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+  .crease{display:none}
+
+  .boot{position:fixed;inset:0;z-index:100;background:var(--paper);display:grid;place-items:center;
+    min-height:100svh;padding:6vw;padding-top:max(6vw,env(safe-area-inset-top));padding-bottom:max(6vw,env(safe-area-inset-bottom));transition:opacity .5s, transform .6s ease}
+  .boot.gone{opacity:0;transform:translateY(-24px);pointer-events:none}
+  .cover{max-width:640px;width:100%;position:relative;text-align:center}
+  .cover .tape{display:none}
+  .cover .barcode{display:none}
+  .issue{display:none}
+  .version-tag{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:lowercase;color:var(--ink-soft);margin-bottom:28px;display:inline-block}
+  .version-tag::before{content:"// "}
+  .mast{font-family:var(--display);font-weight:700;line-height:.95;margin:0;font-size:clamp(2.4rem, 10vw, 7rem);letter-spacing:-.03em}
+  .mast-tag{display:block;font-family:var(--display);font-weight:400;font-style:normal;font-size:clamp(1.2rem, 2.8vw, 1.8rem);color:var(--ink-soft);margin-top:10px;letter-spacing:-.01em}
+  .mast-tag em{font-style:italic;color:var(--blue);font-weight:700}
+  .sub{font-family:var(--mono);font-size:clamp(.82rem, 1.4vw, .95rem);margin:26px 0 0;color:var(--ink-soft);max-width:48ch;letter-spacing:.15em;text-transform:uppercase;margin-left:auto;margin-right:auto}
+  .bullets{display:none}
+  .enter{display:inline-flex;align-items:center;gap:12px;margin-top:44px;font-family:var(--display);font-weight:700;font-size:1.3rem;color:var(--paper);background:var(--ink);padding:16px 32px;border:0;cursor:pointer;box-shadow:6px 6px 0 var(--blue);transition:transform .18s ease, box-shadow .18s ease, background .18s ease;text-decoration:none;letter-spacing:-.01em}
+  .enter:hover{transform:translate(-2px,-2px);background:var(--blue);box-shadow:8px 8px 0 var(--ink)}
+  .enter:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--blue)}
+  .enter::after{content:"→";font-size:1.4rem;transition:transform .2s ease}
+  .enter:hover::after{transform:translateX(4px)}
+  .enter-hint{display:block;margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.15em;text-transform:uppercase}
+  @keyframes pulse{0%,100%{box-shadow:6px 6px 0 var(--blue)} 50%{box-shadow:8px 8px 0 var(--blue)}}
+  .enter.pulse{animation:pulse 2.2s ease-in-out infinite}
+  .boot{cursor:pointer}
+
+  .strip{position:sticky;top:0;z-index:30;background:var(--ink);color:var(--paper);
+    display:flex;align-items:center;gap:22px;padding:0 22px;height:44px;
+    padding-top:env(safe-area-inset-top);padding-left:max(22px,env(safe-area-inset-left));padding-right:max(22px,env(safe-area-inset-right));
+    font-family:var(--mono);font-size:12px;letter-spacing:0;text-transform:none;
+    border-bottom:1px solid oklch(1 0 0 / .08);}
+  .strip .mark{color:var(--blue);font-weight:600;margin-right:6px;opacity:.95}
+  .strip a{color:var(--paper);text-decoration:none;padding:0 8px;min-height:44px;height:100%;display:inline-flex;align-items:center;border:0;opacity:.72;transition:opacity .15s ease, color .15s ease}
+  .strip a:hover{background:transparent;color:var(--blue);opacity:1}
+  .strip .grow{flex:1}
+  .strip .toggle{padding:0 8px;min-width:44px;min-height:44px;height:100%;display:inline-flex;align-items:center;justify-content:center;border:0;opacity:.72;transition:opacity .15s ease, color .15s ease}
+  .strip .toggle:hover{background:transparent;color:var(--blue);opacity:1}
+  @media (max-width:820px){.strip a{display:none}.strip #skipBtn{display:none}}
+
+  /* ── Bottom tab bar (mobile nav) ── */
+  .tabbar{display:none}
+  @media (max-width:820px){
+    .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:35;
+      background:var(--ink);color:var(--paper);
+      border-top:1px solid oklch(1 0 0 / .10);
+      padding-bottom:env(safe-area-inset-bottom);
+      padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);
+      box-shadow:0 -6px 20px oklch(0 0 0 / .18);
+      font-family:var(--mono);}
+    .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+      min-height:56px;padding:8px 4px;color:var(--paper);text-decoration:none;opacity:.7;
+      font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+      transition:opacity .15s ease, color .15s ease, background .15s ease;
+      border-top:2px solid transparent}
+    .tabbar a:hover,.tabbar a:focus-visible{background:transparent;opacity:1;color:var(--blue);outline:none}
+    .tabbar a[aria-current="true"]{opacity:1;color:var(--blue);border-top-color:var(--blue)}
+    .tabbar svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    /* Reserve space so fixed bar doesn't cover content */
+    body{padding-bottom:calc(56px + env(safe-area-inset-bottom))}
+  }
+  html.dark .tabbar{background:var(--band,oklch(0.08 0.02 260));color:var(--band-fg,oklch(0.94 0.015 85))}
+  html.dark .tabbar a{color:var(--band-fg,oklch(0.94 0.015 85))}
+
+  /* Anchor scroll offsets under the sticky strip */
+  :target{scroll-margin-top:56px}
+  .page{scroll-margin-top:56px}
+
+  .page{max-width:1180px;margin:0 auto;padding:clamp(40px,8vw,72px) clamp(18px,6vw,48px);position:relative}
+  .page + .page{border-top:1px dashed oklch(0 0 0 / .2)}
+  .folio{position:absolute;top:16px;right:24px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--ink-soft);text-transform:uppercase}
+  .folio b{color:var(--blue)}
+  .headline{font-family:var(--display);font-weight:700;line-height:.95;margin:0;letter-spacing:-.015em;
+    font-size:clamp(2rem,7vw,5.2rem)}
+  .dek{font-family:var(--serif);font-style:italic;color:var(--ink-soft);font-size:clamp(1.05rem,1.6vw,1.25rem);max-width:58ch;margin:12px 0 0}
+  .rule{display:block;height:6px;background:var(--ink);margin:28px 0;border:0;position:relative}
+  .rule::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:1px;background:var(--ink)}
+
+  .marker{display:inline-block;font-family:var(--hand);color:var(--blue);transform:rotate(-2deg)}
+  .stamp{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--blue);border:2px solid var(--blue);padding:4px 10px;transform:rotate(-3deg)}
+
+  #dossier{display:grid;grid-template-columns:minmax(220px, 320px) 1fr;gap:52px;align-items:start}
+  @media (max-width:820px){#dossier{grid-template-columns:1fr;gap:28px}}
+  @media (max-width:480px){.id-card{transform:none;margin-top:0}}
+  .id-card{position:relative;background:var(--paper);
+    border:1.5px solid var(--ink);padding:16px;
+    transform:rotate(-1.5deg);
+    box-shadow:6px 8px 0 var(--ink), 6px 8px 0 1px var(--ink);
+    margin-top:10px}
+  .id-card .tape{display:none}
+  .mug{aspect-ratio:4/5;background:
+      linear-gradient(135deg, oklch(0.45 0.16 250), oklch(0.6 0.18 200), oklch(0.35 0.12 260));
+    position:relative;overflow:hidden;border:1px solid var(--ink);display:grid;place-items:center;isolation:isolate}
+  .mug::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:
+    repeating-linear-gradient(45deg, oklch(0 0 0 / .08) 0 2px, transparent 2px 6px);mix-blend-mode:multiply}
+  html.dark .mug::after{mix-blend-mode:screen;background:
+    repeating-linear-gradient(45deg, oklch(1 0 0 / .05) 0 2px, transparent 2px 6px)}
+
+  /* Slideshow */
+  .mug .slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;filter:blur(14px) saturate(.6);
+    transition:opacity .9s ease, filter .9s ease, clip-path .9s cubic-bezier(.6,.2,.2,1), transform .9s ease;
+    clip-path:inset(0 0 0 0);will-change:opacity,filter,clip-path;z-index:1}
+  .mug .slide.is-active{opacity:1;filter:blur(0) saturate(1);z-index:2}
+  /* Per-transition entrance variants applied only while entering */
+  .mug .slide.is-enter[data-fx="iris"]   {clip-path:circle(0% at 50% 50%)}
+  .mug .slide.is-active[data-fx="iris"]  {clip-path:circle(75% at 50% 50%)}
+  .mug .slide.is-enter[data-fx="wipe"]   {clip-path:inset(0 100% 0 0)}
+  .mug .slide.is-active[data-fx="wipe"]  {clip-path:inset(0 0 0 0)}
+  .mug .slide.is-enter[data-fx="blinds"] {clip-path:polygon(0 0,100% 0,100% 0,0 0)}
+  .mug .slide.is-active[data-fx="blinds"]{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+  .mug .slide.is-enter[data-fx="skew"]   {transform:translateX(10%) skewX(-8deg);opacity:0}
+  .mug .slide.is-active[data-fx="skew"]  {transform:translateX(0) skewX(0)}
+  .mug .slide.is-enter[data-fx="fade"]   {filter:blur(22px) saturate(.4)}
+  .mug .slide.is-active[data-fx="fade"]  {filter:blur(0) saturate(1.05)}
+
+  .mug .slide-caption{position:absolute;left:10px;bottom:10px;z-index:4;
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:oklch(0.98 0 0 / .92);background:oklch(0 0 0 / .45);padding:4px 8px;
+    backdrop-filter:blur(4px);border:1px solid oklch(1 0 0 / .2);
+    transition:opacity .5s ease, transform .5s ease;opacity:.9}
+  .mug .slide-dots{position:absolute;right:10px;bottom:10px;z-index:4;display:flex;gap:6px}
+  .mug .slide-dots button{width:8px;height:8px;border-radius:50%;border:1px solid oklch(1 0 0 / .7);
+    background:oklch(1 0 0 / .25);padding:0;cursor:pointer;transition:all .3s ease}
+  .mug .slide-dots button[aria-current="true"]{background:oklch(1 0 0 / .95);transform:scale(1.35)}
+  @media (prefers-reduced-motion: reduce){
+    .mug .slide{transition:opacity .3s linear}
+    .mug .slide.is-active{filter:none;clip-path:inset(0)}
+  }
+  .id-meta{font-family:var(--mono);font-size:12px;letter-spacing:0;text-transform:lowercase;margin-top:12px;border-top:1px solid var(--ink);padding-top:12px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}
+  .id-meta b{color:var(--blue)}
+
+  .bio .byline{font-family:var(--mono);font-size:12px;letter-spacing:0;text-transform:none;color:var(--ink-soft)}
+  .bio .byline::before{content:"// ";color:var(--blue)}
+  .bio h1{font-family:var(--display);font-weight:700;line-height:1;font-size:clamp(2.4rem,6vw,4.4rem);margin:10px 0 0;letter-spacing:-.02em}
+  .bio h1 em{font-style:italic;color:var(--blue)}
+  .drop p{font-family:var(--serif);font-size:1.05rem;line-height:1.7;margin:22px 0 0;max-width:62ch;text-align:left;hyphens:none}
+  .drop p::first-letter{font-size:inherit;color:inherit;float:none;padding:0;font-weight:inherit;font-family:inherit}
+
+  .skills{margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}
+  .skill{position:relative;padding:14px 16px;background:oklch(0.96 0.02 85);
+    border:1.5px solid var(--ink);transform:rotate(var(--r,-1deg))}
+  .skill:nth-child(even){transform:rotate(var(--r2,1.2deg))}
+  .skill .k{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+  .skill .v{font-family:var(--display);font-size:2.4rem;line-height:1;margin-top:4px}
+  .skill .v sup{font-family:var(--mono);font-size:.85rem;color:var(--blue);vertical-align:super;margin-left:4px}
+  .skill .note{font-family:var(--hand);color:var(--blue);font-size:16px;position:absolute;right:-10px;top:-16px;transform:rotate(8deg)}
+
+  .toolline{margin-top:26px;font-family:var(--serif);font-size:1.05rem}
+  .toolline b{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin-right:10px}
+
+  .zone{margin-top:20px}
+  .zone-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:8px}
+  .zone-head .side{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)}
+  .pull{font-family:var(--display);font-style:italic;font-size:clamp(1.4rem,2.6vw,2rem);line-height:1.25;
+    border-left:6px solid var(--blue);padding:4px 0 4px 16px;margin:22px 0 32px;max-width:28ch;color:var(--ink)}
+
+  .clip{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px;align-items:stretch}
+  .clip article{position:relative;cursor:pointer;display:flex;flex-direction:column;
+    background:var(--paper);border:1.5px solid var(--ink);
+    transition:transform .25s ease, box-shadow .25s ease;
+    box-shadow:5px 6px 0 var(--ink);
+    container-type:inline-size}
+  @container (max-width: 280px){
+    .clip article .head{flex-wrap:wrap;gap:6px}
+    .clip article .t{font-size:1.15rem}
+  }
+  .clip article:hover{transform:translate(-2px,-3px);box-shadow:8px 10px 0 var(--blue)}
+  .clip article .head{display:flex;align-items:center;gap:10px;padding:8px 12px;
+    border-bottom:1px solid var(--ink);background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px}
+  .clip article .dots{display:inline-flex;gap:5px}
+  .clip article .dots i{width:9px;height:9px;border-radius:50%;background:var(--paper);opacity:.55}
+  .clip article .path{letter-spacing:.04em;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .clip article .body{display:flex;flex-direction:column;gap:10px;padding:16px 18px 18px;flex:1}
+  .clip article .meta{display:flex;align-items:center;gap:10px}
+  .clip article .glyph{font-family:var(--mono);font-weight:700;font-size:13px;color:var(--paper);background:var(--blue);
+    padding:4px 8px;border:1.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+  .clip article .lang{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;color:var(--ink-soft);text-transform:uppercase}
+  .clip article .t{margin:0;font-family:var(--display);font-weight:700;font-size:1.35rem;line-height:1.1;letter-spacing:-.01em;color:var(--ink)}
+  .clip article .d{margin:0;font-family:var(--serif);font-size:.95rem;line-height:1.45;color:var(--ink-soft)}
+  .clip article .go{margin-top:auto;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);padding-top:8px;border-top:1px dashed var(--ink-soft)}
+  .clip article .num{position:absolute;top:-12px;right:-12px;background:var(--blue);color:var(--paper);font-family:var(--display);font-weight:700;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;transform:rotate(8deg);box-shadow:2px 2px 0 var(--ink);z-index:10;font-size:13px}
+
+  .letter{position:relative;background:var(--paper);border:1.5px solid var(--ink);
+    padding:clamp(16px,4vw,32px);max-width:680px;margin:30px auto;transform:rotate(-.6deg);
+    box-shadow:10px 12px 0 var(--ink)}
+  @media (max-width:480px){.letter{transform:none}}
+  .letter::before{display:none}
+  .letter h2{font-family:var(--display);font-size:clamp(2rem,4.6vw,3rem);margin:0 0 8px;line-height:1}
+  .letter p.from{font-family:var(--hand);color:var(--blue);font-size:22px;transform:rotate(-2deg);margin:0 0 20px}
+  .letter .lines{display:grid;gap:14px}
+  .letter label{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);display:block}
+  .letter input,.letter textarea{width:100%;font:inherit;font-family:var(--serif);font-size:1.05rem;
+    background:transparent;border:0;border-bottom:2px solid var(--ink);padding:6px 2px;
+    background-image:repeating-linear-gradient(0deg, transparent 0 28px, oklch(0 0 0 / .08) 28px 29px);
+    background-position:0 100%;background-size:100% 0;}
+  .letter textarea{min-height:140px;resize:vertical;
+    background-image:repeating-linear-gradient(0deg, transparent 0 28px, oklch(0 0 0 / .12) 28px 29px);
+    background-size:100% 100%;border:0;border-bottom:0;padding:4px 2px}
+  .letter .send{margin-top:18px;display:inline-block;font-family:var(--display);font-weight:700;font-size:1.6rem;
+    background:var(--ink);color:var(--paper);padding:10px 22px;border:0;transform:rotate(-1deg);
+    box-shadow:6px 6px 0 var(--blue)}
+  .letter .send:hover{background:var(--blue);box-shadow:6px 6px 0 var(--ink)}
+  .letter .stamp-corner{position:absolute;top:14px;right:14px;width:84px;height:104px;border:2px dashed var(--ink);z-index:2;
+    display:grid;place-items:center;transform:rotate(6deg);padding:8px;text-align:center;
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--blue);line-height:1.3}
+  .letter .stamp-corner b{font-family:var(--display);font-size:1.4rem;display:block;color:var(--ink);margin-bottom:4px}
+
+  /* Index columns (used on Page 02 · Path) */
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px}
+  .cols h3{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);margin:0 0 10px}
+  .cols p,.cols li{font-family:var(--serif);margin:0 0 8px;color:var(--ink-soft);line-height:1.5}
+  .cols li strong{color:var(--ink)}
+  .cols ul{padding-left:18px;margin:0}
+
+  .lb{position:fixed;inset:0;z-index:60;background:oklch(0 0 0 / .6);display:none;place-items:center;padding:5vw}
+  .lb.open{display:grid}
+  .lb-panel{position:relative;max-width:900px;width:100%;background:var(--paper);border:1.5px solid var(--ink);
+    box-shadow:12px 14px 0 var(--ink);transform:rotate(-.6deg)}
+  .lb-panel .tape{display:none}
+  .lb-panel .grid{display:grid;grid-template-columns:1.2fr 1fr;gap:0}
+  @media (max-width:760px){.lb-panel .grid{grid-template-columns:1fr}}
+  .lb-art{aspect-ratio:4/3;border-right:1.5px solid var(--ink);position:relative;overflow:hidden;background:oklch(0.45 0.16 250);display:flex;align-items:center;justify-content:center;font-family:var(--mono);color:var(--paper);font-size:48px}
+  .lb-art::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg, oklch(0 0 0 / .06) 0 1px, transparent 1px 3px);mix-blend-mode:multiply}
+  .lb-body{padding:22px 24px}
+  .lb-body .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue)}
+  .lb-body h3{font-family:var(--display);font-size:1.8rem;margin:4px 0 6px;line-height:1}
+  .lb-body p{margin:6px 0;color:var(--ink-soft)}
+  .lb-body a{color:var(--blue)}
+  .lb-close{position:absolute;top:-16px;right:-16px;background:var(--blue);color:var(--paper);width:40px;height:40px;border-radius:50%;font-family:var(--display);font-size:22px;box-shadow:3px 3px 0 var(--ink)}
+  .lb-tags{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--ink-soft);margin-top:10px;line-height:1.6}
+
+  .shake{animation:shake .18s linear}
+  @keyframes shake{
+    0%,100%{transform:translate(0,0)}
+    25%{transform:translate(-4px,2px)}
+    50%{transform:translate(3px,-2px)}
+    75%{transform:translate(-2px,3px)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;transition:none !important;transform:none !important}
+    .id-card,.letter,.skill,.pull,.clip article{transform:none !important}
+    .enter.pulse{animation:none !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+<div class="crease" aria-hidden="true"></div>
+
+<!-- ───── Cover ───── -->
+<div class="boot" id="boot" role="dialog" aria-label="Cover">
+  <div class="cover">
+    <span class="version-tag">v1.0.0</span>
+    <h1 class="mast">BAR MOSHE<span class="mast-tag">only a <em>prompt</em> away.</span></h1>
+    <p class="sub">Full-Stack · AI · Builder</p>
+    <button class="enter pulse" id="enter" type="button" aria-label="Enter portfolio">Enter the portfolio</button>
+    <div class="enter-hint">press any key · or click anywhere</div>
+  </div>
+</div>
+
+<!-- ───── Nav strip ───── -->
+<nav class="strip" aria-label="Primary">
+  <span class="mark">bm@v1.0.0</span>
+  <a class="key" href="#dossier">About</a>
+  <a class="key" href="#story">Story</a>
+  <a href="#experience">Work</a>
+  <a href="#repos">Open Source</a>
+  <a href="#music">Music</a>
+  <a href="#notes">Notes</a>
+  <a href="#letter">Contact</a>
+  <span class="grow"></span>
+  <button class="toggle theme-btn" id="themeBtn" type="button" title="Theme: auto / light / dark" aria-label="Toggle theme">🌓</button>
+  <button class="toggle" id="skipBtn" title="Remember: skip cover">Remember me</button>
+</nav>
+
+<main>
+
+<!-- ───── Page 01 · Dossier ───── -->
+<article class="page" id="dossier">
+  <div class="folio"><b>01</b> // WHOAMI</div>
+
+  <aside class="id-card">
+    <span class="tape" aria-hidden="true"></span>
+    <div class="mug" id="heroSlides" aria-label="Bar Moshe — portrait variations">
+      <img class="slide" src="assets/portraits/img0.png" alt="Bar Moshe — painting" data-caption="oil · painted">
+      <img class="slide" src="assets/portraits/img1.png" alt="Bar Moshe — sketch"   data-caption="pencil · notebook">
+      <img class="slide" src="assets/portraits/img2.png" alt="Bar Moshe — photo"    data-caption="photo">
+      <img class="slide" src="assets/portraits/img3.png" alt="Bar Moshe — cubist"   data-caption="cubist · study">
+      <img class="slide" src="assets/portraits/img4.png" alt="Bar Moshe — 3d"       data-caption="3d · render">
+    </div>
+    <div class="id-meta">
+      <b>NAME</b><span>Bar Moshe</span>
+      <b>ROLE</b><span>Software Engineer</span>
+      <b>FOCUS</b><span>Full-Stack · AI-native · Builder</span>
+      <b>REACH</b><span><a href="https://github.com/barmoshe" target="_blank">github.com/barmoshe</a></span>
+    </div>
+  </aside>
+
+  <div class="bio">
+    <p class="byline">From idea to the thing that runs — with people, with AI, with whatever.</p>
+    <h1>Most things <em>just need</em><br>doing.</h1>
+    <div class="drop">
+      <p>I'm Bar — a full-stack engineer with a builder's habit and an AI-native reflex. I like closing the gap between an idea and the thing that runs it: a feature shipped, a script that saves someone an afternoon, a weekend experiment that quietly becomes a tool I use daily.</p>
+    </div>
+
+    <p>I make software for a living and keep making it on the side — small tools, music-leaning experiments, half-formed ideas pulled forward until they hold. The through-line isn't a stack or a title; it's the habit of <em>starting</em>, and being only a prompt away from the next version.</p>
+
+    <p class="toolline"><b>WORKING ON</b>
+      Full-stack product work · AI-assisted tooling · small things that make bigger things possible.
+    </p>
+  </div>
+</article>
+
+<!-- ───── Page 02 · Path (index style) ───── -->
+<article class="page" id="story">
+  <div class="folio"><b>02</b> // PATH</div>
+  <span class="stamp">A PATH</span>
+  <h2 class="headline">Got here by <em>doing things.</em></h2>
+  <p class="dek">Music school → CS degree → shipping full-stack now. Not a straight line, but a line nonetheless.</p>
+  <hr class="rule">
+
+  <div class="cols" style="margin-top:32px">
+    <div>
+      <h3>Now</h3>
+      <ul>
+        <li><strong>Joomsy</strong> — Software Engineer, Full-Stack. May 2025–present.</li>
+        <li><strong>Wochit</strong> — Customer Support Engineer. Nov 2021–present.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Education</h3>
+      <ul>
+        <li><strong>Afeka</strong> — B.S. Computer Science</li>
+        <li><strong>Wix</strong> — DevOps Workshop</li>
+        <li><strong>Coding Academy</strong> — Full-Stack BootCamp</li>
+        <li><strong>BPM College</strong> — Music</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Top Projects</h3>
+      <ul>
+        <li><strong>claude-creative-stack</strong> — Knowledge base for creative AI work.</li>
+        <li><strong>temporal-data-processing</strong> — Polyglot workflow featured on Temporal's Code Exchange.</li>
+        <li><strong>Isralify</strong> — Spotify clone, full-stack.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:40px;background:var(--paper);border:1.5px solid var(--blue);padding:18px;transform:rotate(1.2deg);box-shadow:5px 6px 0 var(--blue)">
+    <p style="margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)">How I work</p>
+    <p style="margin:10px 0 0;font-style:italic;color:var(--ink)">Start small. Ship early. Listen to whoever's using it. Fix what actually matters.</p>
+  </div>
+</article>
+
+<!-- ───── Page 03 · Experience ───── -->
+<article class="page" id="experience">
+  <div class="folio"><b>03</b> // DEPLOYMENTS</div>
+  <span class="stamp">EXPERIENCE</span>
+  <h2 class="headline">Experience.</h2>
+  <p class="dek">Paid work and self-directed work. All of it has shaped how I build.</p>
+
+  <div style="margin-top:40px;display:grid;gap:32px">
+    <div style="background:var(--paper);border:1.5px solid var(--ink);padding:24px;transform:rotate(-.8deg);box-shadow:6px 7px 0 var(--ink)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <h3 style="font-family:var(--display);font-size:1.6rem;margin:0">Joomsy <a href="https://www.joomsy.com" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--blue);text-decoration:none;margin-left:8px">joomsy.com →</a></h3>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--ink-soft)">May 2025 – Present</span>
+      </div>
+      <p style="margin:0;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--blue)">Software Engineer, Full-Stack</p>
+      <p style="margin:10px 0 0;color:var(--ink-soft)">Early-stage startup. Five-person team. Primary developer owning full-stack architecture and database design, plus the deploy pipeline and infra it runs on. Every layer — frontend, backend, the plumbing between — shaped as the product finds its shape.</p>
+    </div>
+
+    <div style="background:var(--paper);border:1.5px solid var(--ink);padding:24px;transform:rotate(.9deg);box-shadow:6px 7px 0 var(--ink)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <h3 style="font-family:var(--display);font-size:1.6rem;margin:0">Wochit</h3>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--ink-soft)">Nov 2021 – Present (4+ years)</span>
+      </div>
+      <p style="margin:0;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--blue)">Customer Support Engineer</p>
+      <p style="margin:10px 0 0;color:var(--ink-soft)">Cloud-based video editing platform at scale. Helping users navigate and optimize their experience via ZenDesk, Jira, and Intercom. Troubleshooting issues, collaborating with dev teams to ship fixes and feature improvements, and writing small JavaScript scripts to automate internal workflows.</p>
+    </div>
+
+    <div style="background:var(--paper);border:1.5px solid var(--ink);padding:24px;transform:rotate(-.4deg);box-shadow:6px 7px 0 var(--ink)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <h3 style="font-family:var(--display);font-size:1.6rem;margin:0">Self-directed work</h3>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--ink-soft)">Ongoing</span>
+      </div>
+      <p style="margin:0;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--blue)">Builder / Maker / Hobbyist</p>
+      <p style="margin:10px 0 0;color:var(--ink-soft)">A lot of my work happens on my own time. I follow what I'm curious about and don't limit myself to one role or field. I build across the stack and different areas, including fullstack, DevOps, product design, creative coding, and game development. A wide variety of projects fall into this space, some of which you can see in <a href="#notes" style="color:var(--blue)">Dispatches</a> or on <a href="https://github.com/barmoshe" target="_blank" rel="noopener" style="color:var(--blue)">GitHub</a>.</p>
+    </div>
+  </div>
+</article>
+
+<!-- ───── Page 04 · Open Source ───── -->
+<article class="page" id="repos">
+  <div class="folio"><b>04</b> // REPOS</div>
+  <span class="stamp">ON GITHUB</span>
+  <h2 class="headline">A few of the <em>many things</em> I've built.</h2>
+  <div class="clip" id="proj-grid" style="margin-top:28px"></div>
+
+  <aside class="gh-cta" style="margin-top:40px;background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);padding:22px 26px;box-shadow:6px 8px 0 var(--blue);display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between">
+    <div>
+      <p style="margin:0;font-family:var(--mono);font-size:10.5px;letter-spacing:.25em;text-transform:uppercase;color:var(--blue)">More on GitHub</p>
+      <p style="margin:4px 0 0;font-family:var(--serif);color:oklch(0.9 0.02 85);font-size:.98rem">Experiments, scripts, and half-built ideas — all public.</p>
+    </div>
+    <a href="https://github.com/barmoshe" target="_blank" rel="noopener"
+       style="font-family:var(--mono);font-weight:700;font-size:.95rem;letter-spacing:.06em;color:var(--ink);background:var(--paper);padding:10px 18px;text-decoration:none;box-shadow:4px 4px 0 var(--blue);white-space:nowrap">
+      github.com/barmoshe →
+    </a>
+  </aside>
+</article>
+
+<!-- ───── Page 05 · Music (placeholder — off-keyboard) ─────
+  TODO: fill this section with real content later.
+  Planned ideas: embedded Ableton demo tracks, MIDI GPT live loop,
+  a short note on how music shapes the way I build systems,
+  links to releases / SoundCloud / Bandcamp when ready.
+─────────────────────────────────────────────────────────── -->
+<article class="page" id="music">
+  <div class="folio"><b>05</b> // OFF-KEYBOARD</div>
+  <span class="stamp">MUSIC</span>
+  <h2 class="headline">The other <em>instrument.</em></h2>
+  <p class="dek">Before the editor, there was a DAW. Music is where a lot of my thinking about systems, timing, and craft started — and where it keeps going.</p>
+
+  <div style="margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;align-items:stretch">
+    <!-- TODO: replace with real tracks / embeds -->
+    <div style="position:relative;background:var(--paper);border:1.5px dashed var(--blue);padding:22px;transform:rotate(-1deg);box-shadow:5px 6px 0 var(--blue);min-height:220px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <p style="margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue)">Track 01 · //TODO</p>
+        <h3 style="font-family:var(--display);font-size:1.6rem;margin:8px 0 0;line-height:1.05">Coming soon.</h3>
+        <p style="margin:10px 0 0;color:var(--ink-soft);font-family:var(--serif)">Placeholder for an Ableton track. Embed, waveform, or short clip will go here.</p>
+      </div>
+      <p style="margin:0;font-family:var(--hand);color:var(--blue);font-size:18px;transform:rotate(-2deg);align-self:flex-end">▶ soon.</p>
+    </div>
+
+    <div style="position:relative;background:var(--paper);border:1.5px dashed var(--blue);padding:22px;transform:rotate(1.2deg);box-shadow:5px 6px 0 var(--blue);min-height:220px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <p style="margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue)">Track 02 · //TODO</p>
+        <h3 style="font-family:var(--display);font-size:1.6rem;margin:8px 0 0;line-height:1.05">Also soon.</h3>
+        <p style="margin:10px 0 0;color:var(--ink-soft);font-family:var(--serif)">Another slot for a track or MIDI GPT-generated loop.</p>
+      </div>
+      <p style="margin:0;font-family:var(--hand);color:var(--blue);font-size:18px;transform:rotate(2deg);align-self:flex-end">&#9834; &#9834; &#9834;</p>
+    </div>
+
+    <div style="position:relative;background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);padding:22px;transform:rotate(-.6deg);box-shadow:5px 6px 0 var(--blue);min-height:220px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <p style="margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue)">Training</p>
+        <h3 style="font-family:var(--display);font-size:1.6rem;margin:8px 0 0;line-height:1.05;color:var(--paper)">Ableton Live 10 — certified user.</h3>
+        <p style="margin:10px 0 0;color:oklch(0.9 0.02 85);font-family:var(--serif)">Studied music production at <strong>BPM College</strong> (2019). The obsession with loops, layering and modular thinking translated straight into how I work on software.</p>
+      </div>
+      <p style="margin:0;font-family:var(--hand);color:var(--blue);font-size:18px;transform:rotate(-2deg);align-self:flex-end">// todo: story.</p>
+    </div>
+  </div>
+
+  <p style="margin:28px 0 0;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)">// TODO — fill this section with real tracks and a short write-up.</p>
+</article>
+
+<!-- ───── Page 07 · Dispatches (field notes from around the web) ───── -->
+<article class="page" id="notes">
+  <div class="folio"><b>06</b> // DISPATCHES</div>
+  <span class="stamp">FIELD NOTES</span>
+  <h2 class="headline">Things I've <em>posted about.</em></h2>
+  <p class="dek">A handful of things I've built and shared — tools, experiments, game-jam sound code, the occasional wedding gift. Each card opens the full write-up.</p>
+
+  <div style="margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px">
+
+    <!-- Temporal Code Exchange (featured, leading) -->
+    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7306517964575408128/" target="_blank" rel="noopener"
+       style="display:flex;flex-direction:column;gap:10px;background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);padding:20px;transform:rotate(.6deg);box-shadow:5px 6px 0 var(--blue);text-decoration:none;transition:transform .2s ease, box-shadow .2s ease"
+       onmouseover="this.style.transform='rotate(0deg) translateY(-3px)';this.style.boxShadow='8px 10px 0 var(--blue)';"
+       onmouseout="this.style.transform='rotate(.6deg)';this.style.boxShadow='5px 6px 0 var(--blue)';">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);display:flex;justify-content:space-between;gap:10px">
+        <span>MAR 2025</span><span>// featured</span>
+      </div>
+      <h3 style="font-family:var(--display);font-size:1.45rem;line-height:1.1;margin:0;color:var(--paper)">Featured on Temporal's Code Exchange.</h3>
+      <p style="margin:0;font-family:var(--serif);color:oklch(0.9 0.02 85);line-height:1.5">My Cross-Language Data Processing Service — Python, Go, and TypeScript all coordinated through a single Temporal workflow — was picked up for Temporal's official Code Exchange, with a companion Medium write-up.</p>
+      <div style="margin-top:auto;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--blue);text-transform:uppercase">#temporal &nbsp; #opensource &nbsp; #python &nbsp; #go</div>
+    </a>
+
+    <!-- Joomsy launch -->
+    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7421903131573366784/" target="_blank" rel="noopener"
+       style="display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1.5px solid var(--ink);padding:20px;transform:rotate(-.6deg);box-shadow:5px 6px 0 var(--ink);text-decoration:none;color:var(--ink);transition:transform .2s ease, box-shadow .2s ease"
+       onmouseover="this.style.transform='rotate(0deg) translateY(-3px)';this.style.boxShadow='8px 10px 0 var(--ink)';"
+       onmouseout="this.style.transform='rotate(-.6deg)';this.style.boxShadow='5px 6px 0 var(--ink)';">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);display:flex;justify-content:space-between;gap:10px">
+        <span>FEB 2026</span><span>// launch</span>
+      </div>
+      <h3 style="font-family:var(--display);font-size:1.45rem;line-height:1.1;margin:0">Shipping Joomsy — meaningful moments across the distance.</h3>
+      <p style="margin:0;font-family:var(--serif);color:var(--ink-soft);line-height:1.5">Kids connect with grandparents, family, and friends through interactive video calls — reading books together, gesture-based games, more coming. Over 35M US grandparents live 200+ miles from a grandchild; we're building the bridge.</p>
+      <div style="margin-top:auto;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--ink-soft);text-transform:uppercase">#startup &nbsp; #product &nbsp; #video</div>
+    </a>
+
+    <!-- Cosmic Synth / Claude skill -->
+    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7450179482327576576/" target="_blank" rel="noopener"
+       style="display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1.5px solid var(--ink);padding:20px;transform:rotate(-.8deg);box-shadow:5px 6px 0 var(--ink);text-decoration:none;color:var(--ink);transition:transform .2s ease, box-shadow .2s ease"
+       onmouseover="this.style.transform='rotate(0deg) translateY(-3px)';this.style.boxShadow='8px 10px 0 var(--ink)';"
+       onmouseout="this.style.transform='rotate(-.8deg)';this.style.boxShadow='5px 6px 0 var(--ink)';">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);display:flex;justify-content:space-between;gap:10px">
+        <span>APR 2026</span><span>// recent</span>
+      </div>
+      <h3 style="font-family:var(--display);font-size:1.45rem;line-height:1.1;margin:0">Cosmic Synth, specced by a Claude skill I wrote.</h3>
+      <p style="margin:0;font-family:var(--serif);color:var(--ink-soft);line-height:1.5">A Claude skill that interviews you step-by-step (via <code style="font-family:var(--mono);font-size:.9em">AskUserQuestion</code>) until it has a full spec. Used it to scope out a browser-based 3D synthesizer with a reactive galaxy visualizer and an auto-DJ composing drums, bass, and melodies.</p>
+      <div style="margin-top:auto;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--ink-soft);text-transform:uppercase">#claude &nbsp; #skill &nbsp; #webaudio</div>
+    </a>
+
+    <!-- Wedding Flappy Bird -->
+    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7409202248351707136/" target="_blank" rel="noopener"
+       style="display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1.5px solid var(--ink);padding:20px;transform:rotate(.8deg);box-shadow:5px 6px 0 var(--ink);text-decoration:none;color:var(--ink);transition:transform .2s ease, box-shadow .2s ease"
+       onmouseover="this.style.transform='rotate(0deg) translateY(-3px)';this.style.boxShadow='8px 10px 0 var(--ink)';"
+       onmouseout="this.style.transform='rotate(.8deg)';this.style.boxShadow='5px 6px 0 var(--ink)';">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);display:flex;justify-content:space-between;gap:10px">
+        <span>JAN 2026</span><span>// gift</span>
+      </div>
+      <h3 style="font-family:var(--display);font-size:1.45rem;line-height:1.1;margin:0">A tiny Flappy Bird for a wedding gift.</h3>
+      <p style="margin:0;font-family:var(--serif);color:var(--ink-soft);line-height:1.5">My cousin Chen was getting married. Her fiancé is into DJI drones — so I built a small drone-themed Flappy Bird with a <em>"Ring Delivered!"</em> finish, a <em>"Chen said YES!"</em> screen, and an endless mode. Sometimes the best gift is 200 lines of web game.</p>
+      <div style="margin-top:auto;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--ink-soft);text-transform:uppercase">#javascript &nbsp; #canvas &nbsp; #gift</div>
+    </a>
+
+    <!-- GGJ 2026 with Cursor -->
+    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7423731964278358016/" target="_blank" rel="noopener"
+       style="display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1.5px solid var(--ink);padding:20px;transform:rotate(1.1deg);box-shadow:5px 6px 0 var(--ink);text-decoration:none;color:var(--ink);transition:transform .2s ease, box-shadow .2s ease"
+       onmouseover="this.style.transform='rotate(0deg) translateY(-3px)';this.style.boxShadow='8px 10px 0 var(--ink)';"
+       onmouseout="this.style.transform='rotate(1.1deg)';this.style.boxShadow='5px 6px 0 var(--ink)';">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);display:flex;justify-content:space-between;gap:10px">
+        <span>FEB 2026</span><span>// ggj 2026</span>
+      </div>
+      <h3 style="font-family:var(--display);font-size:1.45rem;line-height:1.1;margin:0">Second year at Global Game Jam — Cursor on the baton.</h3>
+      <p style="margin:0;font-family:var(--serif);color:var(--ink-soft);line-height:1.5">Theme was <em>masks</em>. I stayed on audio duty but this time let Cursor write the sound-effect code — a Unity/C# synth, mixer, and effects chain — while I conducted from the side. Vibe coding, zero manual setup.</p>
+      <div style="margin-top:auto;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--ink-soft);text-transform:uppercase">#ggj2026 &nbsp; #cursor &nbsp; #gamesound</div>
+    </a>
+
+    <!-- PR summarizer GPT -->
+    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7382760320420720640/" target="_blank" rel="noopener"
+       style="display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1.5px solid var(--ink);padding:20px;transform:rotate(-1deg);box-shadow:5px 6px 0 var(--ink);text-decoration:none;color:var(--ink);transition:transform .2s ease, box-shadow .2s ease"
+       onmouseover="this.style.transform='rotate(0deg) translateY(-3px)';this.style.boxShadow='8px 10px 0 var(--ink)';"
+       onmouseout="this.style.transform='rotate(-1deg)';this.style.boxShadow='5px 6px 0 var(--ink)';">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);display:flex;justify-content:space-between;gap:10px">
+        <span>OCT 2025</span><span>// devtool</span>
+      </div>
+      <h3 style="font-family:var(--display);font-size:1.45rem;line-height:1.1;margin:0">A small GPT that rewrites messy PR notes into clean bullets.</h3>
+      <p style="margin:0;font-family:var(--serif);color:var(--ink-soft);line-height:1.5">Takes half-written PR descriptions and turns them into <code style="font-family:var(--mono);font-size:.9em">Fix · Add · Update · Refactor · Remove</code>. Writing a changelog now takes seconds instead of minutes.</p>
+      <div style="margin-top:auto;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--ink-soft);text-transform:uppercase">#gpt &nbsp; #devtools &nbsp; #workflow</div>
+    </a>
+
+  </div>
+
+  <p style="margin:30px 0 0;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);text-align:center">
+    More on <a href="https://www.linkedin.com/in/barmoshe/" target="_blank" rel="noopener" style="color:var(--blue)">my profile</a>.
+  </p>
+</article>
+
+<!-- ───── Page 08 · Letter (contact) ───── -->
+<article class="page" id="letter">
+  <div class="folio"><b>07</b> // PING</div>
+  <h2 class="headline" style="text-align:center">Say <em>hi.</em></h2>
+  <p class="dek" style="text-align:center;margin-left:auto;margin-right:auto">Drop me a note — I reply.</p>
+
+  <div style="position:relative;margin:44px auto 0;max-width:560px;padding:36px 32px;background:var(--paper);border:1.5px solid var(--ink);box-shadow:8px 10px 0 var(--blue);transform:rotate(-.4deg);text-align:center">
+    <div class="stamp-corner" style="position:absolute;top:-16px;right:16px;padding:6px 12px;background:var(--blue);color:var(--paper);font-family:var(--mono);font-size:10px;letter-spacing:.2em"><b>BM</b> · 2026</div>
+    <p style="margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-soft)">How to reach me</p>
+    <p style="margin:18px 0 0;font-family:var(--serif);font-size:1.1rem;line-height:2">
+      <a href="mailto:1barmoshe1@gmail.com" style="color:var(--blue);text-decoration:none">1barmoshe1@gmail.com</a><br>
+      <a href="tel:+972546561465" style="color:var(--blue);text-decoration:none">+972 546 561 465</a><br>
+      <a href="https://github.com/barmoshe" target="_blank" rel="noopener" style="color:var(--blue)">GitHub</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/barmoshe/" target="_blank" rel="noopener" style="color:var(--blue)">LinkedIn</a>
+    </p>
+  </div>
+</article>
+
+</main>
+
+<!-- ───── Bottom tab bar (mobile only) ───── -->
+<nav class="tabbar" aria-label="Mobile sections">
+  <a href="#dossier" data-target="dossier" aria-label="About">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+    <span>About</span>
+  </a>
+  <a href="#experience" data-target="experience" aria-label="Work">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    <span>Work</span>
+  </a>
+  <a href="#repos" data-target="repos" aria-label="Open Source">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 18l-6-6 6-6"/><path d="M16 6l6 6-6 6"/></svg>
+    <span>Repos</span>
+  </a>
+  <a href="#notes" data-target="notes" aria-label="Writing">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h8"/></svg>
+    <span>Notes</span>
+  </a>
+  <a href="#letter" data-target="letter" aria-label="Contact">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+    <span>Contact</span>
+  </a>
+</nav>
+
+<!-- ───── Lightbox ───── -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-labelledby="lb-title">
+  <div class="lb-panel">
+    <span class="tape" aria-hidden="true"></span>
+    <button class="lb-close" id="lbClose" aria-label="Close">×</button>
+    <div class="grid">
+      <div class="lb-art" id="lbArt"></div>
+      <div class="lb-body">
+        <div class="kicker" id="lbKicker"></div>
+        <h3 id="lb-title"></h3>
+        <p id="lbBlurb"></p>
+        <div style="margin-top:10px">
+          <p style="margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)">Language</p>
+          <p id="lbLang" style="margin:4px 0 0;color:var(--ink)"></p>
+        </div>
+        <div style="margin-top:12px">
+          <a id="lbLink" href="#" target="_blank" style="display:inline-block;padding:8px 12px;background:var(--blue);color:var(--paper);border-radius:4px;text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.1em">→ View on GitHub</a>
+        </div>
+        <div id="lbExtras" style="margin-top:14px;display:none">
+          <p style="margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)">More on this project</p>
+          <ul id="lbExtrasList" style="margin:6px 0 0;padding-left:16px;font-family:var(--serif);font-size:.95rem;line-height:1.6"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PORTFOLIO = {
+  projects: [
+    {name:"claude-creative-stack", description:"A reference pack for building creative work with Claude — knowledge docs, Agent Skills, single-file artifact starters, prompt scaffolds, and a working MCP server. Designed to be mounted straight into a Claude Project.", language:"Claude", url:"https://github.com/barmoshe/claude-creative-stack"},
+    {name:"isralify", description:"Node.js backend for a Spotify-inspired music app — REST API, user auth, custom middleware, integrated logger, MongoDB. The React frontend lives in a sibling repo.", language:"JavaScript", url:"https://github.com/barmoshe/Israelify-backend"},
+    {
+      name:"temporal-data-processing",
+      description:"A single Temporal workflow that orchestrates three language workers — Go, Python, and TypeScript, each on its own task queue — to process data end-to-end. Featured on Temporal's Code Exchange with a companion Medium write-up.",
+      language:"Go · Python · TypeScript",
+      url:"https://github.com/barmoshe/data-processing-service",
+      extras: [
+        {label:"Temporal Code Exchange", url:"https://temporal.io/code-exchange/cross-language-data-processing-service-with-temporal"},
+        {label:"Read the Medium article", url:"https://medium.com/@barmoshe/building-a-cross-language-data-processing-service-with-temporal-a-practical-guide-bf0fb1155d46"},
+      ],
+    },
+  ],
+  contact: { email: "1barmoshe1@gmail.com", github: "https://github.com/barmoshe", linkedin: "https://www.linkedin.com/in/barmoshe/", phone: "+972546561465" },
+};
+
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+
+/* ── Hero portrait slideshow ── */
+(function initHeroSlides(){
+  const root = document.getElementById("heroSlides");
+  if (!root) return;
+  const slides = [...root.querySelectorAll(".slide")];
+  if (!slides.length) return;
+  const caption = document.getElementById("heroCaption");
+  const dotsWrap = document.getElementById("heroDots");
+  const FX = ["fade","iris","wipe","skew","blinds"];
+  let idx = 0, fxIdx = 0, timer = null, paused = false;
+
+  const dots = [];
+
+  function go(next, user){
+    if (next === idx) return;
+    const fx = FX[fxIdx % FX.length]; fxIdx++;
+    const prev = slides[idx];
+    const cur  = slides[next];
+    cur.dataset.fx = fx;
+    cur.classList.remove("is-active");
+    cur.classList.add("is-enter");
+    // force reflow so entrance styles commit before activating
+    // eslint-disable-next-line no-unused-expressions
+    cur.offsetHeight;
+    requestAnimationFrame(() => {
+      cur.classList.remove("is-enter");
+      cur.classList.add("is-active");
+      prev.classList.remove("is-active");
+      prev.removeAttribute("data-fx");
+    });
+    dots.forEach((d,i)=>d.setAttribute("aria-current", i===next ? "true" : "false"));
+    if (caption) caption.textContent = cur.dataset.caption || "";
+    idx = next;
+    if (user) restart();
+  }
+  function tick(){ go((idx+1) % slides.length, false); }
+  function start(){ if (timer || paused) return; timer = setInterval(tick, 1800); }
+  function stop(){ clearInterval(timer); timer = null; }
+  function restart(){ stop(); start(); }
+
+  // Initial state — always start with first slide (img0)
+  idx = 0;
+  slides[0].classList.add("is-active");
+  slides[0].dataset.fx = "fade";
+
+  root.addEventListener("mouseenter", () => { paused = true; stop(); });
+  root.addEventListener("mouseleave", () => { paused = false; start(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stop(); else start();
+  });
+
+  start();
+})();
+
+/* ── Cover dismiss ── */
+function dismissBoot(){
+  const b = $("#boot");
+  if (!b || b.classList.contains("gone")) return;
+  b.classList.add("gone");
+  setTimeout(()=>b.remove(), 650);
+}
+addEventListener("keydown", e => { if ($("#boot") && !$("#boot").classList.contains("gone")) dismissBoot(); });
+addEventListener("pointerdown", e => {
+  if (!$("#boot") || $("#boot").classList.contains("gone")) return;
+  if (e.target.closest(".strip") || e.target.closest(".toggle")) return;
+  dismissBoot();
+});
+
+/* ── Art generator (code monospace theme) ── */
+function codeArt(idx, lang){
+  const colors = [
+    ["oklch(0.55 0.16 200)","oklch(0.85 0.14 110)"],
+    ["oklch(0.60 0.2 25)","oklch(0.88 0.14 60)"],
+    ["oklch(0.45 0.12 250)","oklch(0.82 0.12 135)"],
+    ["oklch(0.50 0.14 140)","oklch(0.88 0.12 180)"],
+  ];
+  const c = colors[idx % colors.length];
+  const icons = ["</>", "{}", "fn", "λ", "∞", ">_"];
+  const icon = icons[idx % icons.length];
+  return `<svg viewBox="0 0 200 100" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+    <defs>
+      <linearGradient id="cg${idx}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${c[0]}"/>
+        <stop offset="100%" stop-color="${c[1]}"/>
+      </linearGradient>
+    </defs>
+    <rect width="200" height="100" fill="url(#cg${idx})"/>
+    <text x="100" y="50" text-anchor="middle" dy=".3em" font-family="monospace" font-size="32" fill="oklch(0.98 0 0 / .9)" font-weight="700">${icon}</text>
+  </svg>`;
+}
+
+/* ── Render projects ── */
+function renderProjects(){
+  const grid = $("#proj-grid");
+  const shortDesc = (d) => {
+    const s = (d || "").split(" — ")[0].split(". ")[0];
+    return s.length > 110 ? s.slice(0, 107).trimEnd() + "…" : s;
+  };
+  const langIcon = { TypeScript:"</>", JavaScript:"{}", Go:"fn", Python:"λ", Rust:">_", Claude:"✦" };
+  const iconFor = (lang) => langIcon[lang] || (lang.includes("·") ? "∞" : "{ }");
+  grid.innerHTML = PORTFOLIO.projects.map((p,i)=>`
+    <article data-idx="${i}" tabindex="0" role="button" aria-label="${p.name}">
+      <span class="num" aria-hidden="true">${String(i+1).padStart(2,"0")}</span>
+      <header class="head">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="path">~/${p.name}</span>
+      </header>
+      <div class="body">
+        <div class="meta">
+          <span class="glyph" aria-hidden="true">${iconFor(p.language)}</span>
+          <span class="lang">${p.language}</span>
+        </div>
+        <h3 class="t">${p.name}</h3>
+        <p class="d">${shortDesc(p.description)}</p>
+        <div class="go">View repo →</div>
+      </div>
+    </article>
+  `).join("");
+}
+
+/* ── Lightbox ── */
+const lb = $("#lb");
+function openLB(idx){
+  const p = PORTFOLIO.projects[idx];
+  $("#lbArt").innerHTML = codeArt(idx, p.language);
+  $("#lbKicker").textContent = `GITHUB · ${p.language}`;
+  $("#lb-title").textContent = p.name;
+  $("#lbBlurb").textContent = p.description;
+  $("#lbLang").textContent = p.language;
+  $("#lbLink").href = p.url;
+  const extrasBox = $("#lbExtras");
+  const extrasList = $("#lbExtrasList");
+  if (p.extras && p.extras.length){
+    extrasList.innerHTML = p.extras.map(x =>
+      `<li><a href="${x.url}" target="_blank" rel="noopener" style="color:var(--blue)">${x.label}</a></li>`
+    ).join("");
+    extrasBox.style.display = "block";
+  } else {
+    extrasList.innerHTML = "";
+    extrasBox.style.display = "none";
+  }
+  lb.classList.add("open");
+  $("#lbClose").focus();
+}
+function closeLB(){ lb.classList.remove("open"); }
+$("#lbClose").addEventListener("click", closeLB);
+lb.addEventListener("click", e => { if (e.target === lb) closeLB(); });
+addEventListener("keydown", e => { if (e.key === "Escape" && lb.classList.contains("open")) closeLB(); });
+document.addEventListener("click", e => {
+  const t = e.target.closest(".clip article");
+  if (t) openLB(+t.dataset.idx);
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const t = document.activeElement?.closest?.(".clip article");
+  if (t){ e.preventDefault(); openLB(+t.dataset.idx); }
+});
+
+/* ── Letter form: removed — contact page is now a plain card ── */
+
+/* ── Theme toggle: auto → light → dark → auto ── */
+(function(){
+  const btn = $("#themeBtn");
+  if (!btn) return;
+  const mq = matchMedia("(prefers-color-scheme: dark)");
+  const glyph = { auto:"🌓", light:"☀", dark:"☾" };
+  const label = { auto:"Theme: auto (system)", light:"Theme: light", dark:"Theme: dark" };
+  function read(){ try{ return localStorage.getItem("bm:theme") || "auto"; }catch{ return "auto"; } }
+  function write(v){ try{ v==="auto" ? localStorage.removeItem("bm:theme") : localStorage.setItem("bm:theme", v); }catch{} }
+  function apply(pref){
+    const dark = pref === "dark" || (pref === "auto" && mq.matches);
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.dataset.themePref = pref;
+    btn.textContent = glyph[pref];
+    btn.title = label[pref];
+    btn.setAttribute("aria-label", label[pref]);
+  }
+  apply(read());
+  btn.addEventListener("click", () => {
+    const cur = read();
+    const next = cur === "auto" ? "light" : cur === "light" ? "dark" : "auto";
+    write(next);
+    apply(next);
+  });
+  mq.addEventListener?.("change", () => { if (read() === "auto") apply("auto"); });
+})();
+
+/* ── Remember me ── */
+$("#skipBtn").addEventListener("click", async () => {
+  try{ await window.storage?.set?.("bm:skip", "1"); }catch{}
+  $("#skipBtn").textContent = "remembered ✓";
+  $("#skipBtn").disabled = true;
+});
+
+/* ── Mobile tab bar active-section sync ── */
+(function initTabBar(){
+  const tabs = $$(".tabbar a");
+  if (!tabs.length) return;
+  const map = new Map();
+  tabs.forEach(a => {
+    const id = a.dataset.target;
+    const sec = document.getElementById(id);
+    if (sec) map.set(sec, a);
+  });
+  if (!map.size) return;
+  let current = null;
+  const setActive = a => {
+    if (current === a) return;
+    tabs.forEach(t => t.removeAttribute("aria-current"));
+    if (a) a.setAttribute("aria-current", "true");
+    current = a;
+  };
+  const io = new IntersectionObserver(entries => {
+    // Pick the most-visible intersecting section
+    const visible = entries
+      .filter(e => e.isIntersecting)
+      .sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (visible) setActive(map.get(visible.target));
+  }, { rootMargin: "-40% 0px -50% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] });
+  map.forEach((_, sec) => io.observe(sec));
+})();
+
+/* ── Boot ── */
+(async function init(){
+  renderProjects();
+  try{
+    const r = await window.storage?.get?.("bm:skip");
+    if (r && r.value) dismissBoot();
+  }catch{}
+})();
+</script>
+</body>
+</html>
