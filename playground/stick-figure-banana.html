@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stick Figure Shooting a Banana</title>
+<style>
+  html,body{margin:0;height:100%;background:#10131a;color:#e6e7ea;font:14px system-ui;overflow:hidden}
+  #hud{position:fixed;top:12px;left:12px;padding:8px 10px;background:rgba(0,0,0,.45);border-radius:6px}
+  button{background:#ffd23f;color:#111;border:0;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600}
+  canvas{display:block}
+</style>
+</head>
+<body>
+<div id="hud">Drag to orbit • scroll to zoom &nbsp; <button id="shoot">Shoot 🍌</button></div>
+<canvas id="c"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const canvas=document.getElementById("c");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x10131a);
+scene.fog=new THREE.Fog(0x10131a,15,40);
+const camera=new THREE.PerspectiveCamera(50,1,0.1,100);
+
+// Orbit
+function makeOrbit(cam,dom){
+  let tgt=new THREE.Vector3(0,1.2,0);
+  let th=0.6,ph=1.25,d=9;
+  let drag=false,lx=0,ly=0;
+  dom.addEventListener("pointerdown",e=>{drag=true;lx=e.clientX;ly=e.clientY;dom.setPointerCapture(e.pointerId)});
+  dom.addEventListener("pointerup",e=>{drag=false;dom.releasePointerCapture(e.pointerId)});
+  dom.addEventListener("pointermove",e=>{if(!drag)return;th-=(e.clientX-lx)*0.005;ph=Math.max(0.1,Math.min(Math.PI-0.1,ph-(e.clientY-ly)*0.005));lx=e.clientX;ly=e.clientY});
+  dom.addEventListener("wheel",e=>{d=Math.max(3,Math.min(25,d+e.deltaY*0.01));e.preventDefault()},{passive:false});
+  return ()=>{cam.position.set(tgt.x+d*Math.sin(ph)*Math.cos(th),tgt.y+d*Math.cos(ph),tgt.z+d*Math.sin(ph)*Math.sin(th));cam.lookAt(tgt)};
+}
+const orbit=makeOrbit(camera,canvas);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff,0.4));
+const key=new THREE.DirectionalLight(0xfff0d0,1.1);key.position.set(4,6,3);scene.add(key);
+const rim=new THREE.DirectionalLight(0x88aaff,0.5);rim.position.set(-4,3,-3);scene.add(rim);
+
+// Ground
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0x1a2030,roughness:0.9}));
+ground.rotation.x=-Math.PI/2;scene.add(ground);
+const grid=new THREE.GridHelper(40,40,0x334055,0x222a38);grid.position.y=0.001;scene.add(grid);
+
+// --- Stick figure (no CapsuleGeometry; use cylinders + spheres) ---
+const stickMat=new THREE.MeshStandardMaterial({color:0xeef2f7,roughness:0.5});
+function limb(len,rad=0.07){
+  const g=new THREE.Group();
+  const cyl=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad,len,12),stickMat);
+  cyl.position.y=-len/2;
+  g.add(cyl);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(rad,12,12),stickMat));
+  const end=new THREE.Mesh(new THREE.SphereGeometry(rad,12,12),stickMat);
+  end.position.y=-len;g.add(end);
+  g.userData.tip=new THREE.Vector3(0,-len,0);
+  return g;
+}
+
+const figure=new THREE.Group();figure.position.set(-2.5,0,0);scene.add(figure);
+
+// torso
+const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1.0,14),stickMat);
+torso.position.y=1.4;figure.add(torso);
+// head
+const head=new THREE.Mesh(new THREE.SphereGeometry(0.28,20,20),stickMat);
+head.position.y=2.2;figure.add(head);
+// eyes
+const eyeMat=new THREE.MeshStandardMaterial({color:0x111});
+for(const x of [-0.1,0.1]){
+  const e=new THREE.Mesh(new THREE.SphereGeometry(0.04,10,10),eyeMat);
+  e.position.set(x,2.25,0.25);figure.add(e);
+}
+
+// pelvis pivot
+const pelvis=new THREE.Group();pelvis.position.y=0.9;figure.add(pelvis);
+
+// legs
+function makeLeg(sign){
+  const hip=new THREE.Group();hip.position.set(sign*0.1,0,0);pelvis.add(hip);
+  const upper=limb(0.55);hip.add(upper);
+  const knee=new THREE.Group();knee.position.y=-0.55;upper.add(knee);
+  const lower=limb(0.55);knee.add(lower);
+  return {hip,knee};
+}
+const legL=makeLeg(-1),legR=makeLeg(1);
+
+// shoulders
+const shoulders=new THREE.Group();shoulders.position.y=1.9;figure.add(shoulders);
+
+function makeArm(sign){
+  const sh=new THREE.Group();sh.position.set(sign*0.18,0,0);shoulders.add(sh);
+  const upper=limb(0.45);sh.add(upper);
+  const elbow=new THREE.Group();elbow.position.y=-0.45;upper.add(elbow);
+  const lower=limb(0.45);elbow.add(lower);
+  const hand=new THREE.Group();hand.position.y=-0.45;elbow.add(hand);
+  return {sh,elbow,hand};
+}
+const armL=makeArm(-1),armR=makeArm(1);
+
+// Initial pose
+armL.sh.rotation.z=0.15;armR.sh.rotation.z=-0.15;
+legL.hip.rotation.x=0.05;legR.hip.rotation.x=-0.05;
+
+// --- Banana mesh (curved tube) ---
+function makeBanana(){
+  const curve=new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.25,-0.05,0),
+    new THREE.Vector3(-0.12,0.08,0),
+    new THREE.Vector3(0.05,0.12,0),
+    new THREE.Vector3(0.2,0.05,0),
+    new THREE.Vector3(0.28,-0.08,0)
+  ]);
+  const geo=new THREE.TubeGeometry(curve,40,0.05,16,false);
+  // Fatten middle by scaling radii via custom attribute-free approach: use a second pass with a lathe? Simpler: keep as is.
+  const mat=new THREE.MeshStandardMaterial({color:0xffd23f,roughness:0.5,emissive:0x332200,emissiveIntensity:0.2});
+  const mesh=new THREE.Mesh(geo,mat);
+  // stem
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.08,8),new THREE.MeshStandardMaterial({color:0x5a3a1a}));
+  stem.position.set(-0.27,0,0);stem.rotation.z=0.8;mesh.add(stem);
+  // tip
+  const tip=new THREE.Mesh(new THREE.SphereGeometry(0.04,8,8),new THREE.MeshStandardMaterial({color:0x2a1a05}));
+  tip.position.set(0.3,-0.08,0);mesh.add(tip);
+  return mesh;
+}
+
+// Banana held in right hand
+const heldBanana=makeBanana();
+armR.hand.add(heldBanana);
+heldBanana.position.set(0,-0.05,0);
+heldBanana.rotation.z=Math.PI/2;
+
+// Projectiles
+const projectiles=[];
+function spawnProjectile(){
+  const b=makeBanana();
+  // world position of right hand
+  const wp=new THREE.Vector3();
+  armR.hand.getWorldPosition(wp);
+  b.position.copy(wp);
+  // aim forward (+x in figure frame). Figure faces +x.
+  const vel=new THREE.Vector3(9,4.5,0);
+  scene.add(b);
+  projectiles.push({mesh:b,vel,life:0,spin:(Math.random()-0.5)*20+10});
+  heldBanana.visible=false;
+  setTimeout(()=>{heldBanana.visible=true},900);
+}
+
+// Shooting animation state
+let shootT=-1; // -1 = idle
+function triggerShoot(){
+  if(shootT>=0)return;
+  shootT=0;
+}
+document.getElementById("shoot").addEventListener("click",triggerShoot);
+window.addEventListener("keydown",e=>{if(e.code==="Space")triggerShoot()});
+
+// Face the figure to +x
+figure.rotation.y=-Math.PI/2;
+
+// Resize
+function resize(){
+  const w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;
+  renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+addEventListener("resize",resize);resize();
+
+// Auto-fire every 3s for demo
+let nextAuto=performance.now()+1500;
+
+let prev=performance.now();
+(function loop(){
+  requestAnimationFrame(loop);
+  const now=performance.now();
+  const dt=Math.min(0.05,(now-prev)/1000);prev=now;
+
+  // idle bob
+  const t=now*0.001;
+  figure.position.y=Math.abs(Math.sin(t*2))*0.03;
+  shoulders.rotation.y=Math.sin(t*1.2)*0.05;
+
+  // Shooting animation (windup -> release -> follow)
+  if(shootT>=0){
+    shootT+=dt;
+    const p=shootT;
+    // Arm motion: windup 0..0.35, release at 0.4, settle by 0.9
+    let ang;
+    if(p<0.35){ // windup back
+      const k=p/0.35; ang = THREE.MathUtils.lerp(0, -2.2, k);
+    } else if(p<0.5){ // throw forward
+      const k=(p-0.35)/0.15; ang = THREE.MathUtils.lerp(-2.2, 1.1, k);
+      if(p>=0.45 && !window._fired){ window._fired=true; spawnProjectile(); }
+    } else if(p<0.9){ // return
+      const k=(p-0.5)/0.4; ang = THREE.MathUtils.lerp(1.1, 0, k);
+    } else { ang=0; shootT=-1; window._fired=false; }
+    armR.sh.rotation.x=ang;
+    armR.elbow.rotation.x=Math.max(-1.2,-0.5 - ang*0.3);
+    // slight torso twist
+    shoulders.rotation.y = 0.05*Math.sin(t*1.2) + Math.sin(Math.min(p,0.5)/0.5*Math.PI)*0.3*(p<0.5?1:-0.3);
+  } else {
+    armR.sh.rotation.x *= 0.9;
+    armR.elbow.rotation.x *= 0.9;
+  }
+
+  // Auto-fire
+  if(now>nextAuto){triggerShoot();nextAuto=now+3000;}
+
+  // Update projectiles
+  for(let i=projectiles.length-1;i>=0;i--){
+    const pr=projectiles[i];
+    pr.life+=dt;
+    pr.vel.y-=9.8*dt;
+    pr.mesh.position.addScaledVector(pr.vel,dt);
+    pr.mesh.rotation.z+=pr.spin*dt;
+    pr.mesh.rotation.x+=pr.spin*0.5*dt;
+    if(pr.mesh.position.y<0.05 || pr.life>4){
+      // splat: shrink
+      pr.mesh.scale.multiplyScalar(0.85);
+      if(pr.mesh.scale.x<0.1){scene.remove(pr.mesh);projectiles.splice(i,1);}
+    }
+  }
+
+  orbit();
+  renderer.render(scene,camera);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>G-man — a gravity runner</title>
+<style>
+  :root{
+    --bg0: oklch(16% 0.04 270);
+    --bg1: oklch(22% 0.08 290);
+    --fg:  oklch(96% 0.02 250);
+    --neon: oklch(78% 0.22 180);
+    --neon2: oklch(72% 0.25 330);
+    --warn: oklch(70% 0.22 30);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 20%, var(--bg1), var(--bg0) 70%);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  #wrap{position:fixed;inset:0;display:grid;place-items:center}
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated;cursor:pointer}
+  #hud{position:fixed;top:14px;left:0;right:0;display:flex;justify-content:space-between;padding:0 18px;font-variant-numeric:tabular-nums;pointer-events:none;letter-spacing:.08em;text-transform:uppercase;font-size:14px;font-weight:700}
+  #hud .pill{background:oklch(22% 0.04 270 / .55);backdrop-filter:blur(6px);padding:8px 14px;border-radius:999px;border:1px solid oklch(70% 0.1 270 / .25);box-shadow:0 0 30px oklch(72% 0.25 330 / .15) inset}
+  #hud b{color:var(--neon)}
+  #overlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;transition:opacity .25s}
+  #overlay .card{pointer-events:auto;text-align:center;padding:28px 30px;border-radius:22px;background:oklch(22% 0.04 270 / .72);backdrop-filter:blur(10px);border:1px solid oklch(70% 0.1 270 / .3);box-shadow:0 20px 60px oklch(0% 0 0 / .5), 0 0 50px oklch(72% 0.25 330 / .25)}
+  #overlay h1{margin:0 0 6px;font-size:54px;letter-spacing:.2em;font-weight:900;background:linear-gradient(90deg,var(--neon),var(--neon2));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px oklch(72% 0.25 330 / .35)}
+  #overlay p{margin:6px 0;opacity:.85;letter-spacing:.05em}
+  #overlay kbd{display:inline-block;padding:3px 9px;border-radius:6px;background:oklch(30% 0.04 270);border:1px solid oklch(60% 0.05 270);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;margin:0 2px}
+  #overlay button{margin-top:14px;font:inherit;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:12px 24px;border-radius:999px;border:0;cursor:pointer;background:linear-gradient(90deg,var(--neon),var(--neon2));color:oklch(15% 0.04 270);box-shadow:0 8px 30px oklch(72% 0.25 330 / .4)}
+  #overlay button:active{transform:translateY(1px)}
+  .hidden{opacity:0;pointer-events:none!important}
+  .tiny{font-size:12px;opacity:.6;margin-top:10px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div id="hud">
+  <div class="pill">score <b id="score">0</b></div>
+  <div class="pill">best <b id="best">0</b></div>
+</div>
+<div id="overlay">
+  <div class="card" id="startCard">
+    <h1>G-MAN</h1>
+    <p>Flip gravity. Survive the corridor.</p>
+    <p style="margin-top:14px"><kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>Click</kbd> — flip</p>
+    <button id="startBtn">Start run</button>
+    <p class="tiny">a gravity-runner — inspired by Gravity Guy</p>
+  </div>
+  <div class="card hidden" id="gameOverCard">
+    <h1 id="goTitle">Wiped out</h1>
+    <p>Score <b id="goScore">0</b> · Best <b id="goBest">0</b></p>
+    <button id="retryBtn">Run again</button>
+    <p class="tiny"><kbd>Space</kbd> to retry</p>
+  </div>
+</div>
+<script>
+(() => {
+  // ---------- storage shim (window.storage in Claude artifacts, fallback elsewhere) ----------
+  const store = (() => {
+    if (typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function') {
+      return {
+        get: (k, d) => { try { const v = window.storage.get(k); return v ?? d; } catch { return d; } },
+        set: (k, v) => { try { window.storage.set(k, v, { shared:false }); } catch {} }
+      };
+    }
+    return {
+      get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+      set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+    };
+  })();
+  const BEST_KEY = 'gs:g-man:best';
+
+  // ---------- canvas / DPR ----------
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.floor(window.innerWidth);
+    H = Math.floor(window.innerHeight);
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  addEventListener('resize', resize, { passive:true });
+  resize();
+
+  // ---------- RNG (seeded, deterministic per run) ----------
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  let rand = mulberry32(1);
+
+  // ---------- game constants ----------
+  const FLOOR_H = 56;       // thickness of top/bottom surfaces
+  const PLAYER_W = 44, PLAYER_H = 56;
+  const GRAVITY = 3200;     // px/s^2
+  const MAX_VY = 1400;
+  const START_SPEED = 240;
+  const MAX_SPEED = 560;
+  const SPEED_GROW = 3.5;   // per second
+  const TILE = 40;          // horizontal granularity
+  const STEP = 1/60;
+
+  // ---------- state ----------
+  const game = {
+    running: false, dead: false, t: 0, dist: 0, speed: START_SPEED,
+    camShake: 0, stopFrames: 0, flashT: 0,
+    score: 0, best: Number(store.get(BEST_KEY, 0)) || 0,
+    player: null, world: null, particles: [], stars: [], lastFlipFx: 0,
+  };
+  document.getElementById('best').textContent = game.best;
+
+  // ---------- world: segment of top/bottom surfaces + obstacles ----------
+  // world.segments is a sorted list of surface tiles.
+  // Each "chunk" adds tiles from x=chunkEnd to x=chunkEnd+chunkLen.
+  function createWorld() {
+    return {
+      xOffset: 0,      // how far the camera has scrolled
+      nextX: 0,        // next chunk x to generate (world coords)
+      top: [],         // array of {x, w} top-surface tiles
+      bot: [],         // array of {x, w} bottom-surface tiles
+      spikes: [],      // array of {x, y, up} obstacles (up=true points downward from top)
+      pads: [],        // array of small glow pads for eye candy
+      lastPattern: null,
+    };
+  }
+
+  // ---------- pattern library ----------
+  // Every pattern returns { bot:bool[], top:bool[], spikes:[{i,surface}] } of length N.
+  // Invariant enforced at emit time: bot[i] || top[i] for all i (never both gapped).
+  // Spikes only land on solid tiles of their surface, with a safety buffer from edges.
+  const PATTERNS = [
+    { name: 'flat', tier: 0, build: (r) => {
+        const n = 4 + (r()*4|0);
+        return { bot: Array(n).fill(true), top: Array(n).fill(true), spikes: [] };
+    }},
+    { name: 'bot_gap', tier: 1, build: (r) => {
+        const gLen = 2 + (r()*3|0);           // 2–4 tile gap
+        const pre = 2, post = 2;
+        const n = pre + gLen + post;
+        const bot = Array(n).fill(true), top = Array(n).fill(true);
+        for (let i = 0; i < gLen; i++) bot[pre + i] = false;
+        return { bot, top, spikes: [] };
+    }},
+    { name: 'top_gap', tier: 1, build: (r) => {
+        const gLen = 2 + (r()*3|0);
+        const pre = 2, post = 2;
+        const n = pre + gLen + post;
+        const bot = Array(n).fill(true), top = Array(n).fill(true);
+        for (let i = 0; i < gLen; i++) top[pre + i] = false;
+        return { bot, top, spikes: [] };
+    }},
+    { name: 'bot_spikes', tier: 1, build: (r) => {
+        const n = 6;
+        const spikes = [];
+        const count = 1 + (r()*2|0);          // 1–2 spikes
+        const used = new Set();
+        for (let k = 0; k < count; k++) {
+          let i = 1 + (r()*(n-2)|0);
+          while (used.has(i)) i = 1 + (r()*(n-2)|0);
+          used.add(i);
+          spikes.push({ i, surface: 'bot' });
+        }
+        return { bot: Array(n).fill(true), top: Array(n).fill(true), spikes };
+    }},
+    { name: 'top_spikes', tier: 1, build: (r) => {
+        const n = 6;
+        const spikes = [];
+        const count = 1 + (r()*2|0);
+        const used = new Set();
+        for (let k = 0; k < count; k++) {
+          let i = 1 + (r()*(n-2)|0);
+          while (used.has(i)) i = 1 + (r()*(n-2)|0);
+          used.add(i);
+          spikes.push({ i, surface: 'top' });
+        }
+        return { bot: Array(n).fill(true), top: Array(n).fill(true), spikes };
+    }},
+    { name: 'alternating', tier: 2, build: (r) => {
+        // strict alternation — gap on bot, solid span, gap on top, etc.
+        const n = 12;
+        const bot = Array(n).fill(true), top = Array(n).fill(true);
+        let i = 2, whichBot = r() < 0.5;
+        while (i < n - 3) {
+          const gLen = 2 + (r()*2|0);
+          const arr = whichBot ? bot : top;
+          for (let k = 0; k < gLen; k++) arr[i + k] = false;
+          i += gLen + 2;                     // guarantee 2-tile breather
+          whichBot = !whichBot;
+        }
+        return { bot, top, spikes: [] };
+    }},
+    { name: 'spike_zigzag', tier: 3, build: (r) => {
+        // Flip traversal eats ~3 tiles — space alternating-surface spikes 4+ apart.
+        const n = 14;
+        const spikes = [];
+        let onBot = r() < 0.5;
+        for (let i = 2; i < n - 1; i += 4) {
+          spikes.push({ i, surface: onBot ? 'bot' : 'top' });
+          onBot = !onBot;
+        }
+        return { bot: Array(n).fill(true), top: Array(n).fill(true), spikes };
+    }},
+    { name: 'force_flip', tier: 2, build: (r) => {
+        // bottom has a gap, top has a spike just past the gap → flip up, then flip back clean
+        const gLen = 3 + (r()*2|0);
+        const pre = 2, post = 3;
+        const n = pre + gLen + post;
+        const bot = Array(n).fill(true), top = Array(n).fill(true);
+        for (let i = 0; i < gLen; i++) bot[pre + i] = false;
+        // spike on top at last tile of the gap area (forces commit)
+        return { bot, top, spikes: [{ i: pre + gLen - 1, surface: 'top' }] };
+    }},
+    { name: 'spike_then_gap', tier: 3, build: (r) => {
+        // bottom spike → flip up → top continues → bottom gap under ceiling
+        const pre = 2;
+        const gLen = 3 + (r()*2|0);
+        const n = pre + 1 + 1 + gLen + 2;
+        const bot = Array(n).fill(true), top = Array(n).fill(true);
+        for (let i = 0; i < gLen; i++) bot[pre + 2 + i] = false;
+        return { bot, top, spikes: [{ i: pre, surface: 'bot' }] };
+    }},
+  ];
+
+  function pickPattern(difficulty) {
+    // tier 1 always available; tier 2 at diff>=1; tier 3 at diff>=2
+    const maxTier = Math.max(1, Math.min(3, 1 + Math.floor(difficulty)));
+    const pool = PATTERNS.filter(p => p.tier > 0 && p.tier <= maxTier);
+    if (pool.length === 0) return PATTERNS.find(p => p.name === 'flat');
+    return pool[(rand() * pool.length) | 0];
+  }
+
+  function emitTiles(world, data, startX) {
+    const n = data.bot.length;
+    for (let i = 0; i < n; i++) {
+      const tx = startX + i * TILE;
+      // fairness: never both gapped
+      const b = data.bot[i], t = data.top[i];
+      const safeBot = b || !t ? b : true; // if top is gapped here, force bottom solid
+      const safeTop = t || !b ? t : true;
+      if (safeBot) {
+        const last = world.bot[world.bot.length - 1];
+        if (last && last.x + last.w === tx) last.w += TILE;
+        else world.bot.push({ x: tx, w: TILE });
+      }
+      if (safeTop) {
+        const last = world.top[world.top.length - 1];
+        if (last && last.x + last.w === tx) last.w += TILE;
+        else world.top.push({ x: tx, w: TILE });
+      }
+    }
+    for (const sp of data.spikes) {
+      // only place spike if that surface is solid at that tile
+      const solid = sp.surface === 'bot' ? data.bot[sp.i] : data.top[sp.i];
+      if (!solid) continue;
+      world.spikes.push({ x: startX + (sp.i + 0.5) * TILE, surface: sp.surface });
+    }
+    // decorative pads, sparse
+    for (let i = 0; i < n; i++) {
+      if (rand() < 0.06) {
+        const surface = rand() < 0.5 ? 'top' : 'bot';
+        const solid = surface === 'bot' ? data.bot[i] : data.top[i];
+        if (solid) world.pads.push({ x: startX + (i + 0.5) * TILE, surface, phase: rand() * Math.PI * 2 });
+      }
+    }
+    return n * TILE;
+  }
+
+  function generateChunk(world, difficulty) {
+    const startX = world.nextX;
+    const firstChunk = startX === 0;
+
+    // Opening chunk: long breather so the player can settle in
+    if (firstChunk) {
+      const data = { bot: Array(16).fill(true), top: Array(16).fill(true), spikes: [] };
+      world.nextX += emitTiles(world, data, startX);
+      world.lastPattern = 'flat';
+      return;
+    }
+
+    // Always follow a challenge with a short breather — gives the player a beat to breathe.
+    if (world.lastPattern && world.lastPattern !== 'flat') {
+      const breatherLen = 3 + (rand() * 3 | 0); // 3–5 tiles
+      const data = { bot: Array(breatherLen).fill(true), top: Array(breatherLen).fill(true), spikes: [] };
+      world.nextX += emitTiles(world, data, startX);
+      world.lastPattern = 'flat';
+      return;
+    }
+
+    // Pick a real challenge pattern
+    const pattern = pickPattern(difficulty);
+    const data = pattern.build(rand);
+    world.nextX += emitTiles(world, data, startX);
+    world.lastPattern = pattern.name;
+  }
+
+  function pruneWorld(world) {
+    const cutoff = world.xOffset - 200;
+    while (world.top.length && world.top[0].x + world.top[0].w < cutoff) world.top.shift();
+    while (world.bot.length && world.bot[0].x + world.bot[0].w < cutoff) world.bot.shift();
+    while (world.spikes.length && world.spikes[0].x < cutoff) world.spikes.shift();
+    while (world.pads.length && world.pads[0].x < cutoff) world.pads.shift();
+  }
+
+  // ---------- init ----------
+  function initStars() {
+    game.stars = [];
+    const n = 120;
+    for (let i = 0; i < n; i++) {
+      game.stars.push({
+        x: rand() * W,
+        y: rand() * H,
+        z: 0.2 + rand() * 0.8,
+        r: 0.5 + rand() * 1.5,
+      });
+    }
+  }
+
+  function newRun() {
+    rand = mulberry32((Math.random() * 1e9) | 0);
+    game.running = true; game.dead = false;
+    game.t = 0; game.dist = 0; game.speed = START_SPEED;
+    game.camShake = 0; game.stopFrames = 0; game.flashT = 0;
+    game.particles = [];
+    game.score = 0;
+    game.world = createWorld();
+    // pre-generate a few chunks
+    for (let i = 0; i < 5; i++) generateChunk(game.world, 0);
+    // player at 25% from left, sitting on bottom
+    game.player = {
+      x: Math.floor(W * 0.28),
+      y: H - FLOOR_H - PLAYER_H - 1,
+      vy: 0,
+      dir: 1,        // 1 = gravity down, -1 = gravity up
+      onGround: true,
+      flipCooldown: 0,
+      coyote: 0,
+      bufferedFlip: 0,
+      trail: [],
+      rot: 0,
+    };
+    initStars();
+    updateHUD();
+    hide(startCard); hide(gameOverCard);
+  }
+
+  // ---------- input ----------
+  function flip() {
+    if (!game.running || game.dead) return;
+    const p = game.player;
+    if (p.flipCooldown > 0) return;
+    // Coyote time: allow flip shortly after leaving a surface — forgiving, fair.
+    if (!p.onGround && p.coyote <= 0) { p.bufferedFlip = 0.15; return; }
+    p.coyote = 0;
+    p.dir *= -1;
+    p.vy = p.dir * 420; // small initial kick in flip direction
+    p.onGround = false;
+    p.flipCooldown = 0.05;
+    // flip juice
+    for (let i = 0; i < 14; i++) {
+      game.particles.push({
+        x: p.x + PLAYER_W/2, y: p.y + PLAYER_H/2,
+        vx: (rand() - 0.5) * 240, vy: (rand() - 0.5) * 240,
+        life: 0.4 + rand() * 0.2, age: 0,
+        hue: 180 + rand() * 30, size: 2 + rand() * 2,
+      });
+    }
+    addShake(0.12);
+  }
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+      e.preventDefault();
+      if (!game.running && !game.dead) startRun();
+      else if (game.dead) startRun();
+      else flip();
+    }
+  });
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!game.running && !game.dead) startRun();
+    else if (game.dead) startRun();
+    else flip();
+  });
+
+  // ---------- helpers ----------
+  function addShake(v) { game.camShake = Math.min(1, game.camShake + v); }
+  function hide(el) { el.classList.add('hidden'); }
+  function show(el) { el.classList.remove('hidden'); }
+  const overlay = document.getElementById('overlay');
+  const startCard = document.getElementById('startCard');
+  const gameOverCard = document.getElementById('gameOverCard');
+  document.getElementById('startBtn').onclick = () => startRun();
+  document.getElementById('retryBtn').onclick = () => startRun();
+
+  function startRun() {
+    overlay.classList.remove('hidden');
+    newRun();
+    overlay.classList.add('hidden');
+  }
+
+  function updateHUD() {
+    document.getElementById('score').textContent = Math.floor(game.score);
+    document.getElementById('best').textContent = Math.floor(game.best);
+  }
+
+  // ---------- collision ----------
+  function surfaceAt(world, side, px, pw) {
+    // returns true if there's solid surface under/over the player across px..px+pw
+    const list = side === 'bot' ? world.bot : world.top;
+    const x0 = px + world.xOffset;
+    const x1 = px + pw + world.xOffset;
+    for (const s of list) {
+      if (s.x + s.w <= x0) continue;
+      if (s.x >= x1) break;
+      // check full coverage of required span
+      if (s.x <= x0 && s.x + s.w >= x1) return true;
+    }
+    return false;
+  }
+  // partial coverage: any overlap (used while falling into gap to detect cliff edge smoothly)
+  function surfaceOverlap(world, side, px, pw) {
+    const list = side === 'bot' ? world.bot : world.top;
+    const x0 = px + world.xOffset;
+    const x1 = px + pw + world.xOffset;
+    for (const s of list) {
+      if (s.x + s.w <= x0) continue;
+      if (s.x >= x1) break;
+      return true;
+    }
+    return false;
+  }
+
+  function spikeHit(world, p) {
+    // spike triangle base = TILE, height = 18, sits on surface
+    const H_SPIKE = 20, HALF = TILE * 0.4;
+    for (const sp of world.spikes) {
+      const sx = sp.x - world.xOffset;
+      if (sx < p.x - 30) continue;
+      if (sx > p.x + PLAYER_W + 30) break;
+      const baseY = sp.surface === 'bot' ? H - FLOOR_H : FLOOR_H;
+      const tipY = sp.surface === 'bot' ? baseY - H_SPIKE : baseY + H_SPIKE;
+      // crude AABB against spike bounding box
+      const minX = sx - HALF, maxX = sx + HALF;
+      const minY = Math.min(baseY, tipY), maxY = Math.max(baseY, tipY);
+      if (p.x + PLAYER_W > minX && p.x < maxX && p.y + PLAYER_H > minY && p.y < maxY) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ---------- update ----------
+  function update(dt) {
+    if (game.stopFrames > 0) { game.stopFrames--; return; }
+    if (!game.running || game.dead) return;
+
+    game.t += dt;
+    game.speed = Math.min(MAX_SPEED, game.speed + SPEED_GROW * dt);
+    const dx = game.speed * dt;
+    game.dist += dx;
+    game.world.xOffset += dx;
+    game.score = game.dist * 0.12;
+
+    // generate chunks ahead
+    while (game.world.nextX < game.world.xOffset + W + 600) {
+      const difficulty = game.dist / 1200;
+      generateChunk(game.world, difficulty);
+    }
+    pruneWorld(game.world);
+
+    // player physics
+    const p = game.player;
+    p.flipCooldown = Math.max(0, p.flipCooldown - dt);
+    p.vy += GRAVITY * p.dir * dt;
+    p.vy = Math.max(-MAX_VY, Math.min(MAX_VY, p.vy));
+    p.y += p.vy * dt;
+
+    // rotation for air feel
+    const inAir = !p.onGround;
+    p.rot += (inAir ? p.dir * 8 : (Math.sign(-p.rot) * Math.min(Math.abs(p.rot), 8))) * dt;
+    if (!inAir) p.rot *= Math.pow(0.001, dt);
+
+    // ground check
+    const botY = H - FLOOR_H;
+    const topY = FLOOR_H;
+    p.onGround = false;
+
+    if (p.dir === 1) {
+      // falling to bottom
+      if (p.y + PLAYER_H >= botY) {
+        if (surfaceOverlap(game.world, 'bot', p.x, PLAYER_W)) {
+          p.y = botY - PLAYER_H;
+          if (p.vy > 0) p.vy = 0;
+          p.onGround = true;
+        } else if (p.y + PLAYER_H > H + 20) {
+          die();
+        }
+      }
+    } else {
+      // rising to top
+      if (p.y <= topY) {
+        if (surfaceOverlap(game.world, 'top', p.x, PLAYER_W)) {
+          p.y = topY;
+          if (p.vy < 0) p.vy = 0;
+          p.onGround = true;
+        } else if (p.y < -PLAYER_H - 20) {
+          die();
+        }
+      }
+    }
+
+    // coyote + input buffer bookkeeping
+    if (p.onGround) p.coyote = 0.12;
+    else p.coyote = Math.max(0, p.coyote - dt);
+    p.bufferedFlip = Math.max(0, p.bufferedFlip - dt);
+    if (p.bufferedFlip > 0 && p.onGround && p.flipCooldown <= 0) {
+      p.bufferedFlip = 0;
+      flip();
+    }
+
+    // spike hit
+    if (spikeHit(game.world, p)) die();
+
+    // trail
+    p.trail.unshift({ x: p.x + PLAYER_W/2, y: p.y + PLAYER_H/2, t: 0 });
+    if (p.trail.length > 18) p.trail.pop();
+    for (const t of p.trail) t.t += dt;
+
+    // idle sparkle particles
+    if (rand() < 0.3) {
+      game.particles.push({
+        x: p.x + 2, y: p.y + PLAYER_H/2 + (rand()-0.5)*PLAYER_H*0.6,
+        vx: -game.speed * 0.4 - rand()*60, vy: (rand()-0.5)*40,
+        life: 0.35, age: 0, hue: 330, size: 1.5 + rand()*1.5,
+      });
+    }
+
+    // update particles
+    for (let i = game.particles.length - 1; i >= 0; i--) {
+      const pt = game.particles[i];
+      pt.age += dt;
+      if (pt.age >= pt.life) { game.particles.splice(i,1); continue; }
+      pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+      pt.vx *= Math.pow(0.5, dt); pt.vy *= Math.pow(0.5, dt);
+    }
+
+    // stars parallax
+    for (const s of game.stars) {
+      s.x -= game.speed * 0.15 * s.z * dt;
+      if (s.x < -2) { s.x = W + 2; s.y = rand() * H; }
+    }
+
+    // shake decay
+    game.camShake = Math.max(0, game.camShake - dt * 1.6);
+    if (game.flashT > 0) game.flashT = Math.max(0, game.flashT - dt * 2.2);
+
+    updateHUD();
+  }
+
+  function die() {
+    if (game.dead) return;
+    game.dead = true; game.running = false;
+    addShake(1); game.stopFrames = 8; game.flashT = 1;
+    const p = game.player;
+    // death burst
+    for (let i = 0; i < 80; i++) {
+      const a = rand() * Math.PI * 2, sp = 120 + rand() * 540;
+      game.particles.push({
+        x: p.x + PLAYER_W/2, y: p.y + PLAYER_H/2,
+        vx: Math.cos(a)*sp, vy: Math.sin(a)*sp,
+        life: 0.6 + rand()*0.5, age: 0,
+        hue: 20 + rand()*30, size: 2 + rand()*3,
+      });
+    }
+    const finalScore = Math.floor(game.score);
+    if (finalScore > game.best) { game.best = finalScore; store.set(BEST_KEY, game.best); }
+    document.getElementById('goScore').textContent = finalScore;
+    document.getElementById('goBest').textContent = Math.floor(game.best);
+    document.getElementById('goTitle').textContent = finalScore > 0 && finalScore === Math.floor(game.best) ? 'New best!' : 'Wiped out';
+    setTimeout(() => { show(gameOverCard); overlay.classList.remove('hidden'); }, 500);
+  }
+
+  // ---------- render ----------
+  function render() {
+    // background gradient is in CSS; draw stars, world, player, fx on top
+    ctx.save();
+
+    // camera shake
+    const t = game.camShake * game.camShake;
+    const ox = (Math.random() * 2 - 1) * 14 * t;
+    const oy = (Math.random() * 2 - 1) * 14 * t;
+    ctx.translate(ox, oy);
+
+    // clear with subtle vignette-friendly transparent fill to keep css bg visible
+    ctx.clearRect(-20, -20, W + 40, H + 40);
+
+    // stars
+    for (const s of game.stars) {
+      ctx.globalAlpha = 0.3 + s.z * 0.7;
+      ctx.fillStyle = '#c9d4ff';
+      ctx.fillRect(s.x, s.y, s.r, s.r);
+    }
+    ctx.globalAlpha = 1;
+
+    // horizon glow
+    const grd = ctx.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, 'oklch(40% 0.12 320 / 0)');
+    grd.addColorStop(0.5, 'oklch(60% 0.15 320 / 0.12)');
+    grd.addColorStop(1, 'oklch(40% 0.12 220 / 0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+
+    // === world ===
+    const xo = game.world.xOffset;
+
+    // pads (behind surfaces)
+    for (const pad of game.world.pads) {
+      const x = pad.x - xo;
+      if (x < -20 || x > W + 20) continue;
+      const y = pad.surface === 'bot' ? H - FLOOR_H : FLOOR_H;
+      const glow = 0.4 + 0.4 * Math.sin(game.t * 3 + pad.phase);
+      ctx.fillStyle = `oklch(70% 0.22 200 / ${0.25 + glow*0.25})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 14, 4, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // top surface
+    drawSurface(game.world.top, FLOOR_H, 'top');
+    // bottom surface
+    drawSurface(game.world.bot, H - FLOOR_H, 'bot');
+
+    // spikes
+    for (const sp of game.world.spikes) {
+      const x = sp.x - xo;
+      if (x < -30 || x > W + 30) continue;
+      const baseY = sp.surface === 'bot' ? H - FLOOR_H : FLOOR_H;
+      const tipY = sp.surface === 'bot' ? baseY - 20 : baseY + 20;
+      const HALF = TILE * 0.4;
+      const grad = ctx.createLinearGradient(x, baseY, x, tipY);
+      grad.addColorStop(0, 'oklch(60% 0.22 30)');
+      grad.addColorStop(1, 'oklch(80% 0.24 35)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(x - HALF, baseY);
+      ctx.lineTo(x + HALF, baseY);
+      ctx.lineTo(x, tipY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'oklch(90% 0.1 30 / .6)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // === particles ===
+    for (const pt of game.particles) {
+      const a = 1 - pt.age / pt.life;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = `oklch(75% 0.22 ${pt.hue})`;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, pt.size * a, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // === player trail ===
+    const p = game.player;
+    if (p) {
+      for (let i = p.trail.length - 1; i >= 0; i--) {
+        const tr = p.trail[i];
+        const a = Math.max(0, 1 - tr.t * 4);
+        if (a <= 0) continue;
+        ctx.globalAlpha = a * 0.7;
+        const hue = 180 + i * 6;
+        ctx.fillStyle = `oklch(78% 0.22 ${hue})`;
+        const r = 10 * a;
+        ctx.beginPath();
+        ctx.arc(tr.x - (i * game.speed * 0.002), tr.y, r, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // player
+      drawPlayer(p);
+    }
+
+    // flash on death
+    if (game.flashT > 0) {
+      ctx.fillStyle = `oklch(95% 0.2 30 / ${game.flashT * 0.5})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    ctx.restore();
+  }
+
+  function drawSurface(list, surfaceY, side) {
+    const xo = game.world.xOffset;
+    for (const seg of list) {
+      const x = seg.x - xo;
+      if (x + seg.w < -20) continue;
+      if (x > W + 20) break;
+
+      // base (flat fill — cheap)
+      const y0 = side === 'bot' ? surfaceY : 0;
+      const y1 = side === 'bot' ? H : surfaceY;
+      ctx.fillStyle = 'oklch(22% 0.05 260)';
+      ctx.fillRect(x, y0, seg.w, y1 - y0);
+
+      // neon edge line + faux glow as a soft band (no shadowBlur — GPU-cheap)
+      const neon = side === 'bot' ? 'oklch(78% 0.22 180)' : 'oklch(72% 0.25 330)';
+      const glow = side === 'bot' ? 'oklch(78% 0.22 180 / .25)' : 'oklch(72% 0.25 330 / .25)';
+      ctx.fillStyle = glow;
+      ctx.fillRect(x, side === 'bot' ? surfaceY - 6 : surfaceY, seg.w, 6);
+      ctx.fillStyle = neon;
+      ctx.fillRect(x, surfaceY - 1, seg.w, 2);
+
+      // grid accents (cheap dotted line)
+      ctx.fillStyle = 'oklch(60% 0.06 260 / .35)';
+      const step = 24;
+      const first = Math.ceil(x / step) * step;
+      const gy = side === 'bot' ? surfaceY + 12 : surfaceY - 14;
+      for (let gx = first; gx < x + seg.w; gx += step) {
+        ctx.fillRect(gx, gy, 1, 2);
+      }
+    }
+  }
+
+  // ---------- sprite atlas (pre-rendered once) ----------
+  // Layout: rows = animations, cols = frames. Each cell = FRAME_W x FRAME_H.
+  // Frame padding allows glow halo to extend beyond body box.
+  const PAD = 8;
+  const FRAME_W = PLAYER_W + PAD * 2;   // 60
+  const FRAME_H = PLAYER_H + PAD * 2;   // 72
+  const RUN_FRAMES = 8;
+  const SPIN_FRAMES = 6;
+  const DEAD_FRAMES = 1;
+  const ATLAS_COLS = Math.max(RUN_FRAMES, SPIN_FRAMES, DEAD_FRAMES);
+  const atlas = document.createElement('canvas');
+  atlas.width = FRAME_W * ATLAS_COLS;
+  atlas.height = FRAME_H * 3; // row 0: run, row 1: spin, row 2: dead
+  const actx = atlas.getContext('2d');
+
+  function drawCharacterBase(g, bodyYOffset, armSwing, legSwing, squash, opts) {
+    // centered at 0,0 in a FRAME_W × FRAME_H cell — caller has translated already.
+    // bodyYOffset: vertical bob (px)
+    // armSwing, legSwing: radians
+    // squash: 1 = normal, <1 = squashed vertically
+    opts = opts || {};
+    const stretch = 1 / Math.max(0.5, squash);
+
+    g.save();
+    g.scale(stretch, squash);
+    g.translate(0, bodyYOffset);
+
+    // soft halo
+    g.fillStyle = 'oklch(78% 0.22 190 / .18)';
+    roundRect(g, -PLAYER_W/2 - 4, -PLAYER_H/2 - 4, PLAYER_W + 8, PLAYER_H + 8, 10);
+    g.fill();
+
+    // back arm (drawn before body so it's behind)
+    drawArm(g, -PLAYER_W/2 + 4, -PLAYER_H/2 + 20, -armSwing, 'back');
+
+    // back leg (behind body)
+    drawLeg(g, -6, PLAYER_H/2 - 10, -legSwing, 'back');
+
+    // body
+    g.fillStyle = 'oklch(72% 0.18 200)';
+    roundRect(g, -PLAYER_W/2, -PLAYER_H/2, PLAYER_W, PLAYER_H - 12, 8);
+    g.fill();
+    // body shading
+    g.fillStyle = 'oklch(55% 0.18 320 / .55)';
+    roundRect(g, -PLAYER_W/2, 0, PLAYER_W, PLAYER_H/2 - 12, 8);
+    g.fill();
+
+    // belt stripe
+    g.fillStyle = 'oklch(32% 0.05 260)';
+    g.fillRect(-PLAYER_W/2, 4, PLAYER_W, 5);
+    g.fillStyle = 'oklch(78% 0.22 180)';
+    g.fillRect(-PLAYER_W/2, 4, PLAYER_W, 1);
+
+    // visor
+    g.fillStyle = 'oklch(18% 0.05 250)';
+    roundRect(g, -PLAYER_W/2 + 7, -PLAYER_H/2 + 10, PLAYER_W - 14, 14, 4);
+    g.fill();
+    // visor reflection
+    g.fillStyle = 'oklch(85% 0.2 200 / .6)';
+    g.fillRect(-PLAYER_W/2 + 10, -PLAYER_H/2 + 12, 4, 2);
+
+    // eye glints
+    g.fillStyle = 'oklch(95% 0.2 200)';
+    g.fillRect(-PLAYER_W/2 + 13, -PLAYER_H/2 + 15, 6, 5);
+    g.fillRect(-PLAYER_W/2 + 25, -PLAYER_H/2 + 15, 6, 5);
+
+    // antenna (wobbles with bob)
+    g.strokeStyle = 'oklch(78% 0.22 180)';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(0, -PLAYER_H/2);
+    g.lineTo(armSwing * 3, -PLAYER_H/2 - 10);
+    g.stroke();
+    g.fillStyle = 'oklch(85% 0.22 330)';
+    g.beginPath();
+    g.arc(armSwing * 3, -PLAYER_H/2 - 11, 2.5, 0, Math.PI*2);
+    g.fill();
+
+    // front arm
+    drawArm(g, PLAYER_W/2 - 4, -PLAYER_H/2 + 20, armSwing, 'front');
+
+    // front leg
+    drawLeg(g, 6, PLAYER_H/2 - 10, legSwing, 'front');
+
+    g.restore();
+  }
+
+  function drawArm(g, ox, oy, angle, layer) {
+    g.save();
+    g.translate(ox, oy);
+    g.rotate(angle);
+    g.fillStyle = layer === 'back' ? 'oklch(58% 0.15 200)' : 'oklch(70% 0.18 200)';
+    roundRect(g, -3, 0, 6, 16, 3);
+    g.fill();
+    // hand
+    g.fillStyle = 'oklch(70% 0.18 330)';
+    g.beginPath();
+    g.arc(0, 17, 3.5, 0, Math.PI*2);
+    g.fill();
+    g.restore();
+  }
+
+  function drawLeg(g, ox, oy, angle, layer) {
+    g.save();
+    g.translate(ox, oy);
+    g.rotate(angle);
+    g.fillStyle = layer === 'back' ? 'oklch(40% 0.1 260)' : 'oklch(50% 0.12 260)';
+    roundRect(g, -4, 0, 8, 14, 3);
+    g.fill();
+    // boot
+    g.fillStyle = 'oklch(70% 0.18 330)';
+    roundRect(g, -6, 12, 14, 6, 2);
+    g.fill();
+    g.restore();
+  }
+
+  function buildAtlas() {
+    actx.clearRect(0, 0, atlas.width, atlas.height);
+    // row 0: run cycle — legs alternate, arms swing opposite, body bobs
+    for (let i = 0; i < RUN_FRAMES; i++) {
+      const phase = (i / RUN_FRAMES) * Math.PI * 2;
+      const bob = Math.sin(phase * 2) * -1.5; // feet down on plant, up between
+      const leg = Math.sin(phase) * 0.9;
+      const arm = Math.sin(phase + Math.PI) * 0.7;
+      actx.save();
+      actx.translate(i * FRAME_W + FRAME_W/2, FRAME_H/2);
+      drawCharacterBase(actx, bob, arm, leg, 1);
+      actx.restore();
+    }
+    // row 1: spin (airborne) — full rotation captured as snapshots
+    for (let i = 0; i < SPIN_FRAMES; i++) {
+      const rot = (i / SPIN_FRAMES) * Math.PI * 2;
+      actx.save();
+      actx.translate(i * FRAME_W + FRAME_W/2, FRAME_H + FRAME_H/2);
+      actx.rotate(rot);
+      drawCharacterBase(actx, 0, 0.3, 0.4, 1);
+      actx.restore();
+    }
+    // row 2: dead / hurt — squashed, arms flung
+    actx.save();
+    actx.translate(FRAME_W/2, FRAME_H * 2 + FRAME_H/2);
+    drawCharacterBase(actx, 4, 1.4, -0.8, 0.7);
+    actx.restore();
+  }
+  buildAtlas();
+
+  function drawPlayer(p) {
+    // pick animation row + frame
+    let row, frame;
+    if (game.dead) {
+      row = 2; frame = 0;
+    } else if (p.onGround) {
+      row = 0;
+      // tie run phase to forward speed — feels responsive to difficulty ramp
+      const cyclesPerSec = 2 + game.speed * 0.008;
+      frame = Math.floor((game.t * cyclesPerSec) % 1 * RUN_FRAMES);
+    } else {
+      row = 1;
+      frame = Math.floor((game.t * 10) % 1 * SPIN_FRAMES);
+    }
+
+    ctx.save();
+    ctx.translate(p.x + PLAYER_W/2, p.y + PLAYER_H/2);
+    if (p.dir === -1) ctx.scale(1, -1);
+
+    // small breath of extra rotation in air for character
+    if (!p.onGround && !game.dead) ctx.rotate(p.rot * 0.03);
+
+    // blit the frame centered
+    ctx.drawImage(
+      atlas,
+      frame * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H,
+      -FRAME_W/2, -FRAME_H/2, FRAME_W, FRAME_H
+    );
+    ctx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // ---------- loop ----------
+  let last = performance.now(), acc = 0;
+  function frame(now) {
+    const elapsed = Math.min(0.1, (now - last) / 1000);
+    last = now; acc += elapsed;
+    while (acc >= STEP) { update(STEP); acc -= STEP; }
+    render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // idle menu world so the start screen isn't empty
+  game.world = createWorld();
+  for (let i = 0; i < 5; i++) generateChunk(game.world, 0);
+  game.player = { x: Math.floor(W * 0.28), y: H - FLOOR_H - PLAYER_H - 1, vy: 0, dir: 1, onGround: true, flipCooldown: 0, coyote: 0, bufferedFlip: 0, trail: [], rot: 0 };
+  initStars();
+})();
+</script>
+</body>
+</html>

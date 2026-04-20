@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Monkey eating pasta">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="oklch(0.95 0.04 85)"/>
+      <stop offset="100%" stop-color="oklch(0.86 0.06 60)"/>
+    </radialGradient>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="oklch(0.45 0.07 55)"/>
+      <stop offset="100%" stop-color="oklch(0.32 0.06 45)"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="oklch(0.82 0.05 70)"/>
+      <stop offset="100%" stop-color="oklch(0.70 0.07 55)"/>
+    </linearGradient>
+    <linearGradient id="bowl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="oklch(0.78 0.12 30)"/>
+      <stop offset="100%" stop-color="oklch(0.55 0.15 28)"/>
+    </linearGradient>
+    <linearGradient id="sauce" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="oklch(0.58 0.20 25)"/>
+      <stop offset="100%" stop-color="oklch(0.45 0.20 25)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="400" height="400" fill="url(#bg)"/>
+
+  <!-- ears -->
+  <ellipse cx="95" cy="165" rx="28" ry="32" fill="url(#fur)"/>
+  <ellipse cx="305" cy="165" rx="28" ry="32" fill="url(#fur)"/>
+  <ellipse cx="95" cy="168" rx="15" ry="19" fill="oklch(0.72 0.06 55)"/>
+  <ellipse cx="305" cy="168" rx="15" ry="19" fill="oklch(0.72 0.06 55)"/>
+
+  <!-- head -->
+  <ellipse cx="200" cy="170" rx="110" ry="108" fill="url(#fur)"/>
+
+  <!-- face patch -->
+  <ellipse cx="200" cy="195" rx="82" ry="78" fill="url(#face)"/>
+
+  <!-- brow tuft -->
+  <path d="M120 110 Q200 70 280 110 Q260 95 200 92 Q140 95 120 110 Z" fill="oklch(0.28 0.05 45)"/>
+
+  <!-- eyes -->
+  <g>
+    <ellipse cx="165" cy="165" rx="14" ry="16" fill="#fff"/>
+    <ellipse cx="235" cy="165" rx="14" ry="16" fill="#fff"/>
+    <circle cx="168" cy="168" r="7" fill="oklch(0.25 0.05 60)"/>
+    <circle cx="238" cy="168" r="7" fill="oklch(0.25 0.05 60)"/>
+    <circle cx="170" cy="165" r="2.2" fill="#fff"/>
+    <circle cx="240" cy="165" r="2.2" fill="#fff"/>
+  </g>
+
+  <!-- nostrils -->
+  <ellipse cx="189" cy="210" rx="3" ry="2" fill="oklch(0.35 0.05 45)"/>
+  <ellipse cx="211" cy="210" rx="3" ry="2" fill="oklch(0.35 0.05 45)"/>
+
+  <!-- happy open mouth slurping -->
+  <path d="M170 232 Q200 262 230 232 Q225 250 200 252 Q175 250 170 232 Z"
+        fill="oklch(0.35 0.12 20)" stroke="oklch(0.28 0.08 40)" stroke-width="1.5"/>
+  <!-- tongue -->
+  <path d="M185 245 Q200 258 215 245 Q210 252 200 253 Q190 252 185 245 Z" fill="oklch(0.60 0.18 15)"/>
+
+  <!-- cheek blush -->
+  <circle cx="138" cy="210" r="10" fill="oklch(0.72 0.12 25)" opacity="0.55"/>
+  <circle cx="262" cy="210" r="10" fill="oklch(0.72 0.12 25)" opacity="0.55"/>
+
+  <!-- bowl -->
+  <g>
+    <ellipse cx="200" cy="335" rx="125" ry="14" fill="oklch(0.25 0.03 50)" opacity="0.25"/>
+    <path d="M80 310 Q200 410 320 310 Z" fill="url(#bowl)"/>
+    <ellipse cx="200" cy="310" rx="120" ry="18" fill="oklch(0.88 0.10 30)"/>
+    <ellipse cx="200" cy="310" rx="115" ry="14" fill="url(#sauce)"/>
+  </g>
+
+  <!-- spaghetti strands in bowl -->
+  <g fill="none" stroke="oklch(0.88 0.13 90)" stroke-width="3" stroke-linecap="round">
+    <path d="M110 305 Q140 285 170 305 Q200 320 230 300 Q260 285 290 305"/>
+    <path d="M105 312 Q145 295 185 310 Q225 322 265 305 Q290 295 295 308"/>
+    <path d="M120 300 Q160 285 200 298 Q240 310 285 298"/>
+  </g>
+  <!-- meatballs -->
+  <circle cx="160" cy="302" r="9" fill="oklch(0.40 0.10 35)"/>
+  <circle cx="158" cy="300" r="3" fill="oklch(0.55 0.10 40)" opacity="0.6"/>
+  <circle cx="245" cy="305" r="8" fill="oklch(0.40 0.10 35)"/>
+  <circle cx="243" cy="303" r="2.5" fill="oklch(0.55 0.10 40)" opacity="0.6"/>
+
+  <!-- strand from bowl to mouth (the slurp) -->
+  <path d="M210 300 Q220 280 215 260 Q205 245 205 252"
+        fill="none" stroke="oklch(0.88 0.13 90)" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M195 300 Q180 280 188 258 Q196 248 198 252"
+        fill="none" stroke="oklch(0.88 0.13 90)" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- tiny sauce splats on face -->
+  <circle cx="180" cy="238" r="2.2" fill="oklch(0.50 0.18 25)"/>
+  <circle cx="222" cy="240" r="1.8" fill="oklch(0.50 0.18 25)"/>
+  <circle cx="200" cy="258" r="2" fill="oklch(0.50 0.18 25)"/>
+
+  <!-- steam -->
+  <g fill="none" stroke="oklch(0.92 0.02 240)" stroke-width="3" stroke-linecap="round" opacity="0.7">
+    <path d="M150 290 Q145 275 152 262 Q158 250 150 238"/>
+    <path d="M200 292 Q195 276 202 262 Q208 248 200 234"/>
+    <path d="M250 290 Q245 275 252 262 Q258 250 250 238"/>
+  </g>
+</svg>
