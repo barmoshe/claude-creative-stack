@@ -457,14 +457,6 @@
         <li><strong>BPM College</strong> — Music</li>
       </ul>
     </div>
-    <div>
-      <h3>Top Projects</h3>
-      <ul>
-        <li><strong>claude-creative-stack</strong> — Knowledge base for creative AI work.</li>
-        <li><strong>temporal-data-processing</strong> — Polyglot workflow featured on Temporal's Code Exchange.</li>
-        <li><strong>Isralify</strong> — Spotify clone, full-stack.</li>
-      </ul>
-    </div>
   </div>
 
   <div style="margin-top:40px;background:var(--paper);border:1.5px solid var(--blue);padding:18px;transform:rotate(1.2deg);box-shadow:5px 6px 0 var(--blue)">
@@ -669,18 +661,18 @@
 </article>
 
 <!-- ───── Page 08 · Letter (contact) ───── -->
-<article class="page" id="letter">
-  <div class="folio"><b>07</b> // PING</div>
-  <h2 class="headline" style="text-align:center">Say <em>hi.</em></h2>
-  <p class="dek" style="text-align:center;margin-left:auto;margin-right:auto">Drop me a note — I reply.</p>
+<article class="page" id="letter" style="--ping-bg:oklch(0.78 0.16 75);--ping-fg:oklch(0.18 0.06 30);--ping-accent:oklch(0.42 0.18 10);--ping-accent-2:oklch(0.32 0.12 280);background:var(--ping-bg);color:var(--ping-fg);border-radius:12px;padding:48px 24px;margin:40px auto 0;box-shadow:0 14px 0 oklch(0.45 0.18 30)">
+  <div class="folio" style="color:var(--ping-accent)"><b>07</b> // PING</div>
+  <h2 class="headline" style="text-align:center;color:var(--ping-fg)">Say <em style="color:var(--ping-accent)">hi.</em></h2>
+  <p class="dek" style="text-align:center;margin-left:auto;margin-right:auto;color:var(--ping-fg);opacity:.85">Drop me a note — I reply.</p>
 
-  <div style="position:relative;margin:44px auto 0;max-width:560px;padding:36px 32px;background:var(--paper);border:1.5px solid var(--ink);box-shadow:8px 10px 0 var(--blue);transform:rotate(-.4deg);text-align:center">
-    <div class="stamp-corner" style="position:absolute;top:-16px;right:16px;padding:6px 12px;background:var(--blue);color:var(--paper);font-family:var(--mono);font-size:10px;letter-spacing:.2em"><b>BM</b> · 2026</div>
-    <p style="margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-soft)">How to reach me</p>
+  <div style="position:relative;margin:44px auto 0;max-width:560px;padding:36px 32px;background:oklch(0.97 0.03 85);color:var(--ping-fg);border:1.5px solid var(--ping-fg);box-shadow:8px 10px 0 var(--ping-accent-2);transform:rotate(-.4deg);text-align:center">
+    <div class="stamp-corner" style="position:absolute;top:-16px;right:16px;padding:6px 12px;background:var(--ping-accent-2);color:oklch(0.97 0.03 85);font-family:var(--mono);font-size:10px;letter-spacing:.2em"><b>BM</b> · 2026</div>
+    <p style="margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--ping-accent)">How to reach me</p>
     <p style="margin:18px 0 0;font-family:var(--serif);font-size:1.1rem;line-height:2">
-      <a href="mailto:1barmoshe1@gmail.com" style="color:var(--blue);text-decoration:none">1barmoshe1@gmail.com</a><br>
-      <a href="tel:+972546561465" style="color:var(--blue);text-decoration:none">+972 546 561 465</a><br>
-      <a href="https://github.com/barmoshe" target="_blank" rel="noopener" style="color:var(--blue)">GitHub</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/barmoshe/" target="_blank" rel="noopener" style="color:var(--blue)">LinkedIn</a>
+      <a href="mailto:1barmoshe1@gmail.com" style="color:var(--ping-accent-2);text-decoration:none">1barmoshe1@gmail.com</a><br>
+      <a href="tel:+972546561465" style="color:var(--ping-accent-2);text-decoration:none">+972 546 561 465</a><br>
+      <a href="https://github.com/barmoshe" target="_blank" rel="noopener" style="color:var(--ping-accent-2)">GitHub</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/barmoshe/" target="_blank" rel="noopener" style="color:var(--ping-accent-2)">LinkedIn</a>
     </p>
   </div>
 </article>
@@ -796,9 +788,11 @@ const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
     idx = next;
     if (user) restart();
   }
-  function tick(){ go((idx+1) % slides.length, false); }
-  function start(){ if (timer || paused) return; timer = setInterval(tick, 1800); }
-  function stop(){ clearInterval(timer); timer = null; }
+  function nextDelay(){ return 3000 + Math.random() * 7000; }
+  function tick(){ go((idx+1) % slides.length, false); schedule(); }
+  function schedule(){ if (paused) return; timer = setTimeout(tick, nextDelay()); }
+  function start(){ if (timer || paused) return; schedule(); }
+  function stop(){ clearTimeout(timer); timer = null; }
   function restart(){ stop(); start(); }
 
   // Initial state — always start with first slide (img0)
