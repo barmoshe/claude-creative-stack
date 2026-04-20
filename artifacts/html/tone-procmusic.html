@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Procedural music — Tone.js</title>
+  <style>
+    :root { --bg: oklch(0.15 0.02 280); --panel: oklch(0.21 0.03 280); --text: oklch(0.95 0.01 280); --accent: oklch(0.72 0.14 180); }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:14px system-ui; display:grid; place-items:center; }
+    .card { background: var(--panel); padding: 22px 26px; border-radius: 12px; max-width: 460px; }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    p  { opacity: 0.7; margin: 0 0 18px; line-height: 1.5; }
+    label { display:flex; align-items:center; justify-content: space-between; margin: 10px 0; }
+    input[type="range"] { width: 240px; }
+    .row { display:flex; gap:8px; margin-top: 16px; }
+    button { flex:1; padding: 10px 12px; border:0; border-radius: 8px; font:inherit; cursor:pointer; background: var(--accent); color: #0b1013; font-weight: 600; }
+    button.secondary { background: oklch(0.28 0.02 280); color: var(--text); }
+    .led { width: 10px; height: 10px; border-radius: 999px; background:#555; margin-left: 10px; }
+    .led.on { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Procedural music <span class="led" id="led"></span></h1>
+    <p>Euclidean-rhythm hi-hats + scale-constrained melody + sub-bass. Click Start to unlock audio.</p>
+    <label>BPM <input id="bpm" type="range" min="60" max="140" value="96"></label>
+    <label>Steps <input id="steps" type="range" min="8" max="16" value="12" step="1"></label>
+    <label>Hits  <input id="hits"  type="range" min="1" max="8"  value="5"  step="1"></label>
+    <label>Mode  <select id="mode"><option>minor</option><option>dorian</option><option>lydian</option><option>mixolydian</option></select></label>
+    <div class="row">
+      <button id="go">Start</button>
+      <button class="secondary" id="stop">Stop</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
+  <script>
+    const MODES = {
+      minor:      [0, 2, 3, 5, 7, 8, 10],
+      dorian:     [0, 2, 3, 5, 7, 9, 10],
+      lydian:     [0, 2, 4, 6, 7, 9, 11],
+      mixolydian: [0, 2, 4, 5, 7, 9, 10],
+    };
+
+    // Bjorklund / Euclidean rhythm
+    function euclidean(steps, hits){
+      if (hits <= 0) return new Array(steps).fill(0);
+      if (hits >= steps) return new Array(steps).fill(1);
+      const pattern = [];
+      for (let i = 0; i < steps; i++) pattern.push(Math.floor(i * hits / steps) !== Math.floor((i - 1) * hits / steps) ? 1 : 0);
+      return pattern;
+    }
+
+    let loop = null;
+    let lead, bass, hat, reverb;
+    const led = document.getElementById("led");
+    const bpm = document.getElementById("bpm"), steps = document.getElementById("steps"), hits = document.getElementById("hits");
+    const modeSel = document.getElementById("mode");
+
+    function pickNote(mode){
+      const scale = MODES[mode];
+      const degree = scale[Math.floor(Math.random() * scale.length)];
+      const octave = 3 + Math.floor(Math.random() * 3);
+      const midi = 48 + degree + (octave - 3) * 12; // rooted at C3
+      return Tone.Frequency(midi, "midi").toNote();
+    }
+
+    async function start(){
+      await Tone.start();
+      Tone.Transport.bpm.value = +bpm.value;
+
+      reverb = new Tone.Reverb({ decay: 6, wet: 0.35 }).toDestination();
+      lead = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.4 } }).connect(reverb);
+      bass = new Tone.MonoSynth({ oscillator: { type: "square" }, filter: { Q: 1 }, envelope: { attack: 0.02, release: 0.4 }, filterEnvelope: { baseFrequency: 180, octaves: 2 } }).toDestination();
+      hat = new Tone.NoiseSynth({ volume: -22, envelope: { attack: 0.001, decay: 0.08, sustain: 0 } }).toDestination();
+
+      let step = 0;
+      loop = new Tone.Loop((t) => {
+        const n = +steps.value, h = Math.min(n, +hits.value);
+        const pattern = euclidean(n, h);
+        if (pattern[step % n]) hat.triggerAttackRelease("16n", t);
+
+        if (step % 4 === 0) bass.triggerAttackRelease(pickNote(modeSel.value), "8n", t, 0.8);
+        if (Math.random() < 0.7) lead.triggerAttackRelease(pickNote(modeSel.value), "16n", t + 0.02, 0.4);
+
+        step++;
+      }, "16n");
+      loop.start(0);
+      Tone.Transport.start();
+      led.classList.add("on");
+    }
+
+    function stop(){
+      Tone.Transport.stop();
+      if (loop) loop.dispose();
+      led.classList.remove("on");
+    }
+
+    document.getElementById("go").addEventListener("click", start);
+    document.getElementById("stop").addEventListener("click", stop);
+    bpm.addEventListener("input", () => { if (Tone.Transport.state === "started") Tone.Transport.bpm.value = +bpm.value; });
+  </script>
+</body>
+</html>

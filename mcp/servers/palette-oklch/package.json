@@ -1,0 +1,27 @@
+{
+  "name": "palette-oklch-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing oklch palette generation as tool calls. Mirrors the skills/palette-generator logic.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "palette-oklch-mcp": "dist/index.js"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.0"
+  }
+}

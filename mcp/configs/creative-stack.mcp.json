@@ -1,0 +1,22 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/mcp-servers.json",
+  "_note": "Rename to `.mcp.json` in your project root (dotfiles were blocked in the authoring environment). Merge the `mcpServers` block into `~/.claude.json` for global availability.",
+  "mcpServers": {
+    "palette-oklch": {
+      "command": "node",
+      "args": ["./mcp/servers/palette-oklch/dist/index.js"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    },
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    }
+  }
+}

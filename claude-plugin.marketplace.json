@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schemas.buildwithclaude.com/marketplace.json",
+  "name": "claude-creative-stack",
+  "description": "Skills, prompts, artifacts, and MCP servers for building art, animation, graphics, games, UX/UI, and advanced creative workflows with Claude.",
+  "author": "Bar Moshe and contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/USER/claude-creative-stack",
+  "version": "0.1.0",
+  "note": "This file is named `claude-plugin.marketplace.json` in the repo because dotfile paths are blocked in the authoring environment. To activate as a Claude Code plugin marketplace, move it to `.claude-plugin/marketplace.json`.",
+  "plugins": [
+    {
+      "name": "artifact-game-builder",
+      "description": "Single-file playable game scaffolding for Claude artifacts.",
+      "source": { "type": "local", "path": "skills/artifact-game-builder" }
+    },
+    {
+      "name": "animation-composer",
+      "description": "Orchestrator for web animation — picks CSS, Motion, GSAP, Theatre, Lottie, or Rive.",
+      "source": { "type": "local", "path": "skills/animation-composer" }
+    },
+    {
+      "name": "shader-smith",
+      "description": "GLSL fragment shader authoring with WebGL2 or Three.js r128 wrappers.",
+      "source": { "type": "local", "path": "skills/shader-smith" }
+    },
+    {
+      "name": "palette-generator",
+      "description": "Accessible oklch palette generator with WCAG AA verification.",
+      "source": { "type": "local", "path": "skills/palette-generator" }
+    },
+    {
+      "name": "sprite-atlas-builder",
+      "description": "Sprite atlas planner, manifest generator, and placeholder PNG generator.",
+      "source": { "type": "local", "path": "skills/sprite-atlas-builder" }
+    },
+    {
+      "name": "ui-design-kit",
+      "description": "Themeable shadcn-style UI kit with oklch tokens and dark mode.",
+      "source": { "type": "local", "path": "skills/ui-design-kit" }
+    },
+    {
+      "name": "procgen-toolkit",
+      "description": "Seeded BSP, WFC, cellular-automata, and noise generators.",
+      "source": { "type": "local", "path": "skills/procgen-toolkit" }
+    }
+  ],
+  "mcps": [
+    {
+      "name": "palette-oklch",
+      "description": "MCP server exposing the palette-generator logic as tool calls.",
+      "source": { "type": "local", "path": "mcp/servers/palette-oklch" }
+    }
+  ]
+}

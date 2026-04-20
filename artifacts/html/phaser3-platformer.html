@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phaser 3 platformer</title>
+  <style>
+    html, body { margin:0; height:100%; background:#0f1020; display:grid; place-items:center; }
+    #game { box-shadow: 0 12px 40px rgba(0,0,0,.5); border-radius: 8px; overflow: hidden; }
+    #controls { color:#aaa; font: 13px system-ui; margin-top: 12px; text-align:center; }
+  </style>
+</head>
+<body>
+  <div>
+    <div id="game"></div>
+    <div id="controls">A/D or ← → to move • Space/W/↑ to jump • R to restart</div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script>
+    const W = 640, H = 360;
+
+    // A tiny in-memory base64 1px white PNG — Phaser will use tint to color-theme our sprites.
+    const WHITE_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+    function preload(){ this.load.image("px", WHITE_PNG); }
+
+    function create(){
+      this.cameras.main.setBackgroundColor("#10111a");
+
+      // Platforms (staticGroup)
+      this.platforms = this.physics.add.staticGroup();
+      const addPlat = (x,y,w,h,color) => {
+        const p = this.platforms.create(x, y, "px").setDisplaySize(w,h).setTint(color).refreshBody();
+        return p;
+      };
+      addPlat(W/2, H - 10, W, 20, 0x2a2f4a);                 // ground
+      addPlat(W*0.22, H*0.72, 140, 14, 0x3a4068);
+      addPlat(W*0.55, H*0.58, 120, 14, 0x3a4068);
+      addPlat(W*0.82, H*0.44, 140, 14, 0x3a4068);
+
+      // Player
+      this.p = this.physics.add.sprite(60, H - 60, "px").setDisplaySize(18, 28).setTint(0xf0c27b);
+      this.p.setCollideWorldBounds(true);
+      this.p.setMaxVelocity(220, 600);
+      this.physics.add.collider(this.p, this.platforms);
+
+      // Goal
+      this.goal = this.physics.add.staticSprite(W - 40, H*0.44 - 14, "px").setDisplaySize(16, 16).setTint(0x8ae0b4).refreshBody();
+
+      // Input
+      this.cursors = this.input.keyboard.createCursorKeys();
+      this.keys = this.input.keyboard.addKeys("A,D,W,SPACE,R");
+
+      // HUD
+      this.info = this.add.text(10, 10, "Reach the green block.", { fontFamily:"system-ui", fontSize:"14px", color:"#dce0ee" });
+
+      // Reset
+      this.keys.R.on("down", () => this.scene.restart());
+
+      // Jump juice — squash on land
+      this.lastGrounded = true;
+    }
+
+    function update(){
+      const left = this.cursors.left.isDown || this.keys.A.isDown;
+      const right = this.cursors.right.isDown || this.keys.D.isDown;
+      const up = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
+
+      // Horizontal movement with acceleration
+      const ax = left ? -900 : right ? 900 : 0;
+      this.p.setAccelerationX(ax);
+      this.p.setDragX(1400);
+
+      // Coyote-time-free simple jump: grounded check via body.blocked.down
+      const grounded = this.p.body.blocked.down;
+      if (up && grounded){ this.p.setVelocityY(-360); this.p.setScale(0.9, 1.15); }
+
+      // Ease sprite scale back to neutral
+      this.p.scaleX += (1 - this.p.scaleX) * 0.15;
+      this.p.scaleY += (1 - this.p.scaleY) * 0.15;
+
+      // Landing squash
+      if (grounded && !this.lastGrounded){ this.p.setScale(1.15, 0.85); }
+      this.lastGrounded = grounded;
+
+      // Goal collision → win text
+      if (Phaser.Geom.Intersects.RectangleToRectangle(this.p.getBounds(), this.goal.getBounds())){
+        this.info.setText("You win. Press R to replay.");
+      }
+    }
+
+    new Phaser.Game({
+      type: Phaser.AUTO, parent: "game", width: W, height: H,
+      physics: { default: "arcade", arcade: { gravity: { y: 900 }, debug: false } },
+      scene: { preload, create, update }
+    });
+  </script>
+</body>
+</html>

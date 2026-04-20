@@ -1,0 +1,21 @@
+{
+  "_note": "Copy to .mcp.json at repo root. The leading-dot filename is created by the user (git init friendly). Uses official MCP reference servers + the included palette-oklch server.",
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "."]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "palette-oklch": {
+      "command": "node",
+      "args": ["./mcp/servers/palette-oklch/dist/index.js"]
+    }
+  }
+}

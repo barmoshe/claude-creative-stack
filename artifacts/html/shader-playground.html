@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shader playground</title>
+  <style>
+    html, body { margin:0; height:100%; background:#000; color:#ddd; font: 13px system-ui; }
+    canvas { position: fixed; inset: 0; width: 100%; height: 100%; display:block; }
+    #hud { position: fixed; bottom: 12px; left: 12px; background: rgba(0,0,0,.45); padding: 6px 10px; border-radius: 6px; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+  <div id="hud">Move cursor — colors respond. Resize — shader reflows.</div>
+
+  <script>
+    const canvas = document.getElementById("gl");
+    const gl = canvas.getContext("webgl2", { antialias: false });
+    if (!gl){ document.body.innerHTML = "WebGL2 not available."; throw new Error("no webgl2"); }
+
+    // Fullscreen triangle — 1 draw call, no index buffer, avoids fullscreen quad seam.
+    const VSRC = `#version 300 es
+      out vec2 vUv;
+      void main(){
+        vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
+        vUv = p; // 0..2 range
+        gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+      }`;
+
+    const FSRC = `#version 300 es
+      precision highp float;
+      uniform vec2 uResolution;
+      uniform float uTime;
+      uniform vec2 uMouse;
+      out vec4 fragColor;
+
+      // hash + noise helpers
+      float hash21(vec2 p){ p = fract(p*vec2(234.34,435.345)); p += dot(p, p+34.23); return fract(p.x*p.y); }
+      float noise(vec2 p){
+        vec2 i = floor(p), f = fract(p);
+        float a = hash21(i), b = hash21(i+vec2(1,0)), c = hash21(i+vec2(0,1)), d = hash21(i+vec2(1,1));
+        vec2 u = f*f*(3.0 - 2.0*f);
+        return mix(a,b,u.x) + (c-a)*u.y*(1.0 - u.x) + (d-b)*u.x*u.y;
+      }
+      float fbm(vec2 p){
+        float s = 0.0, a = 0.5;
+        for (int i = 0; i < 5; i++){ s += a * noise(p); p *= 2.02; a *= 0.5; }
+        return s;
+      }
+
+      void main(){
+        vec2 uv = (gl_FragCoord.xy - 0.5*uResolution) / uResolution.y;
+        float warp = fbm(uv*1.6 + uTime*0.15);
+        float field = fbm(uv*2.4 + vec2(warp*1.2, -warp*0.8) + uMouse*0.8);
+        vec3 a = vec3(0.10, 0.12, 0.18);
+        vec3 b = vec3(0.95, 0.55, 0.30);
+        vec3 c = vec3(0.40, 0.72, 0.95);
+        vec3 col = mix(a, b, field);
+        col = mix(col, c, smoothstep(0.55, 0.9, field));
+        fragColor = vec4(col, 1.0);
+      }`;
+
+    function compile(type, src){
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      return s;
+    }
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VSRC));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FSRC));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    gl.useProgram(prog);
+
+    const uRes = gl.getUniformLocation(prog, "uResolution");
+    const uTime = gl.getUniformLocation(prog, "uTime");
+    const uMouse = gl.getUniformLocation(prog, "uMouse");
+
+    let mouse = [0.5, 0.5];
+    addEventListener("pointermove", e => { mouse = [e.clientX / innerWidth, 1 - e.clientY / innerHeight]; });
+
+    function resize(){
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      canvas.width  = innerWidth  * dpr;
+      canvas.height = innerHeight * dpr;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    addEventListener("resize", resize); resize();
+
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const start = performance.now();
+    (function frame(){
+      requestAnimationFrame(frame);
+      const t = reduce ? 0 : (performance.now() - start) / 1000;
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform1f(uTime, t);
+      gl.uniform2f(uMouse, mouse[0], mouse[1]);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    })();
+  </script>
+</body>
+</html>

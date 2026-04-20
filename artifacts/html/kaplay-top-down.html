@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kaplay top-down</title>
+  <style>
+    html, body { margin:0; height:100%; background:#0b0b14; display:grid; place-items:center; }
+    #help { color:#aaa; font:13px system-ui; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div>
+    <canvas id="game" width="640" height="400"></canvas>
+    <div id="help">WASD / arrows to move • Space to dash (screen shake) • Collect the dots.</div>
+  </div>
+  <script src="https://unpkg.com/kaplay@3001.0.18/dist/kaplay.js"></script>
+  <script>
+    const k = kaplay({
+      canvas: document.getElementById("game"),
+      width: 640, height: 400, background: [12, 14, 28],
+      crisp: true,
+    });
+
+    // Player
+    const p = k.add([
+      k.rect(18, 18),
+      k.color(240, 195, 120),
+      k.pos(320, 200),
+      k.anchor("center"),
+      k.area(),
+      k.body(),
+      "player",
+      { dashCd: 0 },
+    ]);
+
+    // Walls
+    function wall(x, y, w, h){ k.add([k.rect(w, h), k.pos(x, y), k.anchor("center"), k.color(48, 52, 80), k.area(), k.body({ isStatic: true })]); }
+    wall(320,   10, 640,  20); wall(320,  390, 640,  20);
+    wall( 10,  200,  20, 400); wall(630,  200,  20, 400);
+    wall(200,  140, 120,  12); wall(420,  260, 120,  12);
+
+    // Pickups
+    function pickup(x, y){
+      k.add([
+        k.circle(5), k.color(140, 220, 180), k.pos(x, y), k.anchor("center"), k.area(), "pickup",
+      ]);
+    }
+    for (let i = 0; i < 10; i++) pickup(50 + Math.random() * 540, 50 + Math.random() * 300);
+
+    // Score
+    let score = 0;
+    const hud = k.add([k.text("0", { size: 18 }), k.pos(20, 18), k.color(220, 224, 238)]);
+
+    // Trauma-based screen shake (Kaplay has shake(), still good to show the idea)
+    let trauma = 0;
+    k.onUpdate(() => { if (trauma > 0){ k.shake(trauma * 12); trauma = Math.max(0, trauma - k.dt() * 1.2); } });
+
+    k.onUpdate("player", (pl) => {
+      const speed = 220;
+      const dir = k.vec2(
+        (k.isKeyDown("d") || k.isKeyDown("right") ? 1 : 0) + (k.isKeyDown("a") || k.isKeyDown("left") ? -1 : 0),
+        (k.isKeyDown("s") || k.isKeyDown("down") ? 1 : 0) + (k.isKeyDown("w") || k.isKeyDown("up") ? -1 : 0),
+      );
+      const n = dir.len() > 0 ? dir.unit() : dir;
+      pl.move(n.scale(speed));
+
+      pl.dashCd = Math.max(0, pl.dashCd - k.dt());
+    });
+
+    k.onKeyPress("space", () => {
+      if (p.dashCd > 0) return;
+      p.dashCd = 0.6;
+      const dx = (k.isKeyDown("d") || k.isKeyDown("right") ? 1 : 0) + (k.isKeyDown("a") || k.isKeyDown("left") ? -1 : 0);
+      const dy = (k.isKeyDown("s") || k.isKeyDown("down") ? 1 : 0) + (k.isKeyDown("w") || k.isKeyDown("up") ? -1 : 0);
+      const mag = Math.hypot(dx, dy) || 1;
+      p.pos = p.pos.add(k.vec2(dx / mag, dy / mag).scale(64));
+      trauma = Math.min(1, trauma + 0.5);
+    });
+
+    p.onCollide("pickup", (pu) => {
+      pu.destroy();
+      score += 1;
+      hud.text = String(score);
+      trauma = Math.min(1, trauma + 0.15);
+      if (k.get("pickup").length === 0) hud.text = "All collected!";
+    });
+  </script>
+</body>
+</html>
