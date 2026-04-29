@@ -1,0 +1,26 @@
+[project]
+name = "music-studio-helpers"
+version = "1.0.0"
+description = "Helper scripts for the music-studio Claude Code plugin."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "Pillow>=10.0",
+  "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+# stem_analyze.py and loudness.py rely on ffmpeg's ebur128 filter, so
+# pyloudnorm is optional — only useful for offline analysis from Python.
+audio = [
+  "pyloudnorm>=0.1.1",
+  "scipy>=1.11",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

@@ -14,11 +14,9 @@ allowed-tools: Task, Read, Write, WebSearch, WebFetch, Grep, Glob, Skill
 Spawn three subagents in parallel via the Task tool, all in a single
 message. Each must be self-contained.
 
-1. **Trend agent.** (`trend-researcher` skill is not yet shipped on
-   day one — see README expansion path. Until it ships, run this step
-   manually as a `general-purpose` Task: search Reddit, YouTube, GitHub
-   for the topic seed and return a ranked list with click-potential,
-   build-feasibility, musical-payoff, and shorts-potential scores.)
+1. **Trend agent.** Invoke the `music-studio:trend-researcher` skill
+   with topic: "$ARGUMENTS". Returns a ranked list with click-potential,
+   build-feasibility, musical-payoff, and shorts-potential scores.
 
 2. **Pain-point agent.** Search Reddit (r/edmproduction, r/synthesizers,
    r/audioengineering, r/ableton), producer forums, and YouTube comments

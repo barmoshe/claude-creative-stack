@@ -19,15 +19,6 @@ The orchestrator dispatches to sub-skills by matching the user's intent to a row
 | Sound design language | "make it warmer", "punchier", "wider", "more glitchy" | `sound-vocabulary` |
 | Ship an episode | "ship it", "publish" | `publish-operator` (user-invocation only) |
 
-## Day-one availability
+## Availability
 
-The day-one skeleton ships only:
-
-- `episode-strategist`
-- `build-planner`
-- `thumbnail-packager`
-- `title-packager`
-
-Plus the `/episode-new` command (which orchestrates research + strategy + plan) and `/ship-episode` (thumbnail + title flow).
-
-If the user requests a row whose sub-skill is not yet implemented, surface that fact, point to the README expansion path, and offer the closest available alternative. Do not invent or stub the missing skill in-session.
+All sub-skills in the table above ship in the current plugin version. If a routing match returns an unexpected error ("skill not found"), surface that as a bug — don't silently fall back.

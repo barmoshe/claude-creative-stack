@@ -13,6 +13,10 @@
       "env": {
         "ELEVENLABS_API_KEY": "${ELEVENLABS_API_KEY}"
       }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-playwright"]
     }
   }
 }

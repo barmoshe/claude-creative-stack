@@ -2,32 +2,64 @@
 
 A Claude Code plugin that turns the idea-to-publish loop for a music-tech YouTube channel into a deterministic production system. Builds music tools with Claude as dev partner, then proves them with sound.
 
-## What's in the box (day-one skeleton)
+## What's in the box
 
-The plugin ships the highest-leverage subset of the full design. Per Spec 04 §10–§11, more skills land as the felt need arises.
+**Skills (16):**
 
-**Skills (5):**
 - `music-studio` — orchestrator: routes work, enforces Hard Rules, runs quality gates.
+- `trend-researcher` — finds clickable, finishable build ideas.
 - `episode-strategist` — turns a raw idea into viewer promise + hook + title direction.
 - `build-planner` — turns a strategy into a finishable music-app build plan.
+- `claude-prompt-writer` — writes the prompts pasted into the build session.
+- `script-writer` — writes the episode narration.
+- `edit-director` — produces edit notes (cuts, zooms, captions).
+- `demo-producer` — designs the final musical demo.
 - `thumbnail-packager` — generates 3 thumbnail concepts; runs blind reviewer.
-- `title-packager` — generates 5 A/B title variants tied to chosen thumbnail.
+- `title-packager` — generates 5 A/B title variants.
+- `shorts-producer` — cuts 2–4 vertical clips per episode.
+- `youtube-metadata` — description, tags, chapters, pinned comment.
+- `publish-operator` — freezes files into `workspace/publishing/`. User-only.
+- `analytics-reviewer` — turns CTR / retention / comments into next-episode experiments.
+- `audio-engineer` — loudness, fades, mastering, stem analysis.
+- `sound-vocabulary` — translates "warmer" / "punchier" into Tone.js parameters.
 
-**Commands (2):**
+**Commands (6):**
+
+- `/brainstorm <topic>` — refine a rough idea into 2–3 framings.
 - `/episode-new <idea>` — parallel research → strategy → build plan → scaffold.
-- `/ship-episode <name>` — thumbnail, title, upload package. User-only.
+- `/build-new <name>` — scaffold playground project + initial prompts.
+- `/film-episode <name>` — transcribe, script, edit, render preview, self-eval.
+- `/ship-episode <name>` — thumbnail, title, shorts, metadata, freeze. User-only.
+- `/review-analytics [N]` — turn last N episodes into ranked experiments.
 
-**Subagent (1):**
+**Subagents (3):**
+
 - `agents/reviewer.md` — blind reviewer for thumbnails and titles.
+- `agents/researcher.md` — read-only web research for episode topics.
+- `agents/auditor.md` — read-only repo hygiene auditor.
 
-**Hooks (1):**
+**Hooks (3):**
+
 - `hooks/validate-export-name.js` — enforces export naming convention.
+- `hooks/log-render.js` — logs ffmpeg invocations to `render-log.md`.
+- `hooks/notify-stop.sh` — desktop notification on session end.
 
-**Helpers (1):**
+**Helpers (8):**
+
+- `helpers/transcribe.py` — cached word-level verbatim ASR (via ElevenLabs Scribe MCP).
+- `helpers/pack_takes.py` — pack transcripts into a phrase-level reading view.
+- `helpers/timeline_view.py` — on-demand filmstrip + waveform.
+- `helpers/render.py` — EDL → video with 30 ms cut fades + grade pass.
+- `helpers/grade.py` — color-grading presets.
+- `helpers/loudness.py` — integrated LUFS / true peak / verdict against −14 LUFS.
+- `helpers/stem_analyze.py` — per-band RMS + crest factor.
 - `helpers/thumbnail_render.py` — render thumbnail mocks at preview width.
 
-**MCP servers:**
-- `youtube-data` (analytics) and `elevenlabs-scribe` (transcription) — see `.mcp.json`.
+**MCP servers (3):**
+
+- `youtube-data` — analytics.
+- `elevenlabs-scribe` — transcription.
+- `playwright` — browser-build demo capture.
 
 ## Setup
 
@@ -67,6 +99,7 @@ workspace/
 ├── playground/<build-slug>/          # the actual music app code
 ├── video-projects/<NNN>-<slug>/      # episode production package
 ├── exports/<NNN>-<slug>/             # finals only
+├── publishing/<NNN>-<slug>/          # frozen, ready-to-upload
 └── analytics/                        # render log + per-episode reviews
 ```
 
@@ -84,18 +117,9 @@ Three lines you do not deviate from:
 
 Twelve more rules govern production correctness — see `skills/music-studio/references/hard-rules.md`.
 
-## Expansion path
+## Audio knowledge
 
-Add capability when you feel the pain, not before. Recommended order from Spec 04 §11:
-
-| Trigger | Add |
-|---|---|
-| First episode shipped | `script-writer`, `edit-director`, `demo-producer`, `commands/film-episode.md` |
-| Iterating on a synth patch starts feeling slow | `sound-vocabulary` |
-| First episode hits 1k views | `analytics-reviewer`, `commands/review-analytics.md` |
-| Channel reaches 5 episodes | `shorts-producer`, `audio-engineer` |
-| Channel reaches 10 episodes | `trend-researcher`, `claude-prompt-writer`, `commands/brainstorm.md`, `commands/build-new.md` |
-| Channel reaches 25 episodes | `youtube-metadata`, `publish-operator`, `agents/auditor.md` |
+The shared creative-stack repo at `../knowledge/07-audio.md` covers Tone.js v15.5, Web Audio API, Howler.js, scales, Euclidean rhythms, and Markov chains. The plugin's `build-planner` and `sound-vocabulary` skills lean on it heavily — read it before scaffolding new music-tech builds.
 
 ## License
 

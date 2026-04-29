@@ -41,11 +41,15 @@ ends with sound, not code.
 - Channel identity: `@./channel-brain/identity.md`
 - Audience and tone: `@./channel-brain/audience.md`
 - Packaging formulas (sourced): `@./channel-brain/packaging.md`
+- Editing style: `@./channel-brain/editing-style.md`
+- Sound identity: `@./channel-brain/sound-identity.md`
+- Conventions: `@./channel-brain/conventions.md`
 
 ## Available workflows
 
+- `/brainstorm <topic>` — refine a rough idea into 2–3 framings before scaffolding.
 - `/episode-new <idea>` — research, strategy, build plan; scaffolds folders.
-- `/ship-episode <name>` — thumbnail, title, upload checklist.
-
-More workflows (`/brainstorm`, `/build-new`, `/film-episode`,
-`/review-analytics`) ship in later versions — see `README.md` expansion path.
+- `/build-new <name>` — scaffold playground project + initial Claude Code prompts.
+- `/film-episode <name>` — transcribe, script, edit, render preview, self-eval.
+- `/ship-episode <name>` — thumbnail, title, shorts, metadata, freeze. User-only.
+- `/review-analytics [N]` — turn last N episodes into ranked experiments.

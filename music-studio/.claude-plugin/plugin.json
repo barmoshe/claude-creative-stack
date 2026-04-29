@@ -1,7 +1,7 @@
 {
   "name": "music-studio",
   "description": "Plan, build, film, edit, package, and ship music-tech YouTube episodes with Claude. Builds music tools in workspace/playground; turns the best ones into episodes in workspace/video-projects.",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": {
     "name": "Your Name",
     "url": "https://github.com/you"

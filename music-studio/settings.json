@@ -1,0 +1,66 @@
+{
+  "model": "claude-sonnet-4-6",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(npm run *)",
+      "Bash(uv *)",
+      "Bash(pip *)",
+      "Bash(python *)",
+      "Bash(node *)",
+      "Bash(ffmpeg *)",
+      "Bash(ffprobe *)",
+      "Bash(yt-dlp *)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "WebSearch",
+      "WebFetch",
+      "Task",
+      "Skill"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push *)",
+      "Bash(git reset --hard *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/validate-export-name.js"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/log-render.js"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash hooks/notify-stop.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "attribution": {
+    "commit": ""
+  }
+}

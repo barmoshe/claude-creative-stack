@@ -13,10 +13,6 @@ Every episode passes through six stages. Each stage has a single canonical entry
 | 5 | Package & ship | `/ship-episode` | Title + thumbnail confirmed; files frozen | `workspace/publishing/<slug>/` |
 | 6 | Learn | `/review-analytics` | Experiments queued for next episodes | `workspace/analytics/episodes/<slug>.md` |
 
-## Day-one availability
-
-Only `/episode-new` (stage 1) and `/ship-episode` (stage 5) ship on day one. The remaining commands arrive as the felt need surfaces — see README expansion path. Until they ship, stages 2/3/4/6 are manual; the orchestrator should announce which stage the user is in and what manual artifact would qualify as the exit condition.
-
 ## Stage transitions
 
 A stage transition is an explicit operation, not a guess. The orchestrator advances the stage in `project.md` only after the exit condition is satisfied, and only after the user confirms.
