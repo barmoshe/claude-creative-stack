@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.uv/
+
+# Node
+node_modules/
+.pnp.*
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code state
+.claude/
+
+# Workspace (default = private; remove this line for public production journal mode — see Spec 01 §4.2)
+workspace/
+
+# Keep workspace structure even when contents are gitignored
+!workspace/.gitkeep
+!workspace/playground/.gitkeep
+!workspace/video-projects/.gitkeep
+!workspace/exports/.gitkeep
+!workspace/analytics/.gitkeep
