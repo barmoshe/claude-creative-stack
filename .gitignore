@@ -33,3 +33,4 @@ CLAUDE.local.md
 # Coverage / test
 coverage/
 .nyc_output/
+joomsy-app/
