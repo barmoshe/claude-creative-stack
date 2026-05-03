@@ -120,7 +120,7 @@ This repo does **not** duplicate prior art. For deeper coverage, install in para
 - [awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills) / [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) — discovery lists.
 - Plugin registries: [buildwithclaude.com](https://buildwithclaude.com) · [claudemarketplaces.com](https://claudemarketplaces.com) · [claudepluginhub.com](https://www.claudepluginhub.com).
 
-#### One-shot install via Claude Code plugin marketplaces
+### One-shot install via Claude Code plugin marketplaces
 
 ```sh
 # Add the four marketplaces

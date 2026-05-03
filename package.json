@@ -11,7 +11,7 @@
   "scripts": {
     "validate": "npm run validate:skills && npm run validate:markdown && npm run validate:artifacts && npm run validate:mcp",
     "validate:skills": "node scripts/validate-skills.mjs",
-    "validate:markdown": "markdownlint-cli2 \"knowledge/**/*.md\" \"skills/**/*.md\" \"prompts/**/*.md\" \"recipes/**/*.md\" \"**/README.md\" \"CLAUDE.md\"",
+    "validate:markdown": "markdownlint-cli2 \"knowledge/**/*.md\" \"skills/**/*.md\" \"prompts/**/*.md\" \"recipes/**/*.md\" \"README.md\" \"CLAUDE.md\" \"skills/README.md\" \"skills/*/scripts/README.md\" \"skills/*/assets/README.md\" \"mcp/README.md\" \"mcp/servers/*/README.md\" \"playground/README.md\" \"artifacts/README.md\" \"prompts/README.md\" \"recipes/README.md\" \"docs/diagram.md\"",
     "validate:links": "lychee --config lychee.toml 'knowledge/**/*.md' 'skills/**/*.md' 'prompts/**/*.md' 'recipes/**/*.md' 'README.md' 'CLAUDE.md'",
     "validate:artifacts": "node -e \"const {readdirSync,readFileSync,statSync}=require('fs');const {join}=require('path');for (const f of readdirSync('artifacts/html').filter(x=>x.endsWith('.html'))){const p=join('artifacts/html',f);if(!statSync(p).size||!readFileSync(p,'utf8').includes('</html>'))throw new Error('bad html: '+f);}console.log('artifacts/html OK');\"",
     "validate:mcp": "npm run -ws --if-present build && npm run -ws --if-present test",

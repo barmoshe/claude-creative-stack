@@ -44,7 +44,23 @@ jobs:
           done
           echo "knowledge/ markdown integrity OK"
       - name: markdownlint
-        run: npx --yes markdownlint-cli2 "knowledge/**/*.md" "skills/**/*.md" "prompts/**/*.md" "recipes/**/*.md" "**/README.md" "CLAUDE.md"
+        run: |
+          npx --yes markdownlint-cli2 \
+            "knowledge/**/*.md" \
+            "skills/**/*.md" \
+            "prompts/**/*.md" \
+            "recipes/**/*.md" \
+            "README.md" "CLAUDE.md" \
+            "skills/README.md" \
+            "skills/*/scripts/README.md" \
+            "skills/*/assets/README.md" \
+            "mcp/README.md" \
+            "mcp/servers/*/README.md" \
+            "playground/README.md" \
+            "artifacts/README.md" \
+            "prompts/README.md" \
+            "recipes/README.md" \
+            "docs/diagram.md"
 
   links:
     runs-on: ubuntu-latest
