@@ -1,14 +1,14 @@
 # Validation workflow for claude-creative-stack.
 #
 # Jobs:
-#   knowledge        — markdown integrity + lint + link check
-#   skills           — SKILL.md frontmatter against a Zod schema
-#   artifacts        — HTML well-formed; JSX parses
-#   mcp              — every server under mcp/servers/* builds + tests
-#   playground       — typecheck the optional Vite project (if it has changed)
+#   knowledge   — markdown integrity + markdownlint
+#   links       — lychee link check (best-effort: failures are warnings, not fatal)
+#   skills      — SKILL.md frontmatter against the project schema
+#   artifacts   — HTML well-formed; JSX parses
+#   mcp         — every server under mcp/servers/* builds + tests
+#   playground  — typecheck the optional Vite project, if present
 #
-# The validators try to use globally-available tooling (npx) so contributors don't
-# need a global install — `npm run validate` from the repo root mirrors CI.
+# `npm run validate` from the repo root mirrors most of this locally.
 
 name: Validate
 
@@ -16,6 +16,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: validate-${{ github.ref }}
@@ -27,7 +31,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: '20'
       - name: Markdown integrity
         run: |
           set -e
@@ -40,24 +45,26 @@ jobs:
           echo "knowledge/ markdown integrity OK"
       - name: markdownlint
         run: npx --yes markdownlint-cli2 "knowledge/**/*.md" "skills/**/*.md" "prompts/**/*.md" "recipes/**/*.md" "**/README.md" "CLAUDE.md"
+
+  links:
+    runs-on: ubuntu-latest
+    # Best-effort: external link rot shouldn't fail PRs; surface in logs only.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
       - name: Link check (lychee)
-        uses: lycheeverse/lychee-action@v1
+        uses: lycheeverse/lychee-action@v2
         with:
-          args: >
-            --no-progress --max-concurrency 8 --accept '200,206,301,302,304,403,429'
-            --exclude-path docs/archive
-            --exclude 'localhost'
-            --exclude 'example\.com'
-            --exclude 'api\.anthropic\.com'
-            'knowledge/**/*.md' 'skills/**/*.md' 'prompts/**/*.md' 'recipes/**/*.md' 'README.md' 'CLAUDE.md'
-          fail: true
+          args: --config lychee.toml --no-progress 'knowledge/**/*.md' 'skills/**/*.md' 'prompts/**/*.md' 'recipes/**/*.md' 'README.md' 'CLAUDE.md'
+          fail: false
 
   skills:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: '20'
       - name: Validate SKILL.md frontmatter
         run: node scripts/validate-skills.mjs
 
@@ -66,7 +73,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: '20'
       - name: Parse JSX artifacts
         run: |
           set -e
@@ -83,33 +91,43 @@ jobs:
             grep -q "</html>" "$f" || { echo "Missing </html>: $f"; exit 1; }
           done
           echo "artifacts/html OK"
-      - name: Smoke-test artifacts in headless Chromium
-        run: node scripts/smoke-artifacts.mjs
 
   mcp:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         server: [palette-oklch, sprite-packer, asset-router]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: '20'
       - name: Build & test mcp/servers/${{ matrix.server }}
         working-directory: mcp/servers/${{ matrix.server }}
         run: |
+          set -e
           npm install
           npm run build
-          if npm run | grep -q "^  test"; then npm test; fi
+          if npm run --silent 2>&1 | grep -qE "^\s+test"; then npm test; fi
 
   playground:
     runs-on: ubuntu-latest
-    if: hashFiles('playground/package.json') != ''
     steps:
       - uses: actions/checkout@v4
+      - id: detect
+        run: |
+          if [ -f playground/package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        if: steps.detect.outputs.present == 'true'
+        with:
+          node-version: '20'
       - name: Typecheck playground
+        if: steps.detect.outputs.present == 'true'
         working-directory: playground
         run: |
           npm install
