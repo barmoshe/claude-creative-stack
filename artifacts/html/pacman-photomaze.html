@@ -154,7 +154,6 @@
       display: block;
       image-rendering: pixelated; image-rendering: crisp-edges;
       touch-action: none;
-      filter: drop-shadow(0 0 30px oklch(0.45 0.18 265 / 0.30));
     }
 
     /* ---- Camera flash overlay ---- */
@@ -164,18 +163,11 @@
       pointer-events: none;
       transition: opacity 90ms ease-out;
     }
-    /* ---- Subtle scanlines (off under reduced motion) ---- */
-    #app::after {
-      content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none;
-      background: repeating-linear-gradient(0deg, oklch(1 0 0 / 0.02) 0 1px, transparent 1px 3px);
-      mix-blend-mode: overlay;
-    }
 
     [hidden] { display: none !important; }
 
     @media (prefers-reduced-motion: reduce) {
       .overlay, .icons { animation: none !important; }
-      #app::after { display: none; }
     }
   </style>
 </head>
@@ -597,7 +589,7 @@
             setAt(actor.x, actor.y, TILE.EMPTY);
             pelletsLeft--;
             SFX.snap();
-            burst(actor.x, actor.y, 3);
+            burst(actor.x, actor.y, 2);
             updateHUD();
           } else if (t === TILE.POWER) {
             setAt(actor.x, actor.y, TILE.EMPTY);
@@ -611,7 +603,7 @@
               }
             });
             SFX.power();
-            burst(actor.x, actor.y, 14);
+            burst(actor.x, actor.y, 8);
             updateHUD();
           }
           if (pelletsLeft <= 0) { triggerVictory(); return; }
@@ -649,7 +641,7 @@
             g.speed = CONFIG.playerCellsPerSecond * CONFIG.eatenSpeedFrac;
             SFX.eaten();
             flashScreen(0.7, 90);
-            burst(player.x, player.y, 14);
+            burst(player.x, player.y, 8);
           } else {
             // hit
             lives--;
@@ -768,6 +760,64 @@
     const ctx = canvas.getContext("2d");
     let TS = 24; // tile size in px
 
+    // Pre-resolved color strings (cheaper than oklch() reparse per draw)
+    const COL = {
+      bg:        "#0a0a18",
+      wall:      "#2c3a8b",  // ≈ oklch(0.32 0.16 265)
+      wallEdge:  "#7a8cd6",  // ≈ oklch(0.65 0.20 265)
+      door:      "#f6c84a",  // ≈ oklch(0.85 0.18 85)
+      pellet:    "#fef3c7",
+      pelletHi:  "rgba(255,255,255,0.7)",
+      power:     "#facc15",
+      powerHi:   "rgba(255,255,255,0.9)",
+      player:    "#facc15",
+      eye:       "#0a0a18",
+      eyeWhite:  "#ffffff",
+      eyePupil:  "#1e3a8a",
+      frightBody:"#1e3a8a",
+      frightFlash:"#ffffff",
+      frightUI:  "#fef3c7",
+    };
+
+    // Static maze layer (walls + door) — re-rendered only on resize / reset
+    const wallLayer = document.createElement("canvas");
+    const wctx = wallLayer.getContext("2d");
+
+    function buildWallLayer() {
+      wallLayer.width  = TS * W;
+      wallLayer.height = TS * H;
+      wctx.clearRect(0, 0, wallLayer.width, wallLayer.height);
+      const inset = TS * 0.18;
+      const lineW = Math.max(1, TS * 0.08);
+      wctx.lineWidth = lineW;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const v = grid[y * W + x];
+          if (v === TILE.WALL) {
+            const cx = x * TS, cy = y * TS;
+            const wN = y > 0     && grid[(y - 1) * W + x] === TILE.WALL;
+            const wS = y < H - 1 && grid[(y + 1) * W + x] === TILE.WALL;
+            const wW = x > 0     && grid[y * W + (x - 1)] === TILE.WALL;
+            const wE = x < W - 1 && grid[y * W + (x + 1)] === TILE.WALL;
+            const it = wN ? 0 : inset, ib = wS ? 0 : inset;
+            const il = wW ? 0 : inset, ir = wE ? 0 : inset;
+            wctx.fillStyle = COL.wall;
+            wctx.fillRect(cx + il, cy + it, TS - il - ir, TS - it - ib);
+            wctx.strokeStyle = COL.wallEdge;
+            wctx.beginPath();
+            if (it > 0) { wctx.moveTo(cx + il, cy + it); wctx.lineTo(cx + TS - ir, cy + it); }
+            if (ib > 0) { wctx.moveTo(cx + il, cy + TS - ib); wctx.lineTo(cx + TS - ir, cy + TS - ib); }
+            if (il > 0) { wctx.moveTo(cx + il, cy + it); wctx.lineTo(cx + il, cy + TS - ib); }
+            if (ir > 0) { wctx.moveTo(cx + TS - ir, cy + it); wctx.lineTo(cx + TS - ir, cy + TS - ib); }
+            wctx.stroke();
+          } else if (v === TILE.DOOR) {
+            wctx.fillStyle = COL.door;
+            wctx.fillRect(x * TS, y * TS + TS * 0.45, TS, TS * 0.12);
+          }
+        }
+      }
+    }
+
     function resize() {
       const stage = document.getElementById("stage");
       const rect = stage.getBoundingClientRect();
@@ -777,13 +827,14 @@
       canvas.height = TS * H;
       canvas.style.width = (TS * W) + "px";
       canvas.style.height = (TS * H) + "px";
+      buildWallLayer();
     }
     window.addEventListener("resize", () => { resize(); });
 
     function render(time) {
       const w = canvas.width, h = canvas.height;
       ctx.save();
-      ctx.fillStyle = "oklch(0.06 0.02 270)";
+      ctx.fillStyle = COL.bg;
       ctx.fillRect(0, 0, w, h);
 
       // shake
@@ -792,19 +843,40 @@
         ctx.translate((Math.random() * 2 - 1) * 12 * t2, (Math.random() * 2 - 1) * 12 * t2);
       }
 
-      // walls + pellets
+      // Static walls + door (cached)
+      ctx.drawImage(wallLayer, 0, 0);
+
+      // Pellets + power-pellets (dynamic — they get eaten)
+      const ps = Math.max(2, TS * 0.16);
+      const phi = Math.max(1, ps * 0.4);
+      ctx.fillStyle = COL.pellet;
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
-          const v = grid[y * W + x];
-          if (v === TILE.WALL)        drawWallCell(x, y);
-          else if (v === TILE.DOOR)   drawDoorCell(x, y);
-          else if (v === TILE.PELLET) drawPellet(x, y);
-          else if (v === TILE.POWER)  drawPower(x, y, time);
+          if (grid[y * W + x] === TILE.PELLET) {
+            const cx = x * TS + TS / 2, cy = y * TS + TS / 2;
+            ctx.fillRect(cx - ps / 2, cy - ps / 2, ps, ps);
+          }
+        }
+      }
+      // power-pellets get a pulsing arc
+      const pulse = prefersReducedMotion ? 1 : (0.75 + 0.25 * Math.sin(time / 200));
+      const pr = TS * 0.32 * pulse;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (grid[y * W + x] === TILE.POWER) {
+            const cx = x * TS + TS / 2, cy = y * TS + TS / 2;
+            ctx.fillStyle = COL.power;
+            ctx.beginPath(); ctx.arc(cx, cy, pr, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = COL.powerHi;
+            ctx.fillRect(cx - 1, cy - pr * 0.7, 2, pr * 1.4);
+            ctx.fillRect(cx - pr * 0.7, cy - 1, pr * 1.4, 2);
+          }
         }
       }
 
       // particles (under actors)
-      for (const p of particles) {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         ctx.globalAlpha = Math.max(0, p.life / p.max);
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x * TS - 2, p.y * TS - 2, 3, 3);
@@ -813,63 +885,12 @@
 
       // ghosts (skip during dying anim)
       if (state !== "dying") {
-        for (const g of ghosts) drawGhost(g, time);
+        for (let i = 0; i < ghosts.length; i++) drawGhost(ghosts[i], time);
       }
       // player
       drawPlayer(time);
 
       ctx.restore();
-    }
-
-    function drawWallCell(x, y) {
-      const cx = x * TS, cy = y * TS;
-      const wallN = y > 0     && grid[(y - 1) * W + x] === TILE.WALL;
-      const wallS = y < H - 1 && grid[(y + 1) * W + x] === TILE.WALL;
-      const wallW = x > 0     && grid[y * W + (x - 1)] === TILE.WALL;
-      const wallE = x < W - 1 && grid[y * W + (x + 1)] === TILE.WALL;
-      const inset = TS * 0.18;
-      const it = wallN ? 0 : inset;
-      const ib = wallS ? 0 : inset;
-      const il = wallW ? 0 : inset;
-      const ir = wallE ? 0 : inset;
-      ctx.fillStyle = "oklch(0.32 0.16 265)";
-      ctx.fillRect(cx + il, cy + it, TS - il - ir, TS - it - ib);
-      ctx.strokeStyle = "oklch(0.65 0.20 265)";
-      ctx.lineWidth = Math.max(1, TS * 0.08);
-      ctx.beginPath();
-      if (it > 0) { ctx.moveTo(cx + il, cy + it); ctx.lineTo(cx + TS - ir, cy + it); }
-      if (ib > 0) { ctx.moveTo(cx + il, cy + TS - ib); ctx.lineTo(cx + TS - ir, cy + TS - ib); }
-      if (il > 0) { ctx.moveTo(cx + il, cy + it); ctx.lineTo(cx + il, cy + TS - ib); }
-      if (ir > 0) { ctx.moveTo(cx + TS - ir, cy + it); ctx.lineTo(cx + TS - ir, cy + TS - ib); }
-      ctx.stroke();
-    }
-
-    function drawDoorCell(x, y) {
-      const cx = x * TS, cy = y * TS;
-      ctx.fillStyle = "oklch(0.85 0.18 85 / 0.9)";
-      ctx.fillRect(cx, cy + TS * 0.45, TS, TS * 0.12);
-    }
-
-    function drawPellet(x, y) {
-      // tiny "camera flash" — a small white square with a glint
-      const cx = x * TS + TS / 2, cy = y * TS + TS / 2;
-      const s = Math.max(2, TS * 0.16);
-      ctx.fillStyle = "oklch(0.96 0.04 90)";
-      ctx.fillRect(cx - s / 2, cy - s / 2, s, s);
-      ctx.fillStyle = "oklch(1 0 0 / 0.7)";
-      ctx.fillRect(cx - s / 2, cy - s / 2, Math.max(1, s * 0.4), Math.max(1, s * 0.4));
-    }
-
-    function drawPower(x, y, time) {
-      const cx = x * TS + TS / 2, cy = y * TS + TS / 2;
-      const pulse = prefersReducedMotion ? 1 : (0.75 + 0.25 * Math.sin(time / 200));
-      const r = TS * 0.32 * pulse;
-      ctx.fillStyle = "oklch(0.88 0.20 85)";
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-      // 4-point sparkle
-      ctx.fillStyle = "oklch(1 0 0 / 0.9)";
-      ctx.fillRect(cx - 1, cy - r * 0.7, 2, r * 1.4);
-      ctx.fillRect(cx - r * 0.7, cy - 1, r * 1.4, 2);
     }
 
     let chompPhase = 0;
@@ -879,14 +900,13 @@
       if (state === "dying") {
         const t = 1 - dyingTimer / 1.0;
         const ang = t * Math.PI;
-        ctx.fillStyle = "oklch(0.85 0.18 85)";
+        ctx.fillStyle = COL.player;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.arc(cx, cy, r * (1 - t * 0.4), ang, Math.PI * 2 - ang);
         ctx.closePath(); ctx.fill();
         return;
       }
-      // chomp
       if (!prefersReducedMotion) chompPhase += 0.18;
       const mouth = Math.abs(Math.sin(chompPhase)) * 0.45 + 0.05;
       let base = 0;
@@ -896,7 +916,7 @@
         case "left":  base = Math.PI; break;
         case "up":    base = -Math.PI / 2; break;
       }
-      ctx.fillStyle = "oklch(0.88 0.18 85)";
+      ctx.fillStyle = COL.player;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, r, base + mouth, base + Math.PI * 2 - mouth);
@@ -908,7 +928,7 @@
       else if (player.dir === "down") { ex = cx + eyeOff * 0.4; ey = cy + eyeOff * 0.2; }
       else if (player.dir === "left") { ex = cx - eyeOff * 0.4; }
       else if (player.dir === "right") { ex = cx + eyeOff * 0.4; }
-      ctx.fillStyle = "oklch(0.06 0.02 270)";
+      ctx.fillStyle = COL.eye;
       ctx.beginPath(); ctx.arc(ex, ey - eyeOff * 0.3, Math.max(1.5, TS * 0.07), 0, Math.PI * 2); ctx.fill();
     }
 
@@ -919,13 +939,12 @@
       let body = g.def.color;
       if (g.mode === "frightened") {
         const flashing = frightenedTimer < 2.0 && Math.floor(frightenedTimer * 5) % 2 === 0;
-        body = flashing ? "#ffffff" : "#1e3a8a";
+        body = flashing ? COL.frightFlash : COL.frightBody;
       } else if (g.mode === "eaten") {
-        body = null; // eyes only
+        body = null;
       }
 
       if (body) {
-        // Body: dome + 4 wave bumps
         ctx.fillStyle = body;
         ctx.beginPath();
         ctx.arc(cx, cy - r * 0.1, r, Math.PI, 0);
@@ -941,8 +960,6 @@
         ctx.lineTo(cx - r, yBase);
         ctx.closePath();
         ctx.fill();
-
-        // Designer-personality tell on top
         drawDesignerTell(g, cx, cy - r * 0.85, r);
       }
 
@@ -955,11 +972,10 @@
       else if (g.dir === "down") pdy = eyeR * 0.5;
 
       if (g.mode === "frightened") {
-        // shocked eyes
-        ctx.fillStyle = "oklch(0.96 0.04 90)";
-        for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * eox, cy + eoy, pupilR * 1.3, 0, Math.PI * 2); ctx.fill(); }
-        // squiggle mouth
-        ctx.strokeStyle = "oklch(0.96 0.04 90)";
+        ctx.fillStyle = COL.frightUI;
+        ctx.beginPath(); ctx.arc(cx - eox, cy + eoy, pupilR * 1.3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + eox, cy + eoy, pupilR * 1.3, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = COL.frightUI;
         ctx.lineWidth = Math.max(1.5, r * 0.08);
         ctx.beginPath();
         const my = cy + r * 0.18, w = r * 0.7, x0 = cx - w / 2, segs = 4;
@@ -970,10 +986,12 @@
         }
         ctx.stroke();
       } else {
-        ctx.fillStyle = "#fff";
-        for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * eox, cy + eoy, eyeR, 0, Math.PI * 2); ctx.fill(); }
-        ctx.fillStyle = "#1e3a8a";
-        for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * eox + pdx, cy + eoy + pdy, pupilR, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = COL.eyeWhite;
+        ctx.beginPath(); ctx.arc(cx - eox, cy + eoy, eyeR, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + eox, cy + eoy, eyeR, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = COL.eyePupil;
+        ctx.beginPath(); ctx.arc(cx - eox + pdx, cy + eoy + pdy, pupilR, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + eox + pdx, cy + eoy + pdy, pupilR, 0, Math.PI * 2); ctx.fill();
       }
     }
 
@@ -1026,18 +1044,19 @@
     // ============================================================
     let trauma = 0;
     const particles = [];
+    const PARTICLE_COLORS = ["#fef3c7", "#facc15", "#fb923c"];
+    const PARTICLE_CAP = 32;
     function burst(x, y, n) {
       if (prefersReducedMotion) return;
-      const colors = ["oklch(0.96 0.04 90)", "oklch(0.85 0.18 85)", "oklch(0.78 0.20 25)"];
       for (let i = 0; i < n; i++) {
-        if (particles.length > 64) particles.shift();
+        if (particles.length >= PARTICLE_CAP) particles.shift();
         const a = Math.random() * Math.PI * 2;
         const sp = 3 + Math.random() * 4;
         particles.push({
           x: x + 0.5, y: y + 0.5,
           vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-          life: 0.55 + Math.random() * 0.3, max: 0.85,
-          color: colors[i % colors.length],
+          life: 0.5, max: 0.5,
+          color: PARTICLE_COLORS[i % 3],
         });
       }
     }
