@@ -6,6 +6,22 @@
       "command": "node",
       "args": ["./mcp/servers/palette-oklch/dist/index.js"]
     },
+    "sprite-packer": {
+      "command": "node",
+      "args": ["./mcp/servers/sprite-packer/dist/index.js"]
+    },
+    "asset-router": {
+      "command": "node",
+      "args": ["./mcp/servers/asset-router/dist/index.js"],
+      "env": {
+        "REPLICATE_API_TOKEN": "${REPLICATE_API_TOKEN:-}",
+        "ELEVENLABS_API_KEY": "${ELEVENLABS_API_KEY:-}",
+        "FAL_KEY": "${FAL_KEY:-}",
+        "SUNO_API_KEY": "${SUNO_API_KEY:-}",
+        "LUMAAI_API_KEY": "${LUMAAI_API_KEY:-}",
+        "RUNWAY_API_KEY": "${RUNWAY_API_KEY:-}"
+      }
+    },
     "filesystem": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]

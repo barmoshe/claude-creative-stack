@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>View Transitions API — same-document morph demo</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg:      light-dark(oklch(0.98 0 0),       oklch(0.12 0 0));
+      --surface: light-dark(oklch(0.96 0.01 250),  oklch(0.18 0.02 250));
+      --text:    light-dark(oklch(0.18 0 0),       oklch(0.95 0 0));
+      --accent:  light-dark(oklch(0.55 0.18 270),  oklch(0.78 0.18 270));
+    }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem 1.5rem;
+    }
+    h1 { margin: 0 0 0.5rem; font-size: clamp(1.5rem, 3vw, 2.5rem); }
+    p.lede { color: oklch(from var(--text) l c h / 0.7); max-width: 60ch; margin: 0 0 1.5rem; }
+    button {
+      font: inherit;
+      padding: 0.6rem 1rem;
+      border: 0;
+      border-radius: 0.5rem;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      margin: 0 0.5rem 1rem 0;
+    }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+    .grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+      margin-top: 1rem;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 10px 30px -10px oklch(from var(--accent) l c h / 0.3);
+      view-transition-name: var(--vt);
+      cursor: pointer;
+      contain: paint;
+    }
+    .card .swatch {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 0.5rem;
+      background: oklch(var(--l) var(--c) var(--h));
+      view-transition-name: var(--vt-swatch);
+      contain: paint;
+    }
+    .card h3 { margin: 0.5rem 0 0; font-size: 1rem; }
+    .card small { color: oklch(from var(--text) l c h / 0.65); font-variant-numeric: tabular-nums; }
+
+    /* ----- detail view ------------------------------------------------- */
+    .detail {
+      display: none;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 2rem;
+      align-items: start;
+      background: var(--surface);
+      padding: 1.5rem;
+      border-radius: 1.25rem;
+      box-shadow: 0 30px 80px -30px oklch(from var(--accent) l c h / 0.45);
+    }
+    .detail.visible { display: grid; }
+    .detail .swatch {
+      aspect-ratio: 1;
+      border-radius: 1rem;
+      view-transition-name: vt-detail-swatch;
+      contain: paint;
+    }
+    .detail h2 { margin: 0; view-transition-name: vt-detail-title; }
+    .detail dl { margin: 1rem 0; }
+    .detail dt { font-weight: 700; }
+    .detail dd { margin: 0 0 0.5rem 0; font-variant-numeric: tabular-nums; color: oklch(from var(--text) l c h / 0.7); }
+
+    /* ----- View Transitions tuning ------------------------------------- */
+    /* Customize the morph: a bit slower, with a real ease. */
+    @media (prefers-reduced-motion: no-preference) {
+      ::view-transition-group(*) { animation-duration: 420ms; animation-timing-function: cubic-bezier(.2,.7,.2,1); }
+      ::view-transition-old(*),
+      ::view-transition-new(*) { animation-duration: 420ms; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(*) { animation-duration: 1ms; }
+    }
+
+    .unsupported {
+      padding: 0.75rem 1rem;
+      background: oklch(from var(--accent) l c h / 0.15);
+      border-left: 4px solid var(--accent);
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+      display: none;
+    }
+    body.no-vt .unsupported { display: block; }
+  </style>
+</head>
+<body>
+  <h1>View Transitions — same-document morph</h1>
+  <p class="lede">Click any swatch. The grid item morphs into a detail view via <code>document.startViewTransition()</code>. Click "Back" or anywhere outside to return. Baseline since Oct 2025; falls back to instant DOM swap on older browsers.</p>
+
+  <div class="unsupported">Heads up: your browser does not support the <code>startViewTransition</code> API. The demo still works — it just swaps state instantly.</div>
+
+  <button id="back" hidden>← Back to grid</button>
+  <button id="reset">Shuffle palette</button>
+
+  <main id="root">
+    <div id="grid" class="grid"></div>
+    <article id="detail" class="detail" aria-hidden="true">
+      <div class="swatch" id="detail-swatch"></div>
+      <div>
+        <h2 id="detail-title">—</h2>
+        <dl>
+          <dt>oklch</dt><dd id="detail-oklch">—</dd>
+          <dt>contrast vs page background</dt><dd id="detail-contrast">—</dd>
+          <dt>nearest hue family</dt><dd id="detail-family">—</dd>
+        </dl>
+        <p style="color: oklch(from var(--text) l c h / 0.7)">View Transitions interpolate the swatch's <code>view-transition-name</code> across DOM swaps; everything else cross-fades automatically.</p>
+      </div>
+    </article>
+  </main>
+
+  <script>
+    const colors = Array.from({ length: 12 }, (_, i) => ({
+      id: `swatch-${i}`,
+      l: 0.45 + (i % 3) * 0.18,
+      c: 0.13 + (i % 4) * 0.04,
+      h: (i * 32) % 360,
+    }));
+
+    const grid = document.getElementById("grid");
+    const detail = document.getElementById("detail");
+    const detailSwatch = document.getElementById("detail-swatch");
+    const detailTitle = document.getElementById("detail-title");
+    const detailOklch = document.getElementById("detail-oklch");
+    const detailContrast = document.getElementById("detail-contrast");
+    const detailFamily = document.getElementById("detail-family");
+    const backBtn = document.getElementById("back");
+    const resetBtn = document.getElementById("reset");
+
+    if (!("startViewTransition" in document)) document.body.classList.add("no-vt");
+
+    function familyOfHue(h) {
+      const families = [
+        [355, 30, "red"], [30, 60, "orange"], [60, 90, "yellow"], [90, 150, "green"],
+        [150, 200, "teal"], [200, 250, "blue"], [250, 290, "violet"], [290, 355, "magenta"],
+      ];
+      h = ((h % 360) + 360) % 360;
+      for (const [a, b, name] of families) {
+        if (a < b ? (h >= a && h < b) : (h >= a || h < b)) return name;
+      }
+      return "neutral";
+    }
+
+    function render() {
+      grid.innerHTML = "";
+      colors.forEach((c, i) => {
+        const card = document.createElement("button");
+        card.className = "card";
+        card.style.setProperty("--vt", `vt-card-${c.id}`);
+        card.dataset.id = c.id;
+        const swatch = document.createElement("div");
+        swatch.className = "swatch";
+        swatch.style.setProperty("--l", c.l);
+        swatch.style.setProperty("--c", c.c);
+        swatch.style.setProperty("--h", c.h);
+        swatch.style.setProperty("--vt-swatch", `vt-swatch-${c.id}`);
+        const h3 = document.createElement("h3");
+        h3.textContent = `oklch ${c.l.toFixed(2)} ${c.c.toFixed(2)} ${Math.round(c.h)}`;
+        const small = document.createElement("small");
+        small.textContent = familyOfHue(c.h);
+        card.append(swatch, h3, small);
+        card.addEventListener("click", () => openDetail(c, swatch));
+        grid.appendChild(card);
+      });
+    }
+
+    function openDetail(c, sourceSwatch) {
+      const transition = () => {
+        // Move the detail name onto the clicked swatch so the morph lands correctly.
+        // Reset all .swatch view-transition-name overrides first.
+        document.querySelectorAll(".grid .swatch").forEach(s => s.style.viewTransitionName = "");
+        sourceSwatch.style.viewTransitionName = "vt-detail-swatch";
+
+        detailSwatch.style.background = `oklch(${c.l} ${c.c} ${c.h})`;
+        detailTitle.textContent = `${familyOfHue(c.h)} — ${Math.round(c.h)}°`;
+        detailOklch.textContent = `oklch(${c.l.toFixed(2)} ${c.c.toFixed(2)} ${Math.round(c.h)})`;
+        detailContrast.textContent = `${(c.l > 0.5 ? 4.5 + (1 - c.l) * 10 : 4.5 + c.l * 10).toFixed(1)}:1 (approx)`;
+        detailFamily.textContent = familyOfHue(c.h);
+        document.getElementById("grid").style.display = "none";
+        detail.classList.add("visible");
+        detail.setAttribute("aria-hidden", "false");
+        backBtn.hidden = false;
+      };
+
+      if (document.startViewTransition) document.startViewTransition(transition);
+      else transition();
+    }
+
+    function closeDetail() {
+      const transition = () => {
+        document.getElementById("grid").style.display = "";
+        detail.classList.remove("visible");
+        detail.setAttribute("aria-hidden", "true");
+        backBtn.hidden = true;
+      };
+      if (document.startViewTransition) document.startViewTransition(transition);
+      else transition();
+    }
+
+    backBtn.addEventListener("click", closeDetail);
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && detail.classList.contains("visible")) closeDetail(); });
+    resetBtn.addEventListener("click", () => {
+      const transition = () => {
+        colors.forEach(c => { c.h = (c.h + 47) % 360; c.l = 0.4 + Math.random() * 0.4; c.c = 0.10 + Math.random() * 0.13; });
+        render();
+      };
+      if (document.startViewTransition) document.startViewTransition(transition);
+      else transition();
+    });
+
+    render();
+  </script>
+</body>
+</html>

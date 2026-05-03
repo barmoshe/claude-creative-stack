@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WebGPU + TSL — with WebGL2 fallback</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #0a0a12; color: #eee; font-family: ui-sans-serif, system-ui, sans-serif; }
+    header {
+      position: fixed; top: 0; left: 0; right: 0; padding: 0.6rem 1rem;
+      display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;
+      background: rgba(10,10,18,0.6); backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .pill {
+      font-size: 0.78rem; padding: 0.2rem 0.5rem; border-radius: 999px;
+      background: rgba(255,255,255,0.08); font-variant-numeric: tabular-nums;
+    }
+    .pill.gpu { background: oklch(0.58 0.18 270 / 0.4); }
+    .pill.gl  { background: oklch(0.58 0.16 30  / 0.4); }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    p.note {
+      position: fixed; bottom: 0.75rem; left: 0.75rem; right: 0.75rem;
+      font-size: 0.8rem; color: rgba(255,255,255,0.6);
+      max-width: 60ch;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WebGPU + TSL</h1>
+    <span id="renderer-pill" class="pill">detecting…</span>
+    <span class="pill" id="frame-pill">— ms</span>
+  </header>
+  <canvas id="cv"></canvas>
+  <p class="note">
+    Same scene, two back-ends. <strong>WebGPU</strong> path uses <code>three/webgpu</code> + TSL nodes; the <strong>WebGL2</strong> fallback compiles the same node graph to GLSL automatically. The pill shows which path you're on.
+  </p>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three":           "https://esm.sh/three@0.183.2",
+        "three/webgpu":    "https://esm.sh/three@0.183.2/webgpu",
+        "three/tsl":       "https://esm.sh/three@0.183.2/tsl",
+        "three/addons/":   "https://esm.sh/three@0.183.2/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    // NOTE: this artifact uses a current Three.js (r183) outside the artifact-runtime sandbox
+    // (the sandbox pins r128 and is WebGL only). Open this file directly in a browser, or load
+    // it in playground/. For sandbox-safe shader work, use shader-playground.html.
+
+    const supportsGPU = "gpu" in navigator;
+    const pill = document.getElementById("renderer-pill");
+    const frameEl = document.getElementById("frame-pill");
+    const canvas = document.getElementById("cv");
+
+    let THREE, renderer, scene, camera, mesh, mat;
+
+    async function boot() {
+      if (supportsGPU) {
+        THREE = await import("three/webgpu");
+        const { uv, time, vec3, mix, sin, mx_noise_float, length } = await import("three/tsl");
+        renderer = new THREE.WebGPURenderer({ canvas, antialias: true });
+        await renderer.init();
+        pill.textContent = "WebGPU"; pill.classList.add("gpu");
+
+        scene  = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100); camera.position.z = 4;
+
+        mat = new THREE.MeshBasicNodeMaterial();
+        const u = uv().mul(3.0).add(time.mul(0.18));
+        const offset = vec3(mx_noise_float(u), mx_noise_float(u.add(vec3(5.2,1.3,0.0))), 0.0).mul(0.6);
+        const noise  = mx_noise_float(u.add(offset));
+        const cool = vec3(0.05, 0.10, 0.40);
+        const hot  = vec3(1.00, 0.65, 0.20);
+        mat.colorNode = mix(cool, hot, sin(noise.add(time.mul(0.5))).mul(0.5).add(0.5));
+        mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4, 32), mat);
+        scene.add(mesh);
+      } else {
+        THREE = await import("three");
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        pill.textContent = "WebGL2 fallback"; pill.classList.add("gl");
+
+        scene  = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100); camera.position.z = 4;
+
+        // Equivalent shader in plain GLSL (no node graph).
+        mat = new THREE.ShaderMaterial({
+          uniforms: { uTime: { value: 0 } },
+          vertexShader: `
+            varying vec2 vUv;
+            void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+          `,
+          fragmentShader: `
+            precision highp float;
+            varying vec2 vUv;
+            uniform float uTime;
+
+            float hash21(vec2 p){ p=fract(p*vec2(234.34,435.345)); p+=dot(p,p+34.23); return fract(p.x*p.y); }
+            float noise(vec2 p){ vec2 i=floor(p), f=fract(p);
+              float a=hash21(i), b=hash21(i+vec2(1,0)), c=hash21(i+vec2(0,1)), d=hash21(i+vec2(1,1));
+              vec2 u=f*f*(3.-2.*f);
+              return mix(a,b,u.x) + (c-a)*u.y*(1.-u.x) + (d-b)*u.x*u.y;
+            }
+            void main(){
+              vec2 u = vUv*3.0 + uTime*0.18;
+              vec2 off = vec2(noise(u), noise(u + vec2(5.2,1.3)))*0.6;
+              float n = noise(u + off);
+              vec3 col = mix(vec3(0.05,0.10,0.40), vec3(1.00,0.65,0.20), 0.5+0.5*sin(n + uTime*0.5));
+              gl_FragColor = vec4(col, 1.0);
+            }
+          `,
+        });
+        mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4, 5), mat);
+        scene.add(mesh);
+      }
+
+      function resize() {
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h; camera.updateProjectionMatrix();
+      }
+      addEventListener("resize", resize); resize();
+
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let last = performance.now(), t = 0;
+      function loop(now) {
+        const dt = (now - last) / 1000; last = now;
+        if (!reduced) t += dt;
+        if (mat.uniforms?.uTime) mat.uniforms.uTime.value = t;
+        mesh.rotation.x = t * 0.4; mesh.rotation.y = t * 0.6;
+        renderer.render(scene, camera);
+        frameEl.textContent = `${(dt * 1000).toFixed(1)} ms`;
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    boot().catch(err => {
+      console.error(err);
+      pill.textContent = `boot failed: ${err.message}`;
+      pill.style.background = "rgba(255,80,80,0.4)";
+    });
+  </script>
+</body>
+</html>

@@ -141,7 +141,7 @@ brew install --cask claude-code                   # macOS
 irm https://claude.ai/install.ps1 | iex           # Windows
 ```
 
-Package: `@anthropic-ai/claude-code` (~2.1.x, April 2026). Platforms: darwin/linux/win32, arm64/x64.
+Package: `@anthropic-ai/claude-code` (~2.1.x, May 2026). Platforms: darwin/linux/win32, arm64/x64.
 
 Common commands:
 

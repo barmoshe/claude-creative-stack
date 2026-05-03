@@ -1,0 +1,31 @@
+{
+  "name": "sprite-packer-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that packs PNG sprite frames into a single atlas + JSON manifest. Mirrors skills/sprite-atlas-builder/scripts/pack.ts.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "sprite-packer-mcp": "dist/index.js"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "pngjs": "^7.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "@types/pngjs": "^6.0.5",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

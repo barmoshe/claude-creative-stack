@@ -1,16 +1,18 @@
 # Skills
 
-Seven agent skills that layer on top of the official Anthropic skills. Each is a folder containing a `SKILL.md` (progressive-disclosure entry point) and optional supporting files.
+Nine agent skills that layer on top of the official Anthropic skills. Each is a folder containing a `SKILL.md` (progressive-disclosure entry point) and optional supporting files (scripts, references, assets).
 
-| Skill | Triggers | Purpose |
-|---|---|---|
-| [`artifact-game-builder`](artifact-game-builder/SKILL.md) | "build a game", "mini game", "playable artifact" | End-to-end single-file game scaffolding. |
-| [`animation-composer`](animation-composer/SKILL.md) | "animate", "scroll story", "timeline" | Orchestrator — picks CSS / Motion / GSAP / Theatre. Defers to `gsap-skills` where relevant. |
-| [`shader-smith`](shader-smith/SKILL.md) | "shader", "glsl", "fragment", "raymarch" | GLSL fragment shader authoring + WebGL2 wrapping. |
-| [`palette-generator`](palette-generator/SKILL.md) | "palette", "color tokens", "oklch" | Accessible oklch palettes with AA verification. |
-| [`sprite-atlas-builder`](sprite-atlas-builder/SKILL.md) | "sprite sheet", "atlas", "animation frames" | Atlas layout, JSON manifest, Phaser/Pixi integration. |
-| [`ui-design-kit`](ui-design-kit/SKILL.md) | "design system", "ui kit", "components" | shadcn-style component kit with tokens. |
-| [`procgen-toolkit`](procgen-toolkit/SKILL.md) | "procedural", "dungeon", "map gen", "wfc", "bsp" | BSP / WFC / cellular automata generators. |
+| Skill | Triggers | Backed by | Demo |
+|---|---|---|---|
+| [`artifact-game-builder`](artifact-game-builder/SKILL.md) | "build a game", "mini game", "playable artifact" | `knowledge/06-games.md`, `knowledge/03-artifacts.md` | [`artifacts/react/game-ecs-starter.jsx`](../artifacts/react/game-ecs-starter.jsx) |
+| [`animation-composer`](animation-composer/SKILL.md) | "animate", "scroll story", "timeline" | `knowledge/04-animation.md` | [`artifacts/html/gsap-scroll-story.html`](../artifacts/html/gsap-scroll-story.html), [`artifacts/html/css-animation-hero.html`](../artifacts/html/css-animation-hero.html) |
+| [`shader-smith`](shader-smith/SKILL.md) | "shader", "glsl", "fragment", "raymarch" | `knowledge/12-shaders-webgpu.md`, `knowledge/05-graphics-design.md` | [`artifacts/html/shader-playground.html`](../artifacts/html/shader-playground.html), [`assets/`](shader-smith/assets) |
+| [`palette-generator`](palette-generator/SKILL.md) | "palette", "color tokens", "oklch" | `knowledge/05-graphics-design.md`, `knowledge/14-accessibility-performance.md` | [`mcp/servers/palette-oklch/`](../mcp/servers/palette-oklch/) |
+| [`sprite-atlas-builder`](sprite-atlas-builder/SKILL.md) | "sprite sheet", "atlas", "animation frames" | `knowledge/15-export-recording.md` §15.8 | [`scripts/pack.ts`](sprite-atlas-builder/scripts/pack.ts), [`mcp/servers/sprite-packer/`](../mcp/servers/sprite-packer/) |
+| [`ui-design-kit`](ui-design-kit/SKILL.md) | "design system", "ui kit", "components" | `knowledge/05-graphics-design.md` | [`artifacts/react/bento-grid-landing.jsx`](../artifacts/react/bento-grid-landing.jsx), [`artifacts/react/anchor-positioned-popover.jsx`](../artifacts/react/anchor-positioned-popover.jsx) |
+| [`procgen-toolkit`](procgen-toolkit/SKILL.md) | "procedural", "dungeon", "map gen", "wfc", "bsp" | `knowledge/06-games.md` §6.6 | [`artifacts/html/procgen-dungeon.html`](../artifacts/html/procgen-dungeon.html), [`references/algorithms.md`](procgen-toolkit/references/algorithms.md) |
+| [`asset-generator`](asset-generator/SKILL.md) | "generate {image,voice,music,video}", "concept art" | `knowledge/13-asset-pipelines.md` | [`mcp/servers/asset-router/`](../mcp/servers/asset-router/), [`recipes/agentic-asset-pipeline.md`](../recipes/agentic-asset-pipeline.md) |
+| [`critique-loop`](critique-loop/SKILL.md) | "critique this", "review", "iterate" | `knowledge/09-prompting.md` | [`artifacts/react/claudeception-critic.jsx`](../artifacts/react/claudeception-critic.jsx), [`artifacts/react/shader-jam.jsx`](../artifacts/react/shader-jam.jsx) |
 
 ## Philosophy
 

@@ -2,7 +2,7 @@
 
 ## 7.1 Tone.js
 
-Version ~15.5 (Apr 2026). CDN `https://unpkg.com/tone@15`. `npm i tone`. **Always call `await Tone.start()` after a user gesture.**
+Version ~15.5 (May 2026). CDN `https://unpkg.com/tone@15`. `npm i tone`. **Always call `await Tone.start()` after a user gesture.**
 
 ```js
 import * as Tone from "tone";

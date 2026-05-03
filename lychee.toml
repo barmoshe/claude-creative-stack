@@ -1,0 +1,27 @@
+# lychee link-check config. Runs in CI via lycheeverse/lychee-action.
+# Local: `lychee --config lychee.toml 'knowledge/**/*.md'`
+
+include_verbatim = false
+verbose = true
+no_progress = true
+max_concurrency = 8
+
+# Accept these as "fine" — many providers gate scrapers; we only care about real 404s.
+accept = ["200", "206", "301", "302", "304", "403", "429"]
+
+# Skip transient / unreachable endpoints by design.
+exclude = [
+  "^https?://localhost",
+  "^https?://example\\.com",
+  "^https?://api\\.anthropic\\.com",
+  "^https?://docs\\.anthropic\\.com",
+  "^https?://platform\\.claude\\.com",
+  "^https?://claude\\.ai",
+  "^file://",
+  "^mailto:",
+]
+
+exclude_path = ["docs/archive"]
+
+# We accept relative links; CI-only.
+require_https = false

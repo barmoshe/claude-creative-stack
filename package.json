@@ -1,0 +1,29 @@
+{
+  "name": "claude-creative-stack",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Knowledge + scaffolding repo for building creative work with Claude (Artifacts, Skills, MCP, API).",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "mcp/servers/*"
+  ],
+  "scripts": {
+    "validate": "npm run validate:skills && npm run validate:markdown && npm run validate:artifacts && npm run validate:mcp",
+    "validate:skills": "node scripts/validate-skills.mjs",
+    "validate:markdown": "markdownlint-cli2 \"knowledge/**/*.md\" \"skills/**/*.md\" \"prompts/**/*.md\" \"recipes/**/*.md\" \"**/README.md\" \"CLAUDE.md\"",
+    "validate:links": "lychee --config lychee.toml 'knowledge/**/*.md' 'skills/**/*.md' 'prompts/**/*.md' 'recipes/**/*.md' 'README.md' 'CLAUDE.md'",
+    "validate:artifacts": "node -e \"const {readdirSync,readFileSync,statSync}=require('fs');const {join}=require('path');for (const f of readdirSync('artifacts/html').filter(x=>x.endsWith('.html'))){const p=join('artifacts/html',f);if(!statSync(p).size||!readFileSync(p,'utf8').includes('</html>'))throw new Error('bad html: '+f);}console.log('artifacts/html OK');\"",
+    "validate:mcp": "npm run -ws --if-present build && npm run -ws --if-present test",
+    "smoke:artifacts": "node scripts/smoke-artifacts.mjs",
+    "build:mcp": "npm run -ws build"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "markdownlint-cli2": "^0.13.0",
+    "playwright": "^1.46.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

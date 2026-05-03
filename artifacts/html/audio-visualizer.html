@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Audio visualizer — Tone.js + AnalyserNode + Canvas (composite-safe)</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg:      light-dark(oklch(0.99 0 0), oklch(0.10 0 0));
+      --text:    light-dark(oklch(0.18 0 0), oklch(0.95 0 0));
+      --accent:  light-dark(oklch(0.55 0.20 290), oklch(0.78 0.20 290));
+      --accent-2:light-dark(oklch(0.65 0.20 30),  oklch(0.78 0.22 30));
+    }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, sans-serif; }
+    header { padding: 1rem 1.5rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+    h1 { font-size: 1.1rem; margin: 0; }
+    button {
+      font: inherit;
+      padding: 0.5rem 0.9rem;
+      border: 0;
+      border-radius: 0.4rem;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+    label { display: inline-flex; gap: 0.4rem; align-items: center; font-size: 0.9rem; }
+    input[type="range"] { accent-color: var(--accent); }
+    canvas { display: block; width: 100%; height: calc(100vh - 64px); }
+    p.hint { color: oklch(from var(--text) l c h / 0.7); margin: 0.25rem 1.5rem 0; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Audio visualizer</h1>
+    <button id="play">▶ Start</button>
+    <label>density <input id="density" type="range" min="32" max="256" value="128"></label>
+    <label>style
+      <select id="style">
+        <option value="bars">bars</option>
+        <option value="ring" selected>ring</option>
+        <option value="wave">waveform</option>
+      </select>
+    </label>
+  </header>
+  <p class="hint">Generative arpeggio over a soft pad. <code>AnalyserNode</code> drives the visual; <code>requestAnimationFrame</code> redraws to canvas. Composite-only — no layout in the loop. Reduced-motion: visuals freeze on a still frame.</p>
+  <canvas id="cv"></canvas>
+
+  <script type="module">
+    import * as Tone from "https://esm.sh/tone@15";
+
+    const cv = document.getElementById("cv");
+    const ctx2d = cv.getContext("2d");
+    const playBtn = document.getElementById("play");
+    const densityEl = document.getElementById("density");
+    const styleEl = document.getElementById("style");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function fit() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = cv.clientWidth * dpr;
+      cv.height = cv.clientHeight * dpr;
+      ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    addEventListener("resize", fit);
+
+    // ---- audio graph ---------------------------------------------------
+    const analyser = new Tone.Analyser({ type: "fft", size: 1024, smoothing: 0.85 });
+    const wave = new Tone.Analyser({ type: "waveform", size: 1024 });
+    const verb = new Tone.Reverb({ decay: 4, wet: 0.45 }).fanOut(analyser, wave).toDestination();
+    const synth = new Tone.PolySynth(Tone.FMSynth, {
+      envelope: { attack: 0.05, decay: 0.4, sustain: 0.0, release: 1.5 },
+      modulationIndex: 8,
+      harmonicity: 1.5,
+    }).connect(verb);
+
+    const pad = new Tone.Synth({
+      oscillator: { type: "sine" },
+      envelope: { attack: 4, decay: 1, sustain: 0.6, release: 6 },
+      volume: -16,
+    }).connect(verb);
+
+    const scale = ["C4","D4","Eb4","G4","Ab4","Bb4","C5","Eb5","G5"];
+
+    let part;
+    function buildPart() {
+      if (part) part.dispose();
+      part = new Tone.Loop(time => {
+        const note = scale[Math.floor(Math.random() * scale.length)];
+        synth.triggerAttackRelease(note, "16n", time, 0.6);
+        if (Math.random() < 0.06) pad.triggerAttackRelease("C3", "1n", time + 0.1);
+      }, "8n").start(0);
+    }
+
+    // ---- play/pause ----------------------------------------------------
+    let started = false;
+    playBtn.addEventListener("click", async () => {
+      if (!started) {
+        await Tone.start();
+        await verb.ready;
+        Tone.Transport.bpm.value = 84;
+        buildPart();
+        Tone.Transport.start();
+        started = true;
+        playBtn.textContent = "⏸ Pause";
+      } else if (Tone.Transport.state === "started") {
+        Tone.Transport.pause();
+        playBtn.textContent = "▶ Resume";
+      } else {
+        Tone.Transport.start();
+        playBtn.textContent = "⏸ Pause";
+      }
+    });
+
+    // ---- draw loop -----------------------------------------------------
+    fit();
+    function frame() {
+      const w = cv.clientWidth, h = cv.clientHeight, cx = w / 2, cy = h / 2;
+      ctx2d.fillStyle = "rgba(0,0,0,0.18)";
+      ctx2d.fillRect(0, 0, w, h);
+
+      const fft = analyser.getValue();
+      const wf = wave.getValue();
+      const N = +densityEl.value;
+      const style = styleEl.value;
+
+      const hueA = 290, hueB = 30;
+      ctx2d.lineWidth = 2;
+      ctx2d.lineCap = "round";
+
+      if (style === "bars") {
+        for (let i = 0; i < N; i++) {
+          const v = (fft[Math.floor(i * fft.length / N)] + 100) / 100;
+          const x = (i + 0.5) * (w / N);
+          const bh = Math.max(2, v * h * 0.6);
+          const t = i / N;
+          ctx2d.strokeStyle = `oklch(0.7 0.2 ${hueA + (hueB - hueA) * t})`;
+          ctx2d.beginPath();
+          ctx2d.moveTo(x, h - 8);
+          ctx2d.lineTo(x, h - 8 - bh);
+          ctx2d.stroke();
+        }
+      } else if (style === "ring") {
+        const R = Math.min(w, h) * 0.32;
+        for (let i = 0; i < N; i++) {
+          const v = Math.max(0, (fft[Math.floor(i * fft.length / N)] + 100) / 100);
+          const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+          const r1 = R, r2 = R + v * R * 0.7;
+          const t = i / N;
+          ctx2d.strokeStyle = `oklch(0.72 0.2 ${hueA + (hueB - hueA) * t})`;
+          ctx2d.beginPath();
+          ctx2d.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+          ctx2d.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+          ctx2d.stroke();
+        }
+      } else {
+        ctx2d.strokeStyle = `oklch(0.78 0.2 ${hueA})`;
+        ctx2d.lineWidth = 1.5;
+        ctx2d.beginPath();
+        for (let i = 0; i < wf.length; i++) {
+          const x = (i / wf.length) * w;
+          const y = cy + wf[i] * cy * 0.8;
+          if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+        }
+        ctx2d.stroke();
+      }
+
+      if (!reduced) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    // Persist user prefs into a single window.storage key (when published).
+    async function loadPrefs() {
+      try {
+        if (window.storage?.get) {
+          const got = await window.storage.get("audio-viz:prefs");
+          if (got?.value) {
+            const p = JSON.parse(got.value);
+            if (p.density) densityEl.value = p.density;
+            if (p.style)   styleEl.value   = p.style;
+          }
+        }
+      } catch {}
+    }
+    async function savePrefs() {
+      try {
+        if (window.storage?.set) {
+          await window.storage.set("audio-viz:prefs", JSON.stringify({ density: densityEl.value, style: styleEl.value }));
+        }
+      } catch {}
+    }
+    densityEl.addEventListener("change", savePrefs);
+    styleEl.addEventListener("change", savePrefs);
+    loadPrefs();
+  </script>
+</body>
+</html>

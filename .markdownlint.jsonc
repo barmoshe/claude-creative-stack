@@ -1,0 +1,17 @@
+// markdownlint config. Loose rules — this is a knowledge base, not a published book.
+{
+  "default": true,
+  "MD003": { "style": "atx" },
+  "MD004": { "style": "dash" },
+  "MD007": { "indent": 2 },
+  "MD013": false,                    // line length — irrelevant for tables / code-heavy docs
+  "MD024": { "siblings_only": true },// duplicate headings allowed under different parents
+  "MD025": false,                    // multiple top-level H1s allowed (knowledge files start with `# NN — Title`)
+  "MD033": false,                    // inline HTML allowed (we use <details>, <kbd>, etc.)
+  "MD034": false,                    // bare URLs allowed
+  "MD040": false,                    // fenced code without lang allowed (small inline blocks)
+  "MD041": false,                    // first line need not be H1 (frontmatter precedes it in skills)
+  "MD046": false,                    // mixed code-block styles allowed
+  "MD049": { "style": "underscore" },
+  "MD050": { "style": "asterisk" }
+}
