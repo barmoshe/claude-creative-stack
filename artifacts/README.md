@@ -23,6 +23,7 @@ From `../knowledge/03-artifacts.md` and `../knowledge/99-caveats.md`:
 | [`html/gsap-scroll-story.html`](html/gsap-scroll-story.html) | GSAP ScrollTrigger horizontal-pin storytelling with reduced-motion fallback. |
 | [`html/procgen-dungeon.html`](html/procgen-dungeon.html) | Seeded BSP dungeon with regenerate button and editable seed. |
 | [`html/kaplay-top-down.html`](html/kaplay-top-down.html) | Kaplay top-down mover with trauma-based screen shake. |
+| [`html/pacman-photomaze.html`](html/pacman-photomaze.html) | Pac-Man variant: photograph the maze before the "designer ghosts" (Pixel/Serif/Kerning/Pantone) catch you. Hebrew RTL intro/outro, swipe + WASD/arrows, inlined Web Audio SFX, PR-campaign gift handoff. |
 | [`html/tone-procmusic.html`](html/tone-procmusic.html) | Tone.js procedural music — euclidean rhythm + scale-constrained melody. |
 
 ## React / JSX starters

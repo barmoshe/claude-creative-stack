@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="he">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#0a0a18">
+  <title>צלם את המבוך — Photo Maze</title>
+  <style>
+    :root {
+      --bg:        oklch(0.10 0.02 270);
+      --bg-deep:   oklch(0.06 0.02 270);
+      --wall:      oklch(0.45 0.18 265);
+      --wall-glow: oklch(0.65 0.20 265);
+      --pellet:    oklch(0.96 0.04 90);
+      --player:    oklch(0.85 0.18 85);
+      --accent:    oklch(0.78 0.20 25);
+      --text:      oklch(0.96 0.02 90);
+      --muted:     oklch(0.65 0.04 270);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0;
+      height: 100dvh; width: 100vw;
+      background: var(--bg-deep);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+      overflow: hidden;
+      overscroll-behavior: none;
+      user-select: none; -webkit-user-select: none;
+    }
+    #app { position: fixed; inset: 0; }
+
+    /* ---- Overlays (intro / win / lose) ---- */
+    .overlay {
+      position: fixed; inset: 0; z-index: 10;
+      display: grid; place-content: center;
+      padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+      text-align: center;
+      background: radial-gradient(ellipse at 50% 20%, oklch(0.18 0.06 270), var(--bg-deep) 70%);
+      animation: fadeIn 280ms ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+    .overlay > .inner { max-width: 460px; margin: 0 auto; }
+    .overlay h1 {
+      font-size: clamp(30px, 8vw, 52px);
+      margin: 0 0 6px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--player);
+      text-shadow: 0 0 18px oklch(0.85 0.18 85 / 0.45);
+    }
+    .overlay h1 .en { display: block; font-size: 0.42em; font-weight: 600; opacity: 0.6; letter-spacing: 0.08em; margin-top: 4px; color: var(--muted); }
+    .overlay p { margin: 8px 0; font-size: clamp(14px, 3.6vw, 17px); line-height: 1.55; }
+    .overlay .icons { font-size: clamp(48px, 12vw, 72px); margin-bottom: 12px; line-height: 1; filter: drop-shadow(0 4px 14px oklch(0 0 0 / 0.5)); }
+    .cta {
+      display: inline-block;
+      margin-top: 22px;
+      min-height: 56px; min-width: 220px;
+      padding: 16px 36px;
+      font: inherit; font-size: 18px; font-weight: 800;
+      color: oklch(0.18 0.04 30);
+      background: linear-gradient(135deg, var(--accent), oklch(0.72 0.22 35));
+      border: 0; border-radius: 999px;
+      cursor: pointer; touch-action: manipulation;
+      box-shadow: 0 4px 0 oklch(0.40 0.20 25), 0 12px 32px oklch(0 0 0 / 0.5), 0 0 30px oklch(0.78 0.20 25 / 0.35);
+      transition: transform 100ms ease, box-shadow 100ms ease;
+      text-decoration: none;
+    }
+    .cta:active { transform: translateY(3px); box-shadow: 0 1px 0 oklch(0.40 0.20 25), 0 6px 16px oklch(0 0 0 / 0.4); }
+    .cta.ghost {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid oklch(0.96 0.04 90 / 0.35);
+      box-shadow: none;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    .cta.ghost:active { background: oklch(0.96 0.04 90 / 0.08); transform: translateY(1px); box-shadow: none; }
+
+    /* Designer-ghost roster (intro) */
+    .roster {
+      margin: 20px auto;
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 8px 14px;
+      max-width: 380px;
+      font-size: clamp(12px, 3vw, 14px);
+      color: var(--text);
+    }
+    .roster .who { display: flex; align-items: center; gap: 8px; justify-content: flex-start; }
+    .roster .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
+    .roster span.name { font-weight: 700; }
+    .roster span.tag { opacity: 0.7; font-size: 0.9em; }
+
+    .hint { font-size: clamp(12px, 3vw, 14px); color: var(--muted); margin-top: 14px; }
+    .gift {
+      margin: 22px auto 0;
+      padding: 22px 24px;
+      max-width: 420px;
+      background: linear-gradient(135deg, oklch(0.85 0.18 85 / 0.10), oklch(0.78 0.20 25 / 0.10));
+      border: 2px dashed oklch(0.85 0.18 85 / 0.45);
+      border-radius: 18px;
+    }
+    .gift h2 { margin: 0 0 8px; font-size: clamp(18px, 4.5vw, 22px); color: var(--player); }
+    .gift p { margin: 4px 0; }
+    .gift .phone { display: inline-block; direction: ltr; font-weight: 700; font-size: 1.15em; color: var(--player); margin-top: 6px; }
+
+    /* ---- Game screen ---- */
+    #game { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr; }
+    #hud {
+      display: flex; align-items: center; gap: 10px;
+      padding: max(8px, env(safe-area-inset-top)) 14px 8px;
+      background: var(--bg-deep);
+      border-bottom: 1px solid oklch(0.20 0.02 270);
+      z-index: 2;
+    }
+    #hud .label { font-size: 18px; line-height: 1; }
+    #hud .bar {
+      flex: 1; height: 10px;
+      background: oklch(0.18 0.02 270);
+      border-radius: 5px; overflow: hidden;
+      box-shadow: inset 0 1px 2px oklch(0 0 0 / 0.4);
+    }
+    #hud .bar > i {
+      display: block; height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--pellet), var(--player));
+      box-shadow: 0 0 10px var(--pellet);
+      transition: width 140ms ease;
+    }
+    #hud .count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 56px; text-align: center; direction: ltr; }
+    #hud .lives { display: flex; gap: 3px; }
+    #hud .lives i {
+      display: inline-block; width: 16px; height: 16px;
+      background: var(--player); border-radius: 50%;
+      box-shadow: 0 0 6px var(--player);
+      position: relative;
+    }
+    #hud .lives i::after {
+      content: ""; position: absolute; inset: 0;
+      background: var(--bg-deep);
+      clip-path: polygon(50% 50%, 100% 30%, 100% 70%);
+    }
+    #hud .lives i.lost { background: oklch(0.30 0.02 270); box-shadow: none; }
+    #hud .mute {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: transparent; border: 1px solid oklch(0.30 0.02 270);
+      color: var(--text); font-size: 16px;
+      display: grid; place-content: center;
+      cursor: pointer; touch-action: manipulation;
+    }
+    #hud .mute:active { background: oklch(0.20 0.02 270); }
+
+    #stage { position: relative; display: grid; place-content: center; overflow: hidden; }
+    canvas {
+      display: block;
+      image-rendering: pixelated; image-rendering: crisp-edges;
+      touch-action: none;
+      filter: drop-shadow(0 0 30px oklch(0.45 0.18 265 / 0.30));
+    }
+
+    /* ---- Camera flash overlay ---- */
+    #flash {
+      position: fixed; inset: 0; z-index: 30;
+      background: #fff; opacity: 0;
+      pointer-events: none;
+      transition: opacity 90ms ease-out;
+    }
+    /* ---- Subtle scanlines (off under reduced motion) ---- */
+    #app::after {
+      content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none;
+      background: repeating-linear-gradient(0deg, oklch(1 0 0 / 0.02) 0 1px, transparent 1px 3px);
+      mix-blend-mode: overlay;
+    }
+
+    [hidden] { display: none !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .overlay, .icons { animation: none !important; }
+      #app::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main id="app">
+    <!-- INTRO -->
+    <section id="intro" class="overlay" dir="rtl">
+      <div class="inner">
+        <div class="icons" aria-hidden="true">📸 👻</div>
+        <h1>צלם את המבוך<span class="en">PHOTO MAZE</span></h1>
+        <p>אספו את כל הפלאשים במבוך לפני שצוות המעצבים יתפוס אתכם.<br>
+           הם יודעים בדיוק איפה הקרנינג שלכם דפוק.</p>
+
+        <div class="roster" aria-hidden="true">
+          <div class="who"><span class="dot" style="background:#ef4444;color:#ef4444"></span><span><span class="name">פיקסל</span> <span class="tag">פיקסל-פרפקציוניסט</span></span></div>
+          <div class="who"><span class="dot" style="background:#ec4899;color:#ec4899"></span><span><span class="name">סריף</span> <span class="tag">מתעקש על Garamond</span></span></div>
+          <div class="who"><span class="dot" style="background:#06b6d4;color:#06b6d4"></span><span><span class="name">קרנינג</span> <span class="tag">סופר רווחים בלילה</span></span></div>
+          <div class="who"><span class="dot" style="background:#f59e0b;color:#f59e0b"></span><span><span class="name">פנטון</span> <span class="tag">זה לא ה-PMS שלי</span></span></div>
+        </div>
+
+        <button class="cta" id="start-btn">התחל / Start</button>
+        <p class="hint">החלקה במסך · חצים / WASD במקלדת</p>
+      </div>
+    </section>
+
+    <!-- GAME -->
+    <section id="game" hidden>
+      <header id="hud">
+        <span class="label" aria-hidden="true">📸</span>
+        <span class="bar"><i id="bar"></i></span>
+        <span class="count" id="count">0 / 0</span>
+        <span class="lives" id="lives" aria-label="חיים"></span>
+        <button class="mute" id="mute" aria-label="השתק" type="button">🔊</button>
+      </header>
+      <div id="stage"><canvas id="c"></canvas></div>
+    </section>
+
+    <!-- WIN -->
+    <section id="win" class="overlay" dir="rtl" hidden>
+      <div class="inner">
+        <div class="icons" aria-hidden="true">🎉 📸</div>
+        <h1>המבוך צולם!<span class="en">YOU GOT THE SHOT</span></h1>
+        <p>המעצבים מתפעלים. בעיקר מקנאים.</p>
+
+        <div class="gift">
+          <h2>🎁 יש לכם מתנה פיזית</h2>
+          <p>פרטים על איסוף — דרך ענבל:</p>
+          <a class="phone" href="tel:+972523688321">052-368-8321</a>
+        </div>
+
+        <button class="cta" id="replay-win">שחק שוב</button>
+      </div>
+    </section>
+
+    <!-- LOSE -->
+    <section id="lose" class="overlay" dir="rtl" hidden>
+      <div class="inner">
+        <div class="icons" aria-hidden="true">👻 📐</div>
+        <h1>תפסו אתכם!<span class="en">CAUGHT BY DESIGN</span></h1>
+        <p id="lose-quip">פיקסל אומר: הצללית שלך לא חדה.</p>
+        <p class="hint">המתנה עוד מחכה. נסו שוב.</p>
+        <button class="cta" id="replay-lose">נסה שוב</button>
+      </div>
+    </section>
+
+    <div id="flash" aria-hidden="true"></div>
+  </main>
+
+  <script>
+  "use strict";
+  (function () {
+
+    // ============================================================
+    // CUSTOMIZATION — edit this block for the next campaign
+    // ============================================================
+    const CONFIG = {
+      contactName:  "ענבל",
+      contactPhone: "052-368-8321",
+      contactTel:   "+972523688321",
+      lives: 5,                  // generous
+      ghostSpeedFrac: 0.72,      // % of player speed (lower = easier)
+      frightenedSpeedFrac: 0.55,
+      eatenSpeedFrac: 1.6,
+      frightenedMs: 9000,        // long power-pellet window
+      scatterMs: 6500,
+      chaseMs: 18000,
+      releaseMsPerGhost: 2500,   // ghost release stagger from house
+      playerCellsPerSecond: 7,   // overall game speed
+    };
+
+    // ============================================================
+    // MAZE
+    // ============================================================
+    // 21 wide × 22 tall.  # wall · . pellet · o power-pellet
+    // (space) empty · T tunnel exit · - ghost-house door · G ghost spawn
+    // P player spawn
+    const MAZE = [
+      "#####################", // 0
+      "#.........#.........#", // 1
+      "#o###.###.#.###.###o#", // 2
+      "#.###.###.#.###.###.#", // 3
+      "#...................#", // 4
+      "#.###.#.#####.#.###.#", // 5
+      "#.....#...#...#.....#", // 6
+      "#####.### # ###.#####", // 7
+      "    #.#       #.#    ", // 8
+      "#####.# ##-## #.#####", // 9
+      "T   .  #GG GG#   .  T", // 10  (tunnel row, ghost spawns)
+      "#####.# ##### #.#####", // 11
+      "    #.#       #.#    ", // 12
+      "#####.# ##### #.#####", // 13
+      "#.........#.........#", // 14
+      "#.###.###.#.###.###.#", // 15
+      "#o..#.....P.....#..o#", // 16
+      "###.#.#.#####.#.#.###", // 17
+      "#.....#...#...#.....#", // 18
+      "#.#######.#.#######.#", // 19
+      "#...................#", // 20
+      "#####################", // 21
+    ];
+
+    const W = 21, H = MAZE.length; // 22
+
+    const TILE = { EMPTY: 0, WALL: 1, PELLET: 2, POWER: 3, DOOR: 4, TUNNEL: 5 };
+
+    let grid;            // Uint8Array length W*H
+    let pelletsTotal = 0;
+    let pelletsLeft = 0;
+    let playerSpawn = { x: 10, y: 16 };
+    let ghostSpawns = [];        // [{x,y}]
+    let tunnelRows = new Set();  // rows that wrap horizontally
+
+    function parseMaze() {
+      grid = new Uint8Array(W * H);
+      pelletsTotal = 0; pelletsLeft = 0;
+      ghostSpawns = []; tunnelRows = new Set();
+      for (let y = 0; y < H; y++) {
+        const row = MAZE[y];
+        if (row.length !== W) { console.warn("MAZE row " + y + " has length " + row.length + ", expected " + W); }
+        let hasTunnel = false;
+        for (let x = 0; x < W; x++) {
+          const ch = row[x];
+          let v = TILE.EMPTY;
+          switch (ch) {
+            case "#": v = TILE.WALL; break;
+            case ".": v = TILE.PELLET; pelletsTotal++; break;
+            case "o": v = TILE.POWER;  pelletsTotal++; break;
+            case "-": v = TILE.DOOR; break;
+            case "T": v = TILE.TUNNEL; hasTunnel = true; break;
+            case "G": v = TILE.EMPTY; ghostSpawns.push({ x, y }); break;
+            case "P": v = TILE.EMPTY; playerSpawn = { x, y }; break;
+            default:  v = TILE.EMPTY; break;
+          }
+          grid[y * W + x] = v;
+        }
+        if (hasTunnel) tunnelRows.add(y);
+      }
+      pelletsLeft = pelletsTotal;
+    }
+
+    const at = (x, y) => grid[y * W + x];
+    const setAt = (x, y, v) => { grid[y * W + x] = v; };
+
+    function isWalkable(x, y, allowDoor) {
+      if (y < 0 || y >= H) return false;
+      if (x < 0 || x >= W) return tunnelRows.has(y);
+      const v = grid[y * W + x];
+      if (v === TILE.WALL) return false;
+      if (v === TILE.DOOR) return !!allowDoor;
+      return true;
+    }
+
+    // ============================================================
+    // AUDIO  (Web Audio — tiny, no CDN)
+    // ============================================================
+    let audioCtx = null;
+    let muted = false;
+    function unlockAudio() {
+      if (audioCtx) { audioCtx.resume && audioCtx.resume(); return; }
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Prime it with a near-silent tick so iOS unlocks immediately
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        g.gain.value = 0.0001;
+        o.connect(g).connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.02);
+      } catch (e) { /* ignore */ }
+    }
+    function blip(freq, durMs, type, vol, slideTo) {
+      if (muted || !audioCtx) return;
+      const t = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type || "square";
+      o.frequency.setValueAtTime(freq, t);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(40, slideTo), t + durMs / 1000);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol || 0.06, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + durMs / 1000);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t); o.stop(t + durMs / 1000);
+    }
+    const SFX = {
+      snap:  () => blip(720 + Math.random() * 120, 50, "square",   0.04),
+      power: () => { blip(440, 180, "sawtooth", 0.06, 880); setTimeout(() => blip(880, 180, "sawtooth", 0.05, 1320), 90); },
+      eaten: () => { blip(900, 90, "square", 0.08, 1500); setTimeout(() => blip(1500, 140, "square", 0.06, 400), 60); },
+      death: () => [520, 420, 320, 240, 180].forEach((f, i) => setTimeout(() => blip(f, 220, "sawtooth", 0.08), i * 130)),
+      win:   () => [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => blip(f, 160, "square", 0.07), i * 110)),
+    };
+
+    // ============================================================
+    // ACTORS
+    // ============================================================
+    const DIRS = {
+      up:    { dx: 0,  dy: -1 },
+      down:  { dx: 0,  dy: 1  },
+      left:  { dx: -1, dy: 0  },
+      right: { dx: 1,  dy: 0  },
+    };
+    const OPP = { up: "down", down: "up", left: "right", right: "left" };
+    const DIR_ORDER = ["up", "left", "down", "right"]; // classic tie-break
+
+    // Designer-ghost roster (4 personalities, canon-mapped colors)
+    const GHOST_DEFS = [
+      { name: "pixel",   color: "#ef4444", scatter: { x: W - 2, y: 0 },     personality: "blinky", releaseMs: 0 },
+      { name: "serif",   color: "#ec4899", scatter: { x: 1,     y: 0 },     personality: "pinky",  releaseMs: 1 * CONFIG.releaseMsPerGhost },
+      { name: "kerning", color: "#06b6d4", scatter: { x: W - 2, y: H - 1 }, personality: "inky",   releaseMs: 2 * CONFIG.releaseMsPerGhost },
+      { name: "pantone", color: "#f59e0b", scatter: { x: 1,     y: H - 1 }, personality: "clyde",  releaseMs: 3 * CONFIG.releaseMsPerGhost },
+    ];
+
+    function makeActor(x, y, dir) {
+      return {
+        x, y,             // tile coords (integer)
+        sx: x, sy: y,     // sub-tile coords (smooth render)
+        dir, nextDir: dir,
+        progress: 0,      // 0..1 between current tile and next
+        speed: CONFIG.playerCellsPerSecond,
+      };
+    }
+    function makeGhost(def, spawn) {
+      const a = makeActor(spawn.x, spawn.y, "up");
+      a.def = def;
+      a.mode = "house";       // house | scatter | chase | frightened | eaten
+      a.modeBeforeFright = "scatter";
+      a.released = false;
+      a.releaseTimer = def.releaseMs;
+      a.spawn = { x: spawn.x, y: spawn.y };
+      a.speed = CONFIG.playerCellsPerSecond * CONFIG.ghostSpeedFrac;
+      return a;
+    }
+
+    let player, ghosts;
+
+    // ============================================================
+    // INPUT
+    // ============================================================
+    let queuedDir = null;
+    function setNextDir(d) { queuedDir = d; }
+
+    window.addEventListener("keydown", (e) => {
+      const map = {
+        ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+        KeyW: "up",   KeyS: "down",      KeyA: "left",      KeyD: "right",
+      };
+      const d = map[e.code] || map[e.key];
+      if (d) { setNextDir(d); e.preventDefault(); }
+    }, { passive: false });
+
+    // Swipe input on canvas
+    let touchStart = null;
+    function attachSwipe(canvas) {
+      const start = (e) => {
+        const t = e.touches ? e.touches[0] : e;
+        touchStart = { x: t.clientX, y: t.clientY };
+        unlockAudio();
+      };
+      const move = (e) => {
+        if (!touchStart) return;
+        const t = e.touches ? e.touches[0] : e;
+        const dx = t.clientX - touchStart.x;
+        const dy = t.clientY - touchStart.y;
+        const TH = 22;
+        if (Math.abs(dx) > TH || Math.abs(dy) > TH) {
+          if (Math.abs(dx) > Math.abs(dy)) setNextDir(dx > 0 ? "right" : "left");
+          else setNextDir(dy > 0 ? "down" : "up");
+          touchStart = { x: t.clientX, y: t.clientY }; // chain swipes
+        }
+        if (e.cancelable) e.preventDefault();
+      };
+      const end = () => { touchStart = null; };
+      canvas.addEventListener("touchstart", start, { passive: false });
+      canvas.addEventListener("touchmove",  move,  { passive: false });
+      canvas.addEventListener("touchend",   end);
+      canvas.addEventListener("touchcancel", end);
+    }
+
+    // ============================================================
+    // GHOST AI
+    // ============================================================
+    function targetTile(g) {
+      // Eaten -> head back to spawn
+      if (g.mode === "eaten") return g.spawn;
+      // Not yet released or in house -> aim at door cell
+      if (!g.released || g.mode === "house") return { x: 10, y: 8 };
+      // Frightened -> handled separately (random walk)
+      if (g.mode === "scatter") return g.def.scatter;
+      // chase
+      switch (g.def.personality) {
+        case "blinky": return { x: player.x, y: player.y };
+        case "pinky": {
+          const d = DIRS[player.dir];
+          return { x: player.x + d.dx * 4, y: player.y + d.dy * 4 };
+        }
+        case "inky": {
+          const d = DIRS[player.dir];
+          const ax = player.x + d.dx * 2, ay = player.y + d.dy * 2;
+          const blinky = ghosts.find(g2 => g2.def.name === "pixel");
+          const bx = blinky ? blinky.x : player.x, by = blinky ? blinky.y : player.y;
+          return { x: ax + (ax - bx), y: ay + (ay - by) };
+        }
+        case "clyde": {
+          const dx = g.x - player.x, dy = g.y - player.y;
+          if (dx * dx + dy * dy > 64) return { x: player.x, y: player.y };
+          return g.def.scatter;
+        }
+      }
+      return { x: player.x, y: player.y };
+    }
+
+    function chooseGhostDir(g) {
+      // Frightened: random non-reverse
+      if (g.mode === "frightened") {
+        const opts = DIR_ORDER.filter(d => d !== OPP[g.dir] && isWalkable(g.x + DIRS[d].dx, g.y + DIRS[d].dy, false));
+        if (opts.length) return opts[Math.floor(Math.random() * opts.length)];
+        return OPP[g.dir];
+      }
+      const target = targetTile(g);
+      let best = null, bestD = Infinity;
+      const allowDoor = g.mode === "eaten" || g.mode === "house";
+      for (const d of DIR_ORDER) {
+        if (d === OPP[g.dir]) continue;
+        const nx = g.x + DIRS[d].dx, ny = g.y + DIRS[d].dy;
+        if (!isWalkable(nx, ny, allowDoor)) continue;
+        const dx = nx - target.x, dy = ny - target.y;
+        const dist = dx * dx + dy * dy;
+        if (dist < bestD) { bestD = dist; best = d; }
+      }
+      if (best) return best;
+      // dead-end: allow reverse
+      const back = OPP[g.dir];
+      if (back && isWalkable(g.x + DIRS[back].dx, g.y + DIRS[back].dy, allowDoor)) return back;
+      return g.dir;
+    }
+
+    // ============================================================
+    // GAME STATE / TICK
+    // ============================================================
+    let state = "intro"; // intro | playing | dying | victory | gameover
+    let lives = CONFIG.lives;
+    let modeTimer = 0;
+    let modePhase = "scatter";
+    let frightenedTimer = 0;
+    let dyingTimer = 0;
+    let prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function reset() {
+      parseMaze();
+      lives = CONFIG.lives;
+      state = "playing";
+      modeTimer = 0; modePhase = "scatter"; frightenedTimer = 0; dyingTimer = 0;
+      player = makeActor(playerSpawn.x, playerSpawn.y, "left");
+      queuedDir = "left";
+      const houseSlots = ghostSpawns.length ? ghostSpawns : [
+        { x: 9,  y: 10 }, { x: 10, y: 10 }, { x: 11, y: 10 }, { x: 12, y: 10 },
+      ];
+      ghosts = GHOST_DEFS.map((def, i) => makeGhost(def, houseSlots[i % houseSlots.length]));
+      particles.length = 0;
+      trauma = 0;
+      updateHUD();
+    }
+    function softReset() { // after losing a life
+      player = makeActor(playerSpawn.x, playerSpawn.y, "left");
+      queuedDir = "left";
+      const houseSlots = ghostSpawns.length ? ghostSpawns : [
+        { x: 9,  y: 10 }, { x: 10, y: 10 }, { x: 11, y: 10 }, { x: 12, y: 10 },
+      ];
+      ghosts = GHOST_DEFS.map((def, i) => makeGhost(def, houseSlots[i % houseSlots.length]));
+      modeTimer = 0; modePhase = "scatter"; frightenedTimer = 0;
+    }
+
+    function advance(actor, dt, isPlayer) {
+      actor.progress += actor.speed * dt;
+      while (actor.progress >= 1) {
+        actor.progress -= 1;
+
+        if (isPlayer) {
+          // At tile boundary: try queued direction first (allows turning)
+          if (queuedDir && queuedDir !== actor.dir) {
+            const qd = DIRS[queuedDir];
+            if (isWalkable(actor.x + qd.dx, actor.y + qd.dy, false)) {
+              actor.dir = queuedDir;
+            }
+          }
+          // If forward is blocked, stop here (freeze flush against wall)
+          const fd = DIRS[actor.dir];
+          if (!isWalkable(actor.x + fd.dx, actor.y + fd.dy, false)) {
+            actor.progress = 0;
+            break;
+          }
+          // Commit tile move (with tunnel wrap)
+          let nx = actor.x + fd.dx, ny = actor.y + fd.dy;
+          if (nx < 0) nx = W - 1; else if (nx >= W) nx = 0;
+          actor.x = nx; actor.y = ny;
+
+          // Eat
+          const t = at(actor.x, actor.y);
+          if (t === TILE.PELLET) {
+            setAt(actor.x, actor.y, TILE.EMPTY);
+            pelletsLeft--;
+            SFX.snap();
+            burst(actor.x, actor.y, 3);
+            updateHUD();
+          } else if (t === TILE.POWER) {
+            setAt(actor.x, actor.y, TILE.EMPTY);
+            pelletsLeft--;
+            frightenedTimer = CONFIG.frightenedMs / 1000;
+            ghosts.forEach(g => {
+              if (g.mode === "chase" || g.mode === "scatter") {
+                g.modeBeforeFright = g.mode;
+                g.mode = "frightened";
+                g.dir = OPP[g.dir]; // signature reverse
+              }
+            });
+            SFX.power();
+            burst(actor.x, actor.y, 14);
+            updateHUD();
+          }
+          if (pelletsLeft <= 0) { triggerVictory(); return; }
+
+        } else {
+          // Ghost: chooseGhostDir already returns a walkable direction.
+          const fd = DIRS[actor.dir];
+          let nx = actor.x + fd.dx, ny = actor.y + fd.dy;
+          if (nx < 0) nx = W - 1; else if (nx >= W) nx = 0;
+          actor.x = nx; actor.y = ny;
+
+          // Eaten arriving home -> become house ghost
+          if (actor.mode === "eaten" && actor.x === actor.spawn.x && actor.y === actor.spawn.y) {
+            actor.mode = "house";
+            actor.released = false;
+            actor.releaseTimer = 1500;
+            actor.speed = CONFIG.playerCellsPerSecond * CONFIG.ghostSpeedFrac;
+          }
+          // Pick next direction
+          actor.dir = chooseGhostDir(actor);
+        }
+      }
+      const d = DIRS[actor.dir];
+      actor.sx = actor.x + d.dx * actor.progress;
+      actor.sy = actor.y + d.dy * actor.progress;
+    }
+
+    function checkCollisions() {
+      for (const g of ghosts) {
+        if (g.mode === "house" || g.mode === "eaten") continue;
+        const dx = g.sx - player.sx, dy = g.sy - player.sy;
+        if (dx * dx + dy * dy < 0.55 * 0.55) {
+          if (g.mode === "frightened") {
+            g.mode = "eaten";
+            g.speed = CONFIG.playerCellsPerSecond * CONFIG.eatenSpeedFrac;
+            SFX.eaten();
+            flashScreen(0.7, 90);
+            burst(player.x, player.y, 14);
+          } else {
+            // hit
+            lives--;
+            updateHUD();
+            SFX.death();
+            trauma = Math.min(1, trauma + 0.7);
+            state = "dying";
+            dyingTimer = 1.0;
+            if (lives <= 0) {
+              setTimeout(triggerGameOver, 900);
+            }
+            return;
+          }
+        }
+      }
+    }
+
+    function triggerVictory() {
+      state = "victory";
+      SFX.win();
+      setTimeout(() => show("win"), 600);
+    }
+    function triggerGameOver() {
+      state = "gameover";
+      const quips = [
+        "פיקסל אומר: הצללית שלך לא חדה.",
+        "סריף שאל: אתה משתמש בקומיק סנס?!",
+        "קרנינג מלמל: הכל מיושר רע.",
+        "פנטון פסק: הצבע שלך לא ב-brand.",
+        "המעצבים אמרו: זה לא מתיישר.",
+      ];
+      document.getElementById("lose-quip").textContent = quips[Math.floor(Math.random() * quips.length)];
+      show("lose");
+    }
+
+    function tick(dt) {
+      if (state === "dying") {
+        dyingTimer -= dt;
+        if (dyingTimer <= 0) {
+          if (lives > 0) {
+            state = "playing";
+            softReset();
+          } else {
+            // gameOver already scheduled
+          }
+        }
+        return;
+      }
+      if (state !== "playing") return;
+
+      // Mode timer (ignored while frightened)
+      if (frightenedTimer > 0) {
+        frightenedTimer -= dt;
+        if (frightenedTimer <= 0) {
+          ghosts.forEach(g => {
+            if (g.mode === "frightened") g.mode = g.modeBeforeFright || modePhase;
+            g.speed = CONFIG.playerCellsPerSecond * CONFIG.ghostSpeedFrac;
+          });
+        } else {
+          ghosts.forEach(g => {
+            if (g.mode === "frightened") g.speed = CONFIG.playerCellsPerSecond * CONFIG.frightenedSpeedFrac;
+          });
+        }
+      } else {
+        modeTimer += dt;
+        const limit = (modePhase === "scatter" ? CONFIG.scatterMs : CONFIG.chaseMs) / 1000;
+        if (modeTimer > limit) {
+          modeTimer = 0;
+          modePhase = (modePhase === "scatter") ? "chase" : "scatter";
+          // Reverse non-frightened ghosts on mode change (signature behavior)
+          ghosts.forEach(g => {
+            if (g.mode === "chase" || g.mode === "scatter") {
+              g.mode = modePhase;
+              g.dir = OPP[g.dir];
+            }
+          });
+        }
+      }
+
+      // Release ghosts from house on timer
+      ghosts.forEach(g => {
+        if (g.mode === "house" && !g.released) {
+          g.releaseTimer -= dt * 1000;
+          if (g.releaseTimer <= 0) {
+            g.released = true;
+            // Pop them out at the door cell
+            g.x = 10; g.y = 9; g.sx = 10; g.sy = 9;
+            g.dir = "up";
+            g.progress = 0;
+            g.mode = modePhase;
+            g.speed = CONFIG.playerCellsPerSecond * CONFIG.ghostSpeedFrac;
+          }
+        }
+      });
+
+      // Move
+      advance(player, dt, true);
+      ghosts.forEach(g => {
+        if (g.mode === "house" && !g.released) return; // frozen until released
+        advance(g, dt, false);
+      });
+
+      // Particles
+      updateParticles(dt);
+
+      // Trauma decay
+      trauma = Math.max(0, trauma - dt * 1.4);
+
+      checkCollisions();
+    }
+
+    // ============================================================
+    // RENDER
+    // ============================================================
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    let TS = 24; // tile size in px
+
+    function resize() {
+      const stage = document.getElementById("stage");
+      const rect = stage.getBoundingClientRect();
+      const ts = Math.floor(Math.min(rect.width / W, rect.height / H));
+      TS = Math.max(10, ts);
+      canvas.width  = TS * W;
+      canvas.height = TS * H;
+      canvas.style.width = (TS * W) + "px";
+      canvas.style.height = (TS * H) + "px";
+    }
+    window.addEventListener("resize", () => { resize(); });
+
+    function render(time) {
+      const w = canvas.width, h = canvas.height;
+      ctx.save();
+      ctx.fillStyle = "oklch(0.06 0.02 270)";
+      ctx.fillRect(0, 0, w, h);
+
+      // shake
+      if (!prefersReducedMotion && trauma > 0) {
+        const t2 = trauma * trauma;
+        ctx.translate((Math.random() * 2 - 1) * 12 * t2, (Math.random() * 2 - 1) * 12 * t2);
+      }
+
+      // walls + pellets
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const v = grid[y * W + x];
+          if (v === TILE.WALL)        drawWallCell(x, y);
+          else if (v === TILE.DOOR)   drawDoorCell(x, y);
+          else if (v === TILE.PELLET) drawPellet(x, y);
+          else if (v === TILE.POWER)  drawPower(x, y, time);
+        }
+      }
+
+      // particles (under actors)
+      for (const p of particles) {
+        ctx.globalAlpha = Math.max(0, p.life / p.max);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x * TS - 2, p.y * TS - 2, 3, 3);
+      }
+      ctx.globalAlpha = 1;
+
+      // ghosts (skip during dying anim)
+      if (state !== "dying") {
+        for (const g of ghosts) drawGhost(g, time);
+      }
+      // player
+      drawPlayer(time);
+
+      ctx.restore();
+    }
+
+    function drawWallCell(x, y) {
+      const cx = x * TS, cy = y * TS;
+      const wallN = y > 0     && grid[(y - 1) * W + x] === TILE.WALL;
+      const wallS = y < H - 1 && grid[(y + 1) * W + x] === TILE.WALL;
+      const wallW = x > 0     && grid[y * W + (x - 1)] === TILE.WALL;
+      const wallE = x < W - 1 && grid[y * W + (x + 1)] === TILE.WALL;
+      const inset = TS * 0.18;
+      const it = wallN ? 0 : inset;
+      const ib = wallS ? 0 : inset;
+      const il = wallW ? 0 : inset;
+      const ir = wallE ? 0 : inset;
+      ctx.fillStyle = "oklch(0.32 0.16 265)";
+      ctx.fillRect(cx + il, cy + it, TS - il - ir, TS - it - ib);
+      ctx.strokeStyle = "oklch(0.65 0.20 265)";
+      ctx.lineWidth = Math.max(1, TS * 0.08);
+      ctx.beginPath();
+      if (it > 0) { ctx.moveTo(cx + il, cy + it); ctx.lineTo(cx + TS - ir, cy + it); }
+      if (ib > 0) { ctx.moveTo(cx + il, cy + TS - ib); ctx.lineTo(cx + TS - ir, cy + TS - ib); }
+      if (il > 0) { ctx.moveTo(cx + il, cy + it); ctx.lineTo(cx + il, cy + TS - ib); }
+      if (ir > 0) { ctx.moveTo(cx + TS - ir, cy + it); ctx.lineTo(cx + TS - ir, cy + TS - ib); }
+      ctx.stroke();
+    }
+
+    function drawDoorCell(x, y) {
+      const cx = x * TS, cy = y * TS;
+      ctx.fillStyle = "oklch(0.85 0.18 85 / 0.9)";
+      ctx.fillRect(cx, cy + TS * 0.45, TS, TS * 0.12);
+    }
+
+    function drawPellet(x, y) {
+      // tiny "camera flash" — a small white square with a glint
+      const cx = x * TS + TS / 2, cy = y * TS + TS / 2;
+      const s = Math.max(2, TS * 0.16);
+      ctx.fillStyle = "oklch(0.96 0.04 90)";
+      ctx.fillRect(cx - s / 2, cy - s / 2, s, s);
+      ctx.fillStyle = "oklch(1 0 0 / 0.7)";
+      ctx.fillRect(cx - s / 2, cy - s / 2, Math.max(1, s * 0.4), Math.max(1, s * 0.4));
+    }
+
+    function drawPower(x, y, time) {
+      const cx = x * TS + TS / 2, cy = y * TS + TS / 2;
+      const pulse = prefersReducedMotion ? 1 : (0.75 + 0.25 * Math.sin(time / 200));
+      const r = TS * 0.32 * pulse;
+      ctx.fillStyle = "oklch(0.88 0.20 85)";
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      // 4-point sparkle
+      ctx.fillStyle = "oklch(1 0 0 / 0.9)";
+      ctx.fillRect(cx - 1, cy - r * 0.7, 2, r * 1.4);
+      ctx.fillRect(cx - r * 0.7, cy - 1, r * 1.4, 2);
+    }
+
+    let chompPhase = 0;
+    function drawPlayer(time) {
+      const cx = player.sx * TS + TS / 2, cy = player.sy * TS + TS / 2;
+      const r = TS * 0.42;
+      if (state === "dying") {
+        const t = 1 - dyingTimer / 1.0;
+        const ang = t * Math.PI;
+        ctx.fillStyle = "oklch(0.85 0.18 85)";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r * (1 - t * 0.4), ang, Math.PI * 2 - ang);
+        ctx.closePath(); ctx.fill();
+        return;
+      }
+      // chomp
+      if (!prefersReducedMotion) chompPhase += 0.18;
+      const mouth = Math.abs(Math.sin(chompPhase)) * 0.45 + 0.05;
+      let base = 0;
+      switch (player.dir) {
+        case "right": base = 0; break;
+        case "down":  base = Math.PI / 2; break;
+        case "left":  base = Math.PI; break;
+        case "up":    base = -Math.PI / 2; break;
+      }
+      ctx.fillStyle = "oklch(0.88 0.18 85)";
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, base + mouth, base + Math.PI * 2 - mouth);
+      ctx.closePath(); ctx.fill();
+      // eye
+      const eyeOff = TS * 0.18;
+      let ex = cx, ey = cy - eyeOff;
+      if (player.dir === "up") { ex = cx + eyeOff * 0.4; ey = cy - eyeOff * 0.2; }
+      else if (player.dir === "down") { ex = cx + eyeOff * 0.4; ey = cy + eyeOff * 0.2; }
+      else if (player.dir === "left") { ex = cx - eyeOff * 0.4; }
+      else if (player.dir === "right") { ex = cx + eyeOff * 0.4; }
+      ctx.fillStyle = "oklch(0.06 0.02 270)";
+      ctx.beginPath(); ctx.arc(ex, ey - eyeOff * 0.3, Math.max(1.5, TS * 0.07), 0, Math.PI * 2); ctx.fill();
+    }
+
+    function drawGhost(g, time) {
+      const cx = g.sx * TS + TS / 2, cy = g.sy * TS + TS / 2;
+      const r = TS * 0.42;
+
+      let body = g.def.color;
+      if (g.mode === "frightened") {
+        const flashing = frightenedTimer < 2.0 && Math.floor(frightenedTimer * 5) % 2 === 0;
+        body = flashing ? "#ffffff" : "#1e3a8a";
+      } else if (g.mode === "eaten") {
+        body = null; // eyes only
+      }
+
+      if (body) {
+        // Body: dome + 4 wave bumps
+        ctx.fillStyle = body;
+        ctx.beginPath();
+        ctx.arc(cx, cy - r * 0.1, r, Math.PI, 0);
+        const yBase = cy + r * 0.75;
+        ctx.lineTo(cx + r, yBase);
+        const bumps = 4;
+        for (let i = 0; i < bumps; i++) {
+          const x0 = cx + r - (i * 2 + 1) * (r / bumps);
+          const x1 = cx + r - (i * 2 + 2) * (r / bumps);
+          ctx.lineTo(x0, yBase - r * 0.18);
+          if (i < bumps - 1) ctx.lineTo(x1, yBase);
+        }
+        ctx.lineTo(cx - r, yBase);
+        ctx.closePath();
+        ctx.fill();
+
+        // Designer-personality tell on top
+        drawDesignerTell(g, cx, cy - r * 0.85, r);
+      }
+
+      // Eyes
+      const eyeR = r * 0.28, pupilR = r * 0.13, eox = r * 0.32, eoy = -r * 0.18;
+      let pdx = 0, pdy = 0;
+      if (g.dir === "left") pdx = -eyeR * 0.5;
+      else if (g.dir === "right") pdx = eyeR * 0.5;
+      else if (g.dir === "up") pdy = -eyeR * 0.5;
+      else if (g.dir === "down") pdy = eyeR * 0.5;
+
+      if (g.mode === "frightened") {
+        // shocked eyes
+        ctx.fillStyle = "oklch(0.96 0.04 90)";
+        for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * eox, cy + eoy, pupilR * 1.3, 0, Math.PI * 2); ctx.fill(); }
+        // squiggle mouth
+        ctx.strokeStyle = "oklch(0.96 0.04 90)";
+        ctx.lineWidth = Math.max(1.5, r * 0.08);
+        ctx.beginPath();
+        const my = cy + r * 0.18, w = r * 0.7, x0 = cx - w / 2, segs = 4;
+        for (let i = 0; i <= segs; i++) {
+          const px = x0 + (w / segs) * i;
+          const py = my + (i % 2 === 0 ? -r * 0.08 : r * 0.08);
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "#fff";
+        for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * eox, cy + eoy, eyeR, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = "#1e3a8a";
+        for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * eox + pdx, cy + eoy + pdy, pupilR, 0, Math.PI * 2); ctx.fill(); }
+      }
+    }
+
+    function drawDesignerTell(g, cx, topY, r) {
+      // Tiny visual tell that hints the designer pun, drawn just above the dome.
+      ctx.save();
+      switch (g.def.name) {
+        case "pixel": {
+          // 3 tiny pixels in a row (pixel-perfectionist halo)
+          ctx.fillStyle = g.def.color;
+          for (let i = -1; i <= 1; i++) ctx.fillRect(cx + i * r * 0.30 - r * 0.07, topY - r * 0.15, r * 0.15, r * 0.15);
+          break;
+        }
+        case "serif": {
+          // Tiny "T" with serifs (typography)
+          ctx.fillStyle = g.def.color;
+          ctx.fillRect(cx - r * 0.30, topY - r * 0.10, r * 0.60, r * 0.10);   // top bar
+          ctx.fillRect(cx - r * 0.06, topY - r * 0.10, r * 0.12, r * 0.30);   // stem
+          ctx.fillRect(cx - r * 0.18, topY + r * 0.18, r * 0.36, r * 0.06);   // bottom serif
+          break;
+        }
+        case "kerning": {
+          // Two letter-blocks with a measurement gap (kerning)
+          ctx.fillStyle = g.def.color;
+          ctx.fillRect(cx - r * 0.40, topY, r * 0.20, r * 0.22);
+          ctx.fillRect(cx + r * 0.20, topY, r * 0.20, r * 0.22);
+          ctx.strokeStyle = g.def.color;
+          ctx.lineWidth = Math.max(1, r * 0.06);
+          ctx.beginPath();
+          ctx.moveTo(cx - r * 0.18, topY + r * 0.11);
+          ctx.lineTo(cx + r * 0.18, topY + r * 0.11);
+          ctx.stroke();
+          break;
+        }
+        case "pantone": {
+          // Paint-chip square with a tab on top (Pantone color card)
+          ctx.fillStyle = g.def.color;
+          ctx.fillRect(cx - r * 0.22, topY - r * 0.05, r * 0.44, r * 0.30);
+          ctx.fillRect(cx - r * 0.06, topY - r * 0.20, r * 0.12, r * 0.18);
+          ctx.fillStyle = "oklch(0.96 0.04 90)";
+          ctx.fillRect(cx - r * 0.16, topY + r * 0.02, r * 0.32, r * 0.05);
+          break;
+        }
+      }
+      ctx.restore();
+    }
+
+    // ============================================================
+    // JUICE: trauma, flash, particles
+    // ============================================================
+    let trauma = 0;
+    const particles = [];
+    function burst(x, y, n) {
+      if (prefersReducedMotion) return;
+      const colors = ["oklch(0.96 0.04 90)", "oklch(0.85 0.18 85)", "oklch(0.78 0.20 25)"];
+      for (let i = 0; i < n; i++) {
+        if (particles.length > 64) particles.shift();
+        const a = Math.random() * Math.PI * 2;
+        const sp = 3 + Math.random() * 4;
+        particles.push({
+          x: x + 0.5, y: y + 0.5,
+          vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          life: 0.55 + Math.random() * 0.3, max: 0.85,
+          color: colors[i % colors.length],
+        });
+      }
+    }
+    function updateParticles(dt) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.92; p.vy *= 0.92;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+    function flashScreen(opacity, ms) {
+      if (prefersReducedMotion) return;
+      const f = document.getElementById("flash");
+      f.style.opacity = String(opacity);
+      setTimeout(() => { f.style.opacity = "0"; }, ms || 100);
+    }
+
+    // ============================================================
+    // HUD + SCREENS
+    // ============================================================
+    const hudBar    = document.getElementById("bar");
+    const hudCount  = document.getElementById("count");
+    const hudLives  = document.getElementById("lives");
+    function updateHUD() {
+      const eaten = pelletsTotal - pelletsLeft;
+      hudBar.style.width = (pelletsTotal ? (eaten / pelletsTotal * 100) : 0) + "%";
+      hudCount.textContent = eaten + " / " + pelletsTotal;
+      // Lives icons
+      hudLives.innerHTML = "";
+      for (let i = 0; i < CONFIG.lives; i++) {
+        const li = document.createElement("i");
+        if (i >= lives) li.classList.add("lost");
+        hudLives.appendChild(li);
+      }
+    }
+
+    function show(id) {
+      for (const sid of ["intro", "game", "win", "lose"]) {
+        document.getElementById(sid).hidden = (sid !== id);
+      }
+      if (id === "game") {
+        // delay to allow layout
+        requestAnimationFrame(() => { resize(); });
+      }
+    }
+
+    function startGame() {
+      unlockAudio();
+      reset();
+      show("game");
+      requestAnimationFrame(() => { resize(); });
+    }
+
+    document.getElementById("start-btn").addEventListener("click", startGame);
+    document.getElementById("replay-win").addEventListener("click", startGame);
+    document.getElementById("replay-lose").addEventListener("click", startGame);
+    document.getElementById("mute").addEventListener("click", (e) => {
+      muted = !muted;
+      e.currentTarget.textContent = muted ? "🔇" : "🔊";
+    });
+
+    attachSwipe(canvas);
+    // Prevent the page from scrolling on canvas drag
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    // ============================================================
+    // MAIN LOOP — fixed-timestep accumulator
+    // ============================================================
+    const STEP = 1 / 60;
+    let last = performance.now(), acc = 0;
+    function frame(now) {
+      let ft = (now - last) / 1000;
+      if (ft > 0.25) ft = 0.25;
+      last = now; acc += ft;
+      while (acc >= STEP) { tick(STEP); acc -= STEP; }
+      render(now);
+      requestAnimationFrame(frame);
+    }
+
+    // Initial parse so we can show intro without errors
+    parseMaze();
+    updateHUD();
+    // Pre-populate ghost roster default state for render-safety
+    player = makeActor(playerSpawn.x, playerSpawn.y, "left");
+    ghosts = [];
+
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>
