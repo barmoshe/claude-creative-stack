@@ -1,0 +1,2 @@
+# Drop your custom .riv files here (e.g. hero.riv) and update the
+# RIVE_SRC constant in src/PhotoMaze/ui/Intro.tsx + Win.tsx.

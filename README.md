@@ -11,14 +11,15 @@ Designed to be mounted into a [Claude Project](https://support.claude.com/en/art
 ## What's inside
 
 ```
-knowledge/   11 re-chunked reference docs + index (the Project knowledge payload)
-skills/       7 Agent Skills in SKILL.md format
-artifacts/   12 single-file starters (7 HTML, 5 React/JSX)
-prompts/     10 ready-to-paste prompt scaffolds
-recipes/      4 end-to-end workflow narratives
-mcp/          1 working TypeScript MCP server + drop-in .mcp.json
-playground/  optional Vite + React + TS harness for off-sandbox iteration
-CLAUDE.md    routing rules + defaults (loaded into Project custom instructions)
+knowledge/         11 re-chunked reference docs + index (the Project knowledge payload)
+skills/             7 Agent Skills in SKILL.md format
+artifacts/         12 single-file starters (7 HTML, 5 React/JSX)
+prompts/           10 ready-to-paste prompt scaffolds
+recipes/            4 end-to-end workflow narratives
+mcp/                1 working TypeScript MCP server + drop-in .mcp.json
+playground/        optional Vite + React + TS harness for off-sandbox iteration
+react-rive-pacman/ Vite + React + Rive port of the "Photo Maze" PR-campaign game
+CLAUDE.md          routing rules + defaults (loaded into Project custom instructions)
 ```
 
 ### knowledge/ — the reference layer
