@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!--
+  editorial-scanner-skin — minimal RTL HTML scaffold.
+  Wires every named component slot in the correct layout order.
+  Drop in components.css (sibling file) and helpers.js, then write your scan logic.
+-->
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCANNER · editorial-scanner-skin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="components.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- 1. brand-header -->
+  <div class="header">
+    <div class="brand">
+      <h1>SCANNER</h1>
+      <p>סורק חי דרך Claude · שנה את התת־כותרת לפי המקרה שלך</p>
+    </div>
+    <div class="date-badge" id="datebadge">—</div>
+  </div>
+
+  <!-- 2. keybar (omit in artifact mode; the artifact endpoint is key-less) -->
+  <div class="keybar">
+    <label>API KEY:</label>
+    <input id="apikey" type="password" placeholder="sk-ant-api03-…">
+    <button class="save-btn" onclick="saveKey()">שמור</button>
+    <span class="status" id="keystatus">לא הוגדר</span>
+    <select id="modelselect" onchange="saveModel()">
+      <option value="claude-haiku-4-5-20251001">Haiku 4.5 (זול ומהיר)</option>
+      <option value="claude-sonnet-4-5-20250929">Sonnet 4.5 (איכות גבוהה)</option>
+    </select>
+  </div>
+
+  <!-- 3. kwbar (container) → 4. quick-chips → input row → 5. recent-pills -->
+  <div class="kwbar">
+    <div class="quick-chips" id="quick-chips">
+      <span class="quick-chips-label">פוקוס מהיר:</span>
+      <button class="chip" data-preset="🔥 הכל הכי חם" onclick="applyChip(this)"><span class="chip-icon">🔥</span>הכל הכי חם</button>
+      <button class="chip" data-preset="🌍 רק תוכן גלובלי" onclick="applyChip(this)"><span class="chip-icon">🌍</span>רק גלובלי</button>
+      <button class="chip" data-preset="🇮🇱 רק תוכן ישראלי" onclick="applyChip(this)"><span class="chip-icon">🇮🇱</span>רק ישראלי</button>
+      <!-- add your domain-specific presets here -->
+    </div>
+
+    <div class="kwbar-row">
+      <label>פוקוס מותאם:</label>
+      <input id="keywords" type="text" placeholder="או תכתוב משהו ספציפי…">
+      <button class="clear-btn" onclick="clearKeywords()">נקה</button>
+    </div>
+
+    <div class="recent-row" id="recent-row" style="display:none">
+      <span class="recent-label">אחרונים:</span>
+      <span id="recent-pills"></span>
+    </div>
+  </div>
+
+  <!-- 7. scan-btn -->
+  <button class="scan-btn" id="scanbtn" onclick="runScan()">
+    ▼ SCAN — מה הכי חם ברשת עכשיו
+  </button>
+
+  <!-- 8. status-box -->
+  <div class="status-box" id="statusbox">
+    <span id="statustext">לחץ Scan כדי להתחיל</span>
+  </div>
+
+  <!-- 9. progress-box (toggled .active during a scan) -->
+  <div class="progress-box" id="progressbox">
+    <div class="progress-header">
+      <div class="progress-current">
+        <div class="spinner"></div>
+        <span id="progress-msg">מתחיל סריקה…</span>
+      </div>
+      <span class="progress-timer" id="progress-timer">0s</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-steps" id="progress-steps">
+      <div class="progress-step" data-step="0"><span class="dot"></span>מתרגם פוקוס לשאילתות</div>
+      <div class="progress-step" data-step="1"><span class="dot"></span>סורק מקורות עיקריים</div>
+      <div class="progress-step" data-step="2"><span class="dot"></span>בודק תכנים ויראליים</div>
+      <div class="progress-step" data-step="3"><span class="dot"></span>מסנן ומדרג</div>
+      <div class="progress-step" data-step="4"><span class="dot"></span>מנסח כותרות</div>
+    </div>
+    <button class="progress-cancel" onclick="cancelScan()">ביטול</button>
+  </div>
+
+  <!-- 10. plan-preview (rendered after the cheap plan call returns) -->
+  <!-- Inserted dynamically by showPlanPreview(plan) into this slot -->
+
+  <!-- 6. action-bar (shown after first successful scan) -->
+  <div class="actionbar" id="actionbar" style="display:none">
+    <button class="toggle-fresh" id="freshtoggle" onclick="toggleFresh()">
+      <span class="ind"></span>
+      <span>רק חדשות טריות</span>
+    </button>
+    <button class="history-btn" onclick="openHistory()">📜 היסטוריה</button>
+  </div>
+
+  <!-- 11. filters (shown after first scan) -->
+  <div class="filters" id="filters" style="display:none">
+    <div class="filter active" data-cat="all">הכל <span class="count" id="c-all">0</span></div>
+    <!-- add data-cat filters that match your categories -->
+  </div>
+
+  <!-- 12. card-list / 13. sparse-box / 16. error-box / 17. claude-msg-box -->
+  <div class="results" id="results">
+    <div class="empty" id="empty">
+      <p>תכניס API key ותלחץ Scan.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- 14. history-panel (slide-in) -->
+<div class="history-overlay" id="history-overlay" onclick="if(event.target.id==='history-overlay')closeHistory()">
+  <div class="history-panel">
+    <div class="history-head">
+      <h2>📜 היסטוריה — 7 ימים</h2>
+      <button class="history-close" onclick="closeHistory()">×</button>
+    </div>
+    <div class="history-body" id="history-body"></div>
+  </div>
+</div>
+
+<!-- 15. toast -->
+<div class="toast" id="toast">הועתק ✓</div>
+
+<script src="../scripts/helpers.js"></script>
+<script>
+  // Wire your scan logic here. See references/patterns.md for the recipes:
+  // - planFromKeywords(apikey, keywords, signal)
+  // - runScan()
+  // - showPlanPreview(plan), showSparseResultsFallback(kw, count), showClaudeMessage(text), showError(html)
+  // - tryParseJSON(text), computeFreshness(item), saveToHistory(items, keywords)
+  // - applyChip(btn), syncChipActive(), addToRecent(kw), renderRecentKeywords()
+  // - startProgress(), finishProgress(success), cancelScan(), startCooldownTimer(seconds)
+  // - toggleUsed(id, btn), copyCaption(idx), copyTitle(idx), showToast(msg)
+  document.getElementById('datebadge').textContent =
+    new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+</script>
+
+</body>
+</html>

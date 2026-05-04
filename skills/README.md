@@ -1,6 +1,6 @@
 # Skills
 
-Nine agent skills that layer on top of the official Anthropic skills. Each is a folder containing a `SKILL.md` (progressive-disclosure entry point) and optional supporting files (scripts, references, assets).
+Ten agent skills that layer on top of the official Anthropic skills. Each is a folder containing a `SKILL.md` (progressive-disclosure entry point) and optional supporting files (scripts, references, assets).
 
 | Skill | Triggers | Backed by | Demo |
 |---|---|---|---|
@@ -10,6 +10,7 @@ Nine agent skills that layer on top of the official Anthropic skills. Each is a 
 | [`palette-generator`](palette-generator/SKILL.md) | "palette", "color tokens", "oklch" | `knowledge/05-graphics-design.md`, `knowledge/14-accessibility-performance.md` | [`mcp/servers/palette-oklch/`](../mcp/servers/palette-oklch/) |
 | [`sprite-atlas-builder`](sprite-atlas-builder/SKILL.md) | "sprite sheet", "atlas", "animation frames" | `knowledge/15-export-recording.md` §15.8 | [`scripts/pack.ts`](sprite-atlas-builder/scripts/pack.ts), [`mcp/servers/sprite-packer/`](../mcp/servers/sprite-packer/) |
 | [`ui-design-kit`](ui-design-kit/SKILL.md) | "design system", "ui kit", "components" | `knowledge/05-graphics-design.md` | [`artifacts/react/bento-grid-landing.jsx`](../artifacts/react/bento-grid-landing.jsx), [`artifacts/react/anchor-positioned-popover.jsx`](../artifacts/react/anchor-positioned-popover.jsx) |
+| [`editorial-scanner-skin`](editorial-scanner-skin/SKILL.md) | "news scanner", "editorial dashboard", "RTL Claude tool", "loop web_search and show cards" | `knowledge/05-graphics-design.md`, `knowledge/03-artifacts.md`, `knowledge/14-accessibility-performance.md` | [`references/skeleton.html`](editorial-scanner-skin/references/skeleton.html), [`references/components.css`](editorial-scanner-skin/references/components.css) |
 | [`procgen-toolkit`](procgen-toolkit/SKILL.md) | "procedural", "dungeon", "map gen", "wfc", "bsp" | `knowledge/06-games.md` §6.6 | [`artifacts/html/procgen-dungeon.html`](../artifacts/html/procgen-dungeon.html), [`references/algorithms.md`](procgen-toolkit/references/algorithms.md) |
 | [`asset-generator`](asset-generator/SKILL.md) | "generate {image,voice,music,video}", "concept art" | `knowledge/13-asset-pipelines.md` | [`mcp/servers/asset-router/`](../mcp/servers/asset-router/), [`recipes/agentic-asset-pipeline.md`](../recipes/agentic-asset-pipeline.md) |
 | [`critique-loop`](critique-loop/SKILL.md) | "critique this", "review", "iterate" | `knowledge/09-prompting.md` | [`artifacts/react/claudeception-critic.jsx`](../artifacts/react/claudeception-critic.jsx), [`artifacts/react/shader-jam.jsx`](../artifacts/react/shader-jam.jsx) |

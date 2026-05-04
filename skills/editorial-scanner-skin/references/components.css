@@ -1,0 +1,489 @@
+/* ============================================================
+   editorial-scanner-skin — components.css
+   Drop into a single-file HTML scanner / monitor / curation tool.
+   Pair with: <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+   Set <html dir="rtl" lang="he"> (or your script's lang).
+   ============================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* surfaces */
+  --bg: #0a0a0a;
+  --s:  #141414;
+  --s2: #1c1c1c;
+  --b:  #262626;
+  --b2: #333;
+  /* alert hues */
+  --red:    #E8412A;
+  --orange: #FF6B35;
+  --purple: #8B5CF6;
+  --green:  #22C55E;
+  --blue:   #3B82F6;
+  --yellow: #EAB308;
+  /* text scale */
+  --t:  #fff;
+  --t2: #cfcfcf;
+  --m:  #888;
+  --m2: #555;
+  --m3: #333;
+  /* type stacks */
+  --mono: 'Space Mono', ui-monospace, monospace;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--t);
+  font-family: var(--sans);
+  padding: 20px;
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+.wrap { max-width: 880px; margin: 0 auto; }
+
+/* ── 1. brand-header ───────────────────────────────────────── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+}
+.brand h1 { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--red); letter-spacing: -1px; }
+.brand p  { font-size: 12px; color: var(--m); margin-top: 2px; }
+.date-badge {
+  font-family: var(--mono); font-size: 11px;
+  background: var(--s); border: 1px solid var(--b); border-radius: 6px;
+  padding: 6px 10px; color: var(--m);
+}
+
+/* ── 2. keybar ─────────────────────────────────────────────── */
+.keybar {
+  background: var(--s); border: 1px solid var(--b); border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.keybar label  { font-size: 12px; color: var(--m); font-family: var(--mono); flex-shrink: 0; }
+.keybar input  {
+  flex: 1; min-width: 200px;
+  background: var(--bg); border: 1px solid var(--b2); border-radius: 6px;
+  padding: 7px 10px; color: var(--t);
+  font-family: var(--mono); font-size: 12px; outline: none;
+  direction: ltr; text-align: left; /* keys are always LTR */
+}
+.keybar input:focus { border-color: var(--m); }
+.keybar .save-btn {
+  padding: 7px 14px; background: var(--b2); border: none; border-radius: 6px;
+  color: var(--t); font-size: 12px; cursor: pointer; font-family: var(--sans);
+}
+.keybar .save-btn:hover { background: var(--m2); }
+.keybar .status     { font-size: 11px; font-family: var(--mono); }
+.keybar .status.ok  { color: var(--green); }
+.keybar .status.no  { color: var(--red); }
+.keybar select {
+  background: var(--bg); border: 1px solid var(--b2); border-radius: 6px;
+  padding: 7px 10px; color: var(--t); font-family: var(--mono); font-size: 11px; cursor: pointer;
+}
+
+/* ── 3. kwbar (container) ──────────────────────────────────── */
+.kwbar {
+  background: var(--s); border: 1px solid var(--b); border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.kwbar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kwbar label { font-size: 12px; color: var(--m); font-family: var(--mono); flex-shrink: 0; }
+.kwbar input {
+  flex: 1; min-width: 160px;
+  background: var(--bg); border: 1px solid var(--b2); border-radius: 6px;
+  padding: 8px 12px; color: var(--t);
+  font-family: var(--sans); font-size: 13px; outline: none;
+  direction: rtl;
+}
+.kwbar input:focus { border-color: var(--purple); }
+.kwbar input::placeholder { color: var(--m2); }
+.kwbar .clear-btn {
+  padding: 6px 10px; background: transparent; border: 1px solid var(--b2); border-radius: 6px;
+  color: var(--m); font-size: 11px; cursor: pointer; font-family: var(--sans);
+}
+.kwbar .clear-btn:hover { border-color: var(--red); color: var(--red); }
+.kwbar .hint { font-size: 10px; color: var(--m2); font-family: var(--mono); width: 100%; }
+
+/* ── 4. quick-chips ────────────────────────────────────────── */
+.quick-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.quick-chips-label {
+  font-size: 10px; color: var(--m2); font-family: var(--mono);
+  margin-inline-end: 4px; letter-spacing: .5px;
+}
+.chip {
+  padding: 5px 11px; background: var(--bg); border: 1px solid var(--b2); border-radius: 14px;
+  color: var(--t2); font-size: 12px; cursor: pointer; font-family: var(--sans);
+  transition: all .15s; display: inline-flex; align-items: center; gap: 4px; line-height: 1;
+}
+.chip:hover { border-color: var(--purple); background: rgba(139,92,246,.08); color: var(--t); }
+.chip.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+.chip-icon { font-size: 13px; }
+
+/* ── 5. recent-pill ────────────────────────────────────────── */
+.recent-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.recent-label { font-size: 10px; color: var(--m2); font-family: var(--mono); letter-spacing: .5px; }
+.recent-pill {
+  padding: 4px 10px; background: transparent; border: 1px solid var(--m3); border-radius: 12px;
+  color: var(--m); font-size: 11px; cursor: pointer; font-family: var(--sans);
+  transition: all .15s; display: inline-flex; align-items: center; gap: 5px;
+}
+.recent-pill:hover { border-color: var(--m2); color: var(--t2); }
+.recent-pill .x { font-size: 11px; opacity: .6; margin-inline-end: 2px; }
+.recent-pill .x:hover { opacity: 1; color: var(--red); }
+
+/* ── 6. action-bar ─────────────────────────────────────────── */
+.actionbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+.toggle-fresh {
+  padding: 8px 14px; background: var(--s); border: 1px solid var(--b); border-radius: 8px;
+  color: var(--m); font-size: 12px; cursor: pointer; font-family: var(--sans);
+  transition: all .15s; display: flex; align-items: center; gap: 6px;
+}
+.toggle-fresh:hover { border-color: var(--m2); color: var(--t2); }
+.toggle-fresh.active {
+  background: rgba(34,197,94,.1); border-color: var(--green); color: var(--green);
+}
+.toggle-fresh .ind { width: 8px; height: 8px; border-radius: 50%; background: var(--m3); }
+.toggle-fresh.active .ind { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.history-btn {
+  padding: 8px 14px; background: var(--s); border: 1px solid var(--b); border-radius: 8px;
+  color: var(--m); font-size: 12px; cursor: pointer; font-family: var(--sans);
+  transition: all .15s;
+  margin-inline-start: auto;  /* push to opposite edge, RTL-aware */
+}
+.history-btn:hover { border-color: var(--m2); color: var(--t2); }
+
+/* ── 7. scan-btn ───────────────────────────────────────────── */
+.scan-btn {
+  width: 100%; padding: 18px;
+  background: var(--red); border: none; border-radius: 12px;
+  color: #fff; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: var(--mono); letter-spacing: 1px;
+  margin-bottom: 12px; transition: all .15s;
+}
+.scan-btn:hover:not(:disabled) { background: #d63a26; }
+.scan-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── 8. status-box ─────────────────────────────────────────── */
+.status-box {
+  background: var(--s); border: 1px solid var(--b); border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 12px;
+  font-size: 13px; color: var(--t2); font-family: var(--mono);
+  min-height: 46px; display: flex; align-items: center; gap: 10px;
+}
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.15);
+  border-top-color: var(--red); border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 9. progress-box ───────────────────────────────────────── */
+.progress-box {
+  background: var(--s); border: 1px solid var(--b); border-radius: 12px;
+  padding: 16px; margin-bottom: 12px; display: none;
+}
+.progress-box.active { display: block; animation: fadeIn .2s ease; }
+.progress-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; font-family: var(--mono); font-size: 12px;
+}
+.progress-current { color: var(--t); display: flex; align-items: center; gap: 8px; }
+.progress-timer   { color: var(--m); font-size: 11px; }
+.progress-bar {
+  height: 3px; background: var(--m3); border-radius: 2px; overflow: hidden; margin-bottom: 14px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), var(--orange));
+  transition: width .4s ease; width: 0;
+}
+.progress-steps { display: flex; flex-direction: column; gap: 6px; }
+.progress-step {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--m2); font-family: var(--mono);
+  transition: color .2s;
+}
+.progress-step.done   { color: var(--green); }
+.progress-step.active { color: var(--t); }
+.progress-step .dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--m3);
+  flex-shrink: 0; transition: all .2s;
+}
+.progress-step.done .dot   { background: var(--green); }
+.progress-step.active .dot { background: var(--red); animation: pulse 1s infinite; }
+@keyframes pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.4); opacity: .7; }
+}
+.progress-cancel {
+  margin-top: 12px; padding: 6px 12px;
+  background: transparent; border: 1px solid var(--b2); border-radius: 6px;
+  color: var(--m); font-size: 11px; cursor: pointer; font-family: var(--sans);
+}
+.progress-cancel:hover { border-color: var(--red); color: var(--red); }
+
+/* ── 10. plan-preview ──────────────────────────────────────── */
+.plan-preview {
+  background: var(--s); border: 1px solid var(--purple); border-radius: 10px;
+  padding: 0; margin-bottom: 12px; overflow: hidden;
+  animation: fadeIn .25s ease;
+}
+.plan-head {
+  padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
+  background: rgba(139,92,246,.08); border-bottom: 1px solid var(--b);
+  font-family: var(--mono); font-size: 12px; color: var(--purple);
+}
+.plan-toggle {
+  background: transparent; border: 1px solid var(--b2); border-radius: 5px;
+  color: var(--m); font-size: 10px; cursor: pointer; padding: 3px 8px; font-family: var(--sans);
+}
+.plan-toggle:hover { border-color: var(--purple); color: var(--purple); }
+.plan-body { padding: 12px 14px; transition: all .2s; }
+.plan-preview.collapsed .plan-body { display: none; }
+.plan-interp {
+  font-size: 13px; color: var(--t2); font-style: italic;
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--b);
+}
+.plan-queries { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.plan-query {
+  font-family: var(--mono); font-size: 12px; color: var(--t2);
+  direction: ltr; text-align: left;
+  padding: 4px 0; display: flex; align-items: center; gap: 8px;
+}
+.plan-cats { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; }
+.plan-cat {
+  background: rgba(139,92,246,.15); color: var(--purple);
+  font-size: 10px; padding: 3px 8px; border-radius: 5px; font-family: var(--mono);
+}
+.plan-avoid { font-size: 11px; color: var(--m); font-family: var(--mono); margin-top: 6px; }
+
+/* ── 11. filters (category pills) ──────────────────────────── */
+.filters { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.filter {
+  padding: 5px 12px; background: var(--s); border: 1px solid var(--b); border-radius: 20px;
+  color: var(--m); font-size: 12px; cursor: pointer; font-family: var(--sans);
+  transition: all .15s;
+}
+.filter:hover  { border-color: var(--m2); color: var(--t2); }
+.filter.active { background: var(--t); color: var(--bg); border-color: var(--t); }
+.filter .count { font-size: 10px; opacity: .7; margin-inline-start: 4px; }
+
+/* ── 12. card ──────────────────────────────────────────────── */
+.results { display: flex; flex-direction: column; gap: 10px; }
+.card {
+  background: var(--s); border: 1px solid var(--b); border-radius: 12px;
+  padding: 16px;
+  animation: fadeIn .3s ease both;
+  transition: border-color .15s;
+}
+.card.used { opacity: .45; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.card-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-bottom: 8px; flex-wrap: wrap;
+}
+.card-num {
+  font-family: var(--mono); font-size: 11px; color: var(--m2);
+  min-width: 24px; margin-top: 3px;
+}
+.card-main { flex: 1; min-width: 200px; }
+.card-hook { font-size: 11px; color: var(--m); margin-bottom: 4px; font-weight: 500; }
+.card-title { font-size: 17px; font-weight: 700; color: var(--t); line-height: 1.3; margin-bottom: 6px; }
+.card-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+.badge {
+  font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px;
+  font-family: var(--mono); letter-spacing: .3px;
+}
+.b-cat   { background: var(--s2);  color: var(--t2);  border: 1px solid var(--b2); }
+.b-vir   { background: #2a0e08;    color: #ff7a55;    border: 1px solid #4a1a10; }
+.b-il    { background: #0a1f2e;    color: #5cb3e8;    border: 1px solid #14334d; }
+.b-fresh { background: #0a2615;    color: #5ce880;    border: 1px solid #144d2a; }
+.b-stale { background: #2a1f08;    color: #eab308;    border: 1px solid #4d3a14; }
+
+.card-desc {
+  font-size: 14px; color: var(--t2); line-height: 1.6;
+  margin: 8px 0; padding-inline-start: 34px;
+}
+.card-source {
+  font-size: 11px; color: var(--m); font-family: var(--mono);
+  padding-inline-start: 34px; margin-bottom: 8px;
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.card-source a       { color: var(--m); text-decoration: underline; }
+.card-source a:hover { color: var(--t2); }
+
+.card-caption {
+  background: var(--s2); border: 1px solid var(--b); border-radius: 8px;
+  padding: 10px 12px; margin: 8px 0;
+  margin-inline-start: 34px;
+  font-size: 13px; color: var(--t2); line-height: 1.7; white-space: pre-wrap;
+}
+.card-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding-inline-start: 34px; margin-top: 8px;
+}
+.btn {
+  font-size: 12px; padding: 6px 12px; border-radius: 7px;
+  border: 1px solid var(--b); background: transparent;
+  color: var(--t2); cursor: pointer; font-family: var(--sans);
+  transition: all .15s;
+}
+.btn:hover { background: var(--s2); border-color: var(--b2); color: var(--t); }
+.btn-copy   { border-color: var(--purple); color: var(--purple); }
+.btn-copy:hover { background: rgba(139,92,246,.1); color: var(--purple); }
+.btn-used   { border-color: var(--green); color: var(--green); }
+.btn-used:hover { background: rgba(34,197,94,.1); }
+.btn.copied { background: var(--green); color: #000; border-color: var(--green); }
+
+/* ── 13. sparse-box ────────────────────────────────────────── */
+.sparse-box {
+  background: var(--s); border: 1px solid var(--orange); border-radius: 12px;
+  padding: 16px; margin-bottom: 12px;
+}
+.sparse-head {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--orange);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+}
+.sparse-body { font-size: 13px; color: var(--t2); line-height: 1.6; margin-bottom: 12px; }
+.sparse-body strong { color: var(--t); }
+.sparse-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.sparse-action {
+  padding: 7px 14px; border-radius: 7px; font-size: 12px; cursor: pointer;
+  font-family: var(--sans); border: 1px solid var(--b2);
+  background: transparent; color: var(--t2); transition: all .15s;
+}
+.sparse-action:hover { border-color: var(--orange); color: var(--orange); }
+.sparse-action.primary {
+  background: var(--orange); border-color: var(--orange); color: #000; font-weight: 600;
+}
+.sparse-action.primary:hover { background: #ff8050; border-color: #ff8050; color: #000; }
+
+/* ── 14. history-panel ─────────────────────────────────────── */
+.history-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.7); z-index: 100;
+  animation: fadeIn .2s;
+}
+.history-overlay.open { display: block; }
+.history-panel {
+  position: fixed; top: 0; inset-inline-end: 0;  /* RTL-aware: pin to whichever edge is "end" */
+  height: 100vh; width: min(420px, 100vw);
+  background: var(--bg); border-inline-start: 1px solid var(--b);
+  overflow-y: auto;
+  animation: slideIn .25s ease;
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.history-head {
+  position: sticky; top: 0; background: var(--bg);
+  border-bottom: 1px solid var(--b);
+  padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 1;
+}
+.history-head h2 { font-size: 15px; font-family: var(--mono); color: var(--t); font-weight: 700; }
+.history-close {
+  background: transparent; border: none; color: var(--m);
+  font-size: 20px; cursor: pointer; line-height: 1; padding: 4px 8px;
+}
+.history-close:hover { color: var(--t); }
+.history-body { padding: 14px 16px; }
+.history-day  { margin-bottom: 18px; }
+.history-day-title {
+  font-family: var(--mono); font-size: 11px; color: var(--m);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--b);
+}
+.history-scan {
+  background: var(--s); border: 1px solid var(--b); border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s;
+}
+.history-scan:hover { border-color: var(--purple); }
+.history-scan-head {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+  font-family: var(--mono); font-size: 11px; color: var(--m);
+}
+.history-scan-titles { font-size: 12px; color: var(--t2); line-height: 1.5; }
+.history-scan-titles div {
+  padding: 2px 0;
+  border-inline-end: 2px solid var(--b);
+  padding-inline-end: 8px;
+  margin: 3px 0;
+}
+.history-empty { text-align: center; padding: 30px; color: var(--m); font-size: 13px; }
+.history-actions { display: flex; gap: 8px; margin-top: 8px; }
+.history-action {
+  font-size: 11px; padding: 4px 10px;
+  background: transparent; border: 1px solid var(--b2); border-radius: 5px;
+  color: var(--m); cursor: pointer; font-family: var(--sans);
+}
+.history-action:hover { border-color: var(--red); color: var(--red); }
+
+/* ── 15. toast ─────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--green); color: #000;
+  padding: 10px 20px; border-radius: 8px;
+  font-weight: 600; font-size: 13px;
+  transition: transform .25s; z-index: 200; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── 16. error-box ─────────────────────────────────────────── */
+.error-box {
+  background: #2a0a0a; border: 1px solid #5a1818; border-radius: 10px;
+  padding: 12px 16px; color: #ff8a7a; font-size: 13px;
+  margin-bottom: 12px; line-height: 1.6;
+}
+.error-box code {
+  background: rgba(0,0,0,.3); padding: 1px 5px; border-radius: 3px;
+  font-family: var(--mono); font-size: 11px;
+}
+
+/* ── 17. claude-msg-box ────────────────────────────────────── */
+.claude-msg-box {
+  background: var(--s); border: 1px solid var(--purple); border-radius: 12px;
+  padding: 16px; margin-bottom: 12px;
+}
+.claude-msg-head {
+  font-family: var(--mono); font-size: 11px; color: var(--purple);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--b);
+}
+.claude-msg-body {
+  font-size: 13px; color: var(--t2); line-height: 1.7;
+  margin-bottom: 14px; white-space: normal;
+}
+.claude-msg-body strong { color: var(--t); font-weight: 600; }
+.claude-msg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── empty state ───────────────────────────────────────────── */
+.empty { text-align: center; padding: 40px 20px; color: var(--m); }
+.empty p { font-size: 13px; line-height: 1.7; }
+
+/* ── responsive ────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  body { padding: 12px; }
+  .brand h1 { font-size: 20px; }
+  .card-title { font-size: 15px; }
+  .card-desc, .card-caption, .card-actions, .card-source { padding-inline-start: 0; }
+}
+
+/* ── reduced motion ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
