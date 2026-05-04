@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Ghost Typewriter · claude-creative-stack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Cormorant+Garamond:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --teal:    oklch(0.45 0.06 200);
+      --teal2:   oklch(0.36 0.05 200);
+      --teal3:   oklch(0.28 0.04 200);
+      --cream:   oklch(0.94 0.04 80);
+      --cream2:  oklch(0.86 0.05 80);
+      --ink:     oklch(0.18 0.02 60);
+      --ink-red: oklch(0.45 0.20 25);
+      --brass:   oklch(0.74 0.13 75);
+      --brass2:  oklch(0.55 0.10 70);
+      --bg:      oklch(0.18 0.02 60);
+      --bg2:     oklch(0.10 0.01 60);
+      --rule:    oklch(0.32 0.03 200);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg2); color: var(--cream2);
+      font: 13px/1.5 "Cormorant Garamond", Georgia, serif; }
+    body { display: grid; place-items: start center; padding: 28px 16px 48px;
+      background: radial-gradient(ellipse at 50% 0%, oklch(0.22 0.02 200) 0%, var(--bg2) 60%); }
+
+    /* ───── chassis ───── */
+    .machine { width: min(960px, 100%); display: flex; flex-direction: column; gap: 0; }
+    .top-bar { display: flex; align-items: baseline; justify-content: space-between;
+      padding: 0 6px 14px; }
+    .brand { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 14px;
+      letter-spacing: .26em; text-transform: uppercase; color: var(--brass); margin: 0; }
+    .brand em { font-style: italic; color: var(--cream2); letter-spacing: .14em;
+      text-transform: none; opacity: .75; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    .control { font-family: "Special Elite", ui-monospace, monospace; font-size: 11px;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--cream2);
+      background: linear-gradient(180deg, var(--teal) 0%, var(--teal2) 100%);
+      border: 1px solid var(--teal3); border-radius: 4px; padding: 7px 12px; cursor: pointer;
+      box-shadow: inset 0 1px 0 oklch(0.55 0.06 200), inset 0 -1px 0 rgba(0,0,0,.3),
+        0 1px 2px rgba(0,0,0,.4);
+      transition: transform .12s ease, box-shadow .12s ease, color .12s; }
+    .control:hover { color: var(--brass); }
+    .control:active { transform: translateY(1px);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.4); }
+    .control.live { color: oklch(0.92 0.18 25); border-color: var(--ink-red); }
+
+    /* ───── paper cradle ───── */
+    .paper-cradle { display: grid; grid-template-columns: 14px 1fr 14px;
+      align-items: stretch; padding: 18px 14px 12px;
+      background: linear-gradient(180deg, var(--teal) 0%, var(--teal2) 70%, var(--teal3) 100%);
+      border-radius: 18px 18px 0 0; box-shadow: inset 0 1px 0 oklch(0.55 0.06 200),
+        inset 0 -1px 0 rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.45); position: relative; }
+    .platen-side { background: radial-gradient(circle at 50% 50%, var(--ink) 0%, oklch(0.10 0.01 60) 80%);
+      border-radius: 50% / 4px; box-shadow: inset 0 0 4px rgba(255,255,255,.1),
+        0 0 6px rgba(0,0,0,.3); }
+    .paper-frame { position: relative; padding: 22px 26px 6px; min-height: 280px;
+      background:
+        linear-gradient(180deg, oklch(0.10 0.01 60) 0px, transparent 18px,
+          transparent calc(100% - 0px), oklch(0.10 0.01 60) 100%),
+        radial-gradient(ellipse at 50% 0%, oklch(0.18 0.02 80 / .5) 0%, transparent 60%); }
+    .paper { position: relative; isolation: isolate; background: var(--cream); color: var(--ink);
+      font-family: "Special Elite", ui-monospace, "JetBrains Mono", Menlo, monospace;
+      font-size: 16px; line-height: 1.7; padding: 28px 26px 18px;
+      min-height: 220px; max-height: 320px; overflow: hidden;
+      border-radius: 1px;
+      box-shadow: 0 1px 0 oklch(0.84 0.04 80), 0 6px 14px rgba(0,0,0,.45),
+        0 18px 30px rgba(0,0,0,.35), inset 0 0 60px oklch(0.84 0.04 80 / .35);
+      filter: url(#paper-grain); }
+    .paper-line { position: relative; min-height: 1.7em; white-space: pre; letter-spacing: .02em; }
+    .glyph { display: inline-block; transform-origin: 50% 70%; will-change: transform; }
+    .glyph.struck { animation: strike 140ms ease-out; }
+    @keyframes strike {
+      0%   { transform: scale(1.45) translateY(-2px); opacity: 0; }
+      30%  { opacity: 1; }
+      100% { transform: rotate(var(--rot, 0deg)) translateY(var(--ty, 0px)) scale(1); }
+    }
+    .carriage-marker { position: absolute; bottom: 18px; width: 9.6px; height: 4px;
+      background: var(--ink-red); box-shadow: 0 0 6px oklch(0.55 0.18 25 / .8);
+      transition: left .12s cubic-bezier(.2,.7,.3,1), bottom .25s ease; pointer-events: none; }
+    .bell { position: absolute; top: 22px; right: 30px; font-size: 10px;
+      color: oklch(0.45 0.06 200); letter-spacing: .2em; opacity: 0;
+      transition: opacity .14s, color .14s; pointer-events: none; }
+    .bell.ring { opacity: 1; color: var(--brass); text-shadow: 0 0 12px var(--brass); }
+
+    /* ───── ribbon strip ───── */
+    .ribbon-strip { display: grid; grid-template-columns: 64px 1fr 64px; align-items: center;
+      gap: 12px; padding: 10px 22px;
+      background: linear-gradient(180deg, var(--teal2) 0%, var(--teal3) 100%);
+      box-shadow: inset 0 1px 0 oklch(0.42 0.05 200), inset 0 -1px 0 rgba(0,0,0,.4); }
+    .spool { width: 64px; height: 36px; border-radius: 6px;
+      background: radial-gradient(ellipse at 50% 50%, var(--brass) 0%, var(--brass2) 60%, oklch(0.32 0.04 70) 100%);
+      box-shadow: inset 0 0 4px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4); position: relative; }
+    .spool::after { content: ""; position: absolute; inset: 8px;
+      background: repeating-conic-gradient(from 0deg, oklch(0.22 0.02 60) 0deg 12deg,
+        transparent 12deg 24deg); border-radius: 4px; opacity: .35; }
+    .ribbon { height: 8px; border-radius: 1px; position: relative;
+      background: linear-gradient(90deg, var(--ink) 0%, var(--ink) 70%, var(--ink-red) 70%, var(--ink-red) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -1px 2px rgba(0,0,0,.3); }
+
+    /* ───── keyboard ───── */
+    .keyboard { padding: 22px 18px 26px; display: flex; flex-direction: column;
+      align-items: center; gap: 8px;
+      background: linear-gradient(180deg, var(--teal3) 0%, oklch(0.20 0.03 200) 100%);
+      border-radius: 0 0 18px 18px;
+      box-shadow: inset 0 1px 0 oklch(0.42 0.05 200), 0 8px 20px rgba(0,0,0,.5); }
+    .row { display: flex; gap: 7px; }
+    .row.indent-1 { padding-left: 16px; }
+    .row.indent-2 { padding-left: 32px; }
+    .key { width: 36px; height: 36px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, var(--cream) 0%, var(--cream2) 60%, oklch(0.62 0.04 80) 100%);
+      color: var(--ink); font-family: "Special Elite", ui-monospace, monospace; font-size: 12px;
+      display: grid; place-items: center; cursor: pointer; user-select: none;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.5),
+        0 3px 0 oklch(0.30 0.04 200), 0 6px 8px rgba(0,0,0,.5);
+      transition: transform .06s ease, box-shadow .06s ease;
+      border: 1.5px solid var(--brass2); position: relative; }
+    .key.wide { width: auto; min-width: 54px; padding: 0 14px; border-radius: 18px; font-size: 10px;
+      letter-spacing: .14em; text-transform: uppercase; }
+    .key.spacebar { width: 220px; height: 26px; border-radius: 13px; font-size: 9px;
+      letter-spacing: .3em; }
+    .key.depressed, .key:active { transform: translateY(3px);
+      box-shadow: inset 0 -1px 0 rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.4),
+        0 0 0 oklch(0.30 0.04 200), 0 1px 3px rgba(0,0,0,.5); }
+    .key.ghost-press { animation: ghostPress .14s ease-out; }
+    @keyframes ghostPress {
+      0%, 100% { transform: translateY(0); }
+      40%      { transform: translateY(3px); }
+    }
+
+    /* ───── archive ───── */
+    .archive { width: min(960px, 100%); margin-top: 26px; }
+    .archive h3 { font-family: "Special Elite", monospace; font-size: 11px;
+      letter-spacing: .2em; text-transform: uppercase; color: oklch(0.62 0.06 80);
+      margin: 0 0 10px; padding-left: 4px; }
+    .archive-strip { display: flex; gap: 12px; overflow-x: auto; padding: 4px 4px 14px; }
+    .archive-empty { color: oklch(0.45 0.04 80); font-style: italic; padding: 10px 4px; }
+    .thumb { flex: 0 0 130px; height: 170px; background: var(--cream); color: var(--ink);
+      font-family: "Special Elite", monospace; font-size: 6.5px; line-height: 1.6;
+      padding: 10px 8px; overflow: hidden; cursor: pointer; border-radius: 1px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.5), 0 1px 0 oklch(0.84 0.04 80);
+      white-space: pre-wrap; transition: transform .15s ease;
+      transform: rotate(var(--tilt, -1deg)); }
+    .thumb:hover { transform: rotate(var(--tilt, -1deg)) translateY(-3px); }
+    .thumb.loaded { box-shadow: 0 4px 12px rgba(0,0,0,.5), 0 0 0 2px var(--brass2); }
+
+    /* ───── footer hint ───── */
+    .hint { font-family: "Special Elite", monospace; font-size: 10px;
+      letter-spacing: .18em; text-transform: uppercase; color: oklch(0.45 0.04 80);
+      text-align: center; margin-top: 18px; }
+    .hint kbd { display: inline-block; padding: 1px 6px; margin: 0 2px;
+      background: oklch(0.28 0.04 200); border-radius: 3px; color: var(--cream2);
+      font-family: inherit; font-size: 9px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .glyph.struck { animation: none; }
+      .key.ghost-press { animation: none; }
+      .carriage-marker { transition: none; }
+    }
+
+    @media (max-width: 720px) {
+      .paper { font-size: 14px; padding: 22px 18px 14px; }
+      .key { width: 30px; height: 30px; font-size: 10px; }
+      .key.spacebar { width: 160px; }
+      .row.indent-2 { padding-left: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- SVG noise filter for paper grain -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="paper-grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0"/>
+      <feComposite operator="in" in2="SourceGraphic"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode/></feMerge>
+    </filter>
+  </svg>
+
+  <main class="machine" aria-label="Ghost typewriter">
+    <header class="top-bar">
+      <h1 class="brand">OLIVETTI · LETTERA 32 <em>/ ghost rev.</em></h1>
+      <div class="controls">
+        <button id="ribbon-btn" class="control" title="Toggle ribbon colour">Ribbon: BLK</button>
+        <button id="audio-btn"  class="control" title="Toggle audio (Tone.js)">Sound: off</button>
+        <button id="eject-btn"  class="control" title="Eject the current page to the archive">Eject ▲</button>
+        <button id="new-btn"    class="control" title="Feed in a fresh sheet">New paper</button>
+      </div>
+    </header>
+
+    <section class="paper-cradle">
+      <div class="platen-side platen-left"  aria-hidden="true"></div>
+      <div class="paper-frame">
+        <div class="paper" id="paper" role="textbox" aria-label="Paper" tabindex="0"></div>
+        <div class="carriage-marker" id="carriage" aria-hidden="true"></div>
+        <div class="bell" id="bell" aria-hidden="true">▾ BELL</div>
+      </div>
+      <div class="platen-side platen-right" aria-hidden="true"></div>
+    </section>
+
+    <section class="ribbon-strip" aria-hidden="true">
+      <div class="spool"></div>
+      <div class="ribbon" id="ribbon"></div>
+      <div class="spool"></div>
+    </section>
+
+    <section class="keyboard" id="keyboard" aria-label="Decorative keyboard">
+      <div class="row">
+        <button class="key" data-key="q">Q</button><button class="key" data-key="w">W</button>
+        <button class="key" data-key="e">E</button><button class="key" data-key="r">R</button>
+        <button class="key" data-key="t">T</button><button class="key" data-key="y">Y</button>
+        <button class="key" data-key="u">U</button><button class="key" data-key="i">I</button>
+        <button class="key" data-key="o">O</button><button class="key" data-key="p">P</button>
+      </div>
+      <div class="row indent-1">
+        <button class="key" data-key="a">A</button><button class="key" data-key="s">S</button>
+        <button class="key" data-key="d">D</button><button class="key" data-key="f">F</button>
+        <button class="key" data-key="g">G</button><button class="key" data-key="h">H</button>
+        <button class="key" data-key="j">J</button><button class="key" data-key="k">K</button>
+        <button class="key" data-key="l">L</button>
+      </div>
+      <div class="row indent-2">
+        <button class="key" data-key="z">Z</button><button class="key" data-key="x">X</button>
+        <button class="key" data-key="c">C</button><button class="key" data-key="v">V</button>
+        <button class="key" data-key="b">B</button><button class="key" data-key="n">N</button>
+        <button class="key" data-key="m">M</button>
+        <button class="key wide" data-key="enter" title="Carriage return">↵</button>
+      </div>
+      <div class="row">
+        <button class="key wide" data-key="backspace" title="Backspace (moves carriage)">←</button>
+        <button class="key spacebar" data-key=" " title="Space">SPACE</button>
+        <button class="key wide" data-key="bell-call" title="Ring the ghost">RING</button>
+      </div>
+    </section>
+
+    <section class="archive" aria-label="Archived pages">
+      <h3>Archive</h3>
+      <div class="archive-strip" id="archive-strip">
+        <div class="archive-empty">Type something. Hit Return. Wait.</div>
+      </div>
+    </section>
+
+    <p class="hint">
+      Type with your real keyboard · <kbd>Return</kbd> wakes the ghost ·
+      <kbd>Backspace</kbd> moves the carriage but does not erase
+    </p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
+  <script>
+  (() => {
+    "use strict";
+
+    /* ───── safe storage ───── */
+    const store = (typeof window !== "undefined" && window.storage) ? window.storage : {
+      getItem: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } },
+      setItem: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} },
+    };
+    const loadJSON = (k, fallback) => {
+      try { const v = store.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+    };
+    const saveJSON = (k, v) => { try { store.setItem(k, JSON.stringify(v)); } catch {} };
+
+    /* ───── constants ───── */
+    const COLS = 65;                // bell rings here
+    // Cumulative left offset from .paper-frame edge to the start of paper text:
+    //   paper-frame padding-left (26) + paper padding-left (26) = 52
+    const PAD_LEFT = 52;
+    // Cumulative bottom offset:
+    //   paper-frame padding-bottom (6) + paper padding-bottom (18) = 24
+    const PAD_BOTTOM = 24;
+    let COL_PX = 9.6;               // measured at runtime after Special Elite loads
+    const MAX_LINES = 12;
+    const MAX_ARCHIVE = 20;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* ───── state ───── */
+    let state = loadJSON("ghost-state", {
+      lines:   [[]],   // each line is an array of {ch, color, rot, ty, alpha}
+      ribbon:  "black",
+      audio:   false,
+    });
+    let archive = loadJSON("ghost-archive", []);
+    let row = state.lines.length - 1;
+    let col = state.lines[row].length;
+    let ghostBusy = false;          // during automated reply
+
+    /* ───── DOM refs ───── */
+    const $paper    = document.getElementById("paper");
+    const $carriage = document.getElementById("carriage");
+    const $bell     = document.getElementById("bell");
+    const $ribbon   = document.getElementById("ribbon");
+    const $ribbonBtn = document.getElementById("ribbon-btn");
+    const $audioBtn = document.getElementById("audio-btn");
+    const $ejectBtn = document.getElementById("eject-btn");
+    const $newBtn   = document.getElementById("new-btn");
+    const $archiveStrip = document.getElementById("archive-strip");
+    const $keyboard = document.getElementById("keyboard");
+
+    /* ───── render the paper from state ───── */
+    const renderAll = () => {
+      $paper.innerHTML = "";
+      // show only the last MAX_LINES lines so paper appears to scroll up
+      const start = Math.max(0, state.lines.length - MAX_LINES);
+      for (let i = start; i < state.lines.length; i++) {
+        const lineEl = document.createElement("div");
+        lineEl.className = "paper-line";
+        for (const g of state.lines[i]) lineEl.appendChild(makeGlyph(g, false));
+        $paper.appendChild(lineEl);
+      }
+      moveCarriage();
+    };
+
+    const makeGlyph = (g, animate) => {
+      const span = document.createElement("span");
+      span.className = "glyph" + (animate ? " struck" : "");
+      span.textContent = g.ch === " " ? " " : g.ch;
+      span.style.color = g.color === "red" ? "var(--ink-red)" : "var(--ink)";
+      span.style.opacity = g.alpha.toFixed(2);
+      span.style.setProperty("--rot", g.rot.toFixed(2) + "deg");
+      span.style.setProperty("--ty", g.ty.toFixed(2) + "px");
+      // also apply transform directly so non-animating glyphs settle into place
+      span.style.transform = `rotate(${g.rot.toFixed(2)}deg) translateY(${g.ty.toFixed(2)}px)`;
+      return span;
+    };
+
+    const moveCarriage = () => {
+      // Always anchor the carriage at the bottommost visible line — that's the
+      // active typing row, and older lines simply scroll off the top of .paper.
+      $carriage.style.left = (PAD_LEFT + col * COL_PX) + "px";
+      $carriage.style.bottom = PAD_BOTTOM + "px";
+    };
+
+    const measureColumnWidth = () => {
+      const probe = document.createElement("span");
+      probe.style.cssText =
+        "visibility:hidden;position:absolute;white-space:pre;" +
+        "font-family:'Special Elite',ui-monospace,'JetBrains Mono',Menlo,monospace;" +
+        "font-size:16px;letter-spacing:0.02em;";
+      probe.textContent = "M".repeat(50);
+      $paper.appendChild(probe);
+      const w = probe.getBoundingClientRect().width / 50;
+      $paper.removeChild(probe);
+      if (w > 4 && w < 20) COL_PX = w;
+      moveCarriage();
+    };
+
+    /* ───── strike a single character ───── */
+    const strike = (ch, opts = {}) => {
+      const ribbon = opts.color || state.ribbon;
+      const rot = (Math.random() - 0.5) * 1.0;            // ±0.5°
+      const ty  = (Math.random() - 0.5) * 0.6;            // ±0.3 px
+      const alpha = 0.78 + Math.random() * 0.22;          // ink density variance
+      const g = { ch, color: ribbon, rot, ty, alpha };
+
+      // ensure the active row exists in state
+      while (state.lines.length <= row) state.lines.push([]);
+
+      // overstrike if past existing chars: append; if within: replace? a real typewriter overstrikes
+      if (col < state.lines[row].length) {
+        // overstrike: blend with the previous glyph (still visible underneath)
+        const existing = state.lines[row][col];
+        // create a composite glyph: stack visually by writing both into the same cell
+        state.lines[row][col] = g;
+        // re-render line for overstrike (rare path)
+        rerenderLine(row);
+      } else {
+        // pad with spaces if carriage is past end
+        while (state.lines[row].length < col) state.lines[row].push({ ch: " ", color: ribbon, rot: 0, ty: 0, alpha: 1 });
+        state.lines[row].push(g);
+        // append visually
+        const lines = $paper.querySelectorAll(".paper-line");
+        const lastLine = lines[lines.length - 1];
+        if (lastLine) lastLine.appendChild(makeGlyph(g, !reduced));
+      }
+      col += 1;
+      moveCarriage();
+
+      audio.thunk?.();
+      flashKey(ch);
+
+      if (col === COLS) ringBell();
+      persist();
+    };
+
+    const rerenderLine = (r) => {
+      const lines = $paper.querySelectorAll(".paper-line");
+      const visibleStart = Math.max(0, state.lines.length - MAX_LINES);
+      const visIdx = r - visibleStart;
+      if (visIdx < 0 || visIdx >= lines.length) return;
+      const lineEl = lines[visIdx];
+      lineEl.innerHTML = "";
+      for (const g of state.lines[r]) lineEl.appendChild(makeGlyph(g, false));
+    };
+
+    const carriageReturn = () => {
+      col = 0;
+      row += 1;
+      state.lines.push([]);
+      // append a new visible line
+      const lineEl = document.createElement("div");
+      lineEl.className = "paper-line";
+      $paper.appendChild(lineEl);
+      // if we exceed MAX_LINES, drop the oldest visible
+      const lines = $paper.querySelectorAll(".paper-line");
+      while (lines.length > MAX_LINES) {
+        $paper.removeChild(lines[0]);
+        // re-query
+        const remaining = $paper.querySelectorAll(".paper-line");
+        if (remaining.length <= MAX_LINES) break;
+      }
+      moveCarriage();
+      audio.carriageReturn?.();
+      persist();
+    };
+
+    const backspace = () => {
+      if (col > 0) col -= 1;
+      moveCarriage();
+      audio.thunk?.(0.6);
+      persist();
+    };
+
+    const ringBell = () => {
+      $bell.classList.add("ring");
+      audio.bell?.();
+      setTimeout(() => $bell.classList.remove("ring"), 700);
+    };
+
+    /* ───── keyboard input ───── */
+    const KEY_LOOKUP = {};
+    document.querySelectorAll(".key").forEach(k => { KEY_LOOKUP[k.dataset.key] = k; });
+
+    const flashKey = (ch, ghost = false) => {
+      const k = KEY_LOOKUP[ch.toLowerCase()] || KEY_LOOKUP[ch];
+      if (!k) return;
+      if (ghost) {
+        k.classList.add("ghost-press");
+        setTimeout(() => k.classList.remove("ghost-press"), 160);
+      } else {
+        k.classList.add("depressed");
+        setTimeout(() => k.classList.remove("depressed"), 80);
+      }
+    };
+
+    const handleChar = (ch) => {
+      if (ghostBusy) return;
+      if (col >= COLS + 8) return;     // hard-stop past margin
+      strike(ch);
+    };
+
+    const handleEnter = () => {
+      if (ghostBusy) return;
+      flashKey("enter");
+      // grab the user's last line (for mirror replies) BEFORE creating a new line
+      const lastLineText = state.lines[row].map(g => g.ch).join("").trim();
+      carriageReturn();
+      if (lastLineText.length > 0) scheduleGhost(lastLineText);
+    };
+
+    const handleBackspace = () => {
+      if (ghostBusy) return;
+      flashKey("backspace");
+      backspace();
+    };
+
+    const ringRequested = () => {
+      flashKey("bell-call");
+      ringBell();
+      // RING button also wakes the ghost without a prompt
+      if (!ghostBusy) {
+        carriageReturn();
+        scheduleGhost("");
+      }
+    };
+
+    document.addEventListener("keydown", (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "Enter") { e.preventDefault(); handleEnter(); return; }
+      if (e.key === "Backspace") { e.preventDefault(); handleBackspace(); return; }
+      if (e.key === "Tab") { e.preventDefault(); for (let i = 0; i < 4; i++) handleChar(" "); return; }
+      if (e.key.length === 1) { e.preventDefault(); handleChar(e.key); }
+    });
+
+    // on-screen keys are clickable too — letter keys type the uppercase glyph
+    $keyboard.addEventListener("click", (e) => {
+      const t = e.target.closest(".key");
+      if (!t) return;
+      const k = t.dataset.key;
+      if (k === "enter")        handleEnter();
+      else if (k === "backspace") handleBackspace();
+      else if (k === "bell-call") ringRequested();
+      else if (k === " ")         handleChar(" ");
+      else                        handleChar(k.toUpperCase());
+    });
+
+    /* ───── ghost replies ───── */
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+    const QUESTIONS = [
+      "and then?",
+      "but who taught you that?",
+      "are you certain?",
+      "who is listening?",
+      "have you told her?",
+      "why now?",
+      "and before that?",
+      "was it the same room?",
+      "did you recognise yourself?",
+      "how long ago?",
+      "who else knows?",
+      "and what did the light look like?",
+      "do you mean the first one or the last?",
+      "is anyone still waiting?",
+      "and what would you do, if no one minded?",
+    ];
+
+    const APHORISMS = [
+      "every door remembers who closed it.",
+      "the salt always finds its own water.",
+      "what you forget is not what you lose.",
+      "a clock is just a place that breathes.",
+      "silence is older than song.",
+      "every name was a sound first.",
+      "the room you grew up in is still raining.",
+      "the only true map is the one you tear up.",
+      "a kept secret will eventually keep you.",
+      "all clocks lie kindly at night.",
+      "we keep the things that watch us back.",
+      "memory is mostly weather.",
+    ];
+
+    const CITIES = ["vellumere","hush","old heliacope","pellem","maundy","the ninth saturday",
+                    "backwater","the room before this one","fellowmere","saint elsey"];
+    const FRAGMENTS = ["we'd been waiting for hours","you can keep the change",
+                    "i thought he was you","the door didn't close behind us",
+                    "nobody mentioned the window","we never went back",
+                    "the bell was ringing for someone else","she counted to three twice"];
+    const ACTIONS = ["counted the spoons every evening",
+                    "refused to look at mirrors after dark",
+                    "kept her grief in a tin",
+                    "wrote letters to the weather",
+                    "memorised the wallpaper",
+                    "always answered the phone in french"];
+    const OBJECTS = ["small green cup","half-finished letter","thimble",
+                    "brass key with no lock","music-box that played one note",
+                    "postcard signed only with a comma"];
+
+    const memoryReply = () => {
+      const t = Math.random();
+      if (t < 0.4) return `once, in ${pick(CITIES)}, someone said ${pick(FRAGMENTS)}.`;
+      if (t < 0.7) return `a tuesday in ${pick(CITIES)}. ${pick(FRAGMENTS)}.`;
+      if (t < 0.9) return `there was a woman in ${pick(CITIES)} who ${pick(ACTIONS)}.`;
+      return `a ${pick(OBJECTS)} on a windowsill in ${pick(CITIES)}.`;
+    };
+
+    const STATIC_LINES = [
+      "————————————————",
+      "i don't know that.",
+      "say it again.",
+      "static.  —  static.",
+      "the line breaks here.",
+      "the typewriter does not understand.",
+    ];
+
+    const mirrorReply = (input) => {
+      const tokens = input.toLowerCase().split(/[^a-z]+/).filter(w => w.length > 3);
+      if (tokens.length === 0) return null;
+      const w = pick(tokens);
+      const forms = [
+        `and the ${w}? what about the ${w}?`,
+        `you said ${w}. what did you mean?`,
+        `${w}. ${w}. yes.`,
+        `tell me about the ${w} again.`,
+      ];
+      return pick(forms);
+    };
+
+    const generateReply = (input) => {
+      // weighted pick: question 30, aphorism 22, memory 18, mirror 15, static 8, silence 7
+      const r = Math.random();
+      if (r < 0.07) return null;                                  // silence
+      if (r < 0.15) return pick(STATIC_LINES);
+      if (r < 0.30) {
+        const m = mirrorReply(input);
+        if (m) return m;
+        return pick(QUESTIONS);
+      }
+      if (r < 0.48) return memoryReply();
+      if (r < 0.70) return pick(APHORISMS);
+      return pick(QUESTIONS);
+    };
+
+    const scheduleGhost = (input) => {
+      ghostBusy = true;
+      const pause = reduced ? 600 : 1500 + Math.random() * 800;
+      setTimeout(() => runGhost(input), pause);
+    };
+
+    const runGhost = async (input) => {
+      const reply = generateReply(input);
+      if (reply === null) {
+        // pure silence: bell + carriage return
+        ringBell();
+        await wait(600);
+        carriageReturn();
+        ghostBusy = false;
+        return;
+      }
+      // type the reply char-by-char as the GHOST (ribbon: red, slight different rhythm)
+      const oldRibbon = state.ribbon;
+      // ghost types in red on a fresh line
+      state.ribbon = "red";
+      const baseInterval = reduced ? 30 : 95;
+      for (const ch of reply) {
+        if (ch === "\n") { carriageReturn(); await wait(120); continue; }
+        // soft jitter on the interval
+        const interval = baseInterval + (Math.random() - 0.5) * 60;
+        // ghost-press the key visually
+        flashKey(ch.toLowerCase(), true);
+        // strike on the paper (ghost ink colour stays red) — strikeGhost will
+        // ring the bell itself when col reaches COLS
+        strikeGhost(ch);
+        await wait(Math.max(20, interval));
+        if (col >= COLS) {
+          await wait(reduced ? 80 : 280);
+          carriageReturn();
+          await wait(140);
+        }
+      }
+      // ghost returns the carriage at the end
+      await wait(reduced ? 80 : 320);
+      carriageReturn();
+      // restore user ribbon
+      state.ribbon = oldRibbon;
+      ghostBusy = false;
+    };
+
+    const strikeGhost = (ch) => {
+      // identical to strike() but with extra rotation jitter and dimmer ink
+      const ribbon = "red";
+      const rot = (Math.random() - 0.5) * 1.6;
+      const ty  = (Math.random() - 0.5) * 1.0;
+      const alpha = 0.70 + Math.random() * 0.22;
+      const g = { ch, color: ribbon, rot, ty, alpha };
+      while (state.lines.length <= row) state.lines.push([]);
+      if (col < state.lines[row].length) {
+        state.lines[row][col] = g;
+        rerenderLine(row);
+      } else {
+        while (state.lines[row].length < col) state.lines[row].push({ ch: " ", color: "black", rot: 0, ty: 0, alpha: 1 });
+        state.lines[row].push(g);
+        const lines = $paper.querySelectorAll(".paper-line");
+        const lastLine = lines[lines.length - 1];
+        if (lastLine) lastLine.appendChild(makeGlyph(g, !reduced));
+      }
+      col += 1;
+      moveCarriage();
+      audio.thunk?.(0.85);
+      if (col === COLS) ringBell();
+      persist();
+    };
+
+    const wait = (ms) => new Promise(res => setTimeout(res, ms));
+
+    /* ───── controls ───── */
+    $ribbonBtn.addEventListener("click", () => {
+      state.ribbon = state.ribbon === "black" ? "red" : "black";
+      $ribbonBtn.textContent = "Ribbon: " + (state.ribbon === "black" ? "BLK" : "RED");
+      $ribbonBtn.classList.toggle("live", state.ribbon === "red");
+      persist();
+    });
+
+    $ejectBtn.addEventListener("click", () => {
+      if (ghostBusy) return;
+      const text = state.lines.map(l => l.map(g => g.ch).join("")).join("\n").trimEnd();
+      if (text.length === 0) return;
+      const entry = { text, ribbon: state.ribbon, at: Date.now(),
+        snapshot: state.lines.map(line => line.map(g => ({ ...g }))) };
+      archive.push(entry);
+      if (archive.length > MAX_ARCHIVE) archive = archive.slice(-MAX_ARCHIVE);
+      saveJSON("ghost-archive", archive);
+      // clear paper
+      state.lines = [[]];
+      row = 0; col = 0;
+      renderAll();
+      persist();
+      renderArchive();
+    });
+
+    $newBtn.addEventListener("click", () => {
+      if (ghostBusy) return;
+      state.lines = [[]];
+      row = 0; col = 0;
+      renderAll();
+      persist();
+    });
+
+    $audioBtn.addEventListener("click", async () => {
+      if (!state.audio) {
+        const ok = await initAudio();
+        if (ok) { state.audio = true; $audioBtn.textContent = "Sound: on"; $audioBtn.classList.add("live"); }
+      } else {
+        state.audio = false;
+        $audioBtn.textContent = "Sound: off";
+        $audioBtn.classList.remove("live");
+        // hush — keep audio rig but route it to silence
+        if (audio.master) audio.master.volume.rampTo(-Infinity, 0.15);
+      }
+      persist();
+    });
+
+    /* ───── archive UI ───── */
+    const renderArchive = () => {
+      $archiveStrip.innerHTML = "";
+      if (archive.length === 0) {
+        const e = document.createElement("div");
+        e.className = "archive-empty";
+        e.textContent = "Type something. Hit Return. Wait.";
+        $archiveStrip.appendChild(e);
+        return;
+      }
+      archive.slice().reverse().forEach((entry, i) => {
+        const div = document.createElement("div");
+        div.className = "thumb";
+        div.style.setProperty("--tilt", ((i % 2 === 0 ? -1 : 1) * (1 + Math.random() * 1.5)).toFixed(2) + "deg");
+        div.textContent = entry.text;
+        div.title = "Click to load this page back onto the platen (read-only restore)";
+        div.addEventListener("click", () => {
+          if (ghostBusy) return;
+          state.lines = entry.snapshot.map(line => line.map(g => ({ ...g })));
+          row = state.lines.length - 1;
+          col = state.lines[row].length;
+          renderAll();
+          persist();
+        });
+        $archiveStrip.appendChild(div);
+      });
+    };
+
+    /* ───── audio (lazy Tone.js) ───── */
+    const audio = {};
+    const initAudio = async () => {
+      if (typeof Tone === "undefined") return false;
+      try { await Tone.start(); } catch { return false; }
+      const master = new Tone.Volume(-10).toDestination();
+      // hammer thunk: very short MetalSynth, low pitch
+      const thunk = new Tone.MetalSynth({
+        envelope: { attack: 0.001, decay: 0.05, release: 0.04 },
+        harmonicity: 3.1, modulationIndex: 18, resonance: 200, octaves: 0.4,
+      }).connect(master);
+      thunk.volume.value = -22;
+      // bell: bright FMSynth chime
+      const bell = new Tone.FMSynth({
+        harmonicity: 3, modulationIndex: 12,
+        envelope: { attack: 0.001, decay: 0.6, sustain: 0, release: 0.6 },
+        modulationEnvelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.4 },
+      }).connect(master);
+      bell.volume.value = -16;
+      // carriage return: filtered noise sweep
+      const noise = new Tone.NoiseSynth({
+        noise: { type: "pink" },
+        envelope: { attack: 0.002, decay: 0.25, sustain: 0, release: 0.25 },
+      }).connect(new Tone.Filter(1800, "lowpass").connect(master));
+      noise.volume.value = -22;
+
+      audio.master = master;
+      audio.thunk = (gain = 1) => {
+        try {
+          const f = ["C3", "C#3", "D3", "D#3", "E3"][Math.floor(Math.random() * 5)];
+          thunk.triggerAttackRelease(f, "32n", undefined, 0.7 * gain);
+        } catch {}
+      };
+      audio.bell = () => { try { bell.triggerAttackRelease("C6", "16n"); } catch {} };
+      audio.carriageReturn = () => { try { noise.triggerAttackRelease("4n"); } catch {} };
+      return true;
+    };
+
+    /* ───── persistence ───── */
+    let persistTimer = 0;
+    const persist = () => {
+      clearTimeout(persistTimer);
+      persistTimer = setTimeout(() => saveJSON("ghost-state", state), 250);
+    };
+
+    /* ───── boot ───── */
+    if (state.ribbon === "red") {
+      $ribbonBtn.textContent = "Ribbon: RED";
+      $ribbonBtn.classList.add("live");
+    }
+    renderAll();
+    renderArchive();
+    measureColumnWidth();
+    // Re-measure once Special Elite finishes loading from Google Fonts.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { measureColumnWidth(); renderAll(); });
+    }
+
+    // If audio was on last session, the user still has to click — browsers require a user gesture
+    if (state.audio) { state.audio = false; $audioBtn.textContent = "Sound: off"; }
+
+    // Re-position carriage on resize (in case font metrics shift)
+    window.addEventListener("resize", () => { measureColumnWidth(); });
+  })();
+  </script>
+</body>
+</html>
