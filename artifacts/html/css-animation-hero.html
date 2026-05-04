@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CSS animation hero — composite-only, scroll-driven, reduced-motion-safe</title>
+  <style>
+    /* ----- tokens (oklch + light-dark; Baseline 2026) ----------------- */
+    :root {
+      color-scheme: light dark;
+      --bg:      light-dark(oklch(0.98 0.01 240), oklch(0.13 0.02 240));
+      --surface: light-dark(oklch(0.96 0.02 240), oklch(0.18 0.02 240));
+      --text:    light-dark(oklch(0.18 0.01 240), oklch(0.95 0.01 240));
+      --muted:   light-dark(oklch(0.45 0.02 240), oklch(0.65 0.02 240));
+      --accent:  light-dark(oklch(0.55 0.18 270), oklch(0.72 0.18 270));
+      --accent-2:light-dark(oklch(0.65 0.20 30),  oklch(0.78 0.20 30));
+    }
+    @property --angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      line-height: 1.5;
+    }
+
+    /* ----- hero --------------------------------------------------------- */
+    .hero {
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 4rem 1.5rem;
+      background:
+        radial-gradient(ellipse at 30% 20%, oklch(from var(--accent) l c h / 0.25), transparent 60%),
+        radial-gradient(ellipse at 70% 80%, oklch(from var(--accent-2) l c h / 0.20), transparent 60%),
+        var(--bg);
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      max-width: 18ch;
+      text-align: center;
+      background: linear-gradient(var(--angle, 90deg), var(--accent), var(--accent-2), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: hue-spin 12s linear infinite;
+    }
+    @keyframes hue-spin { to { --angle: 360deg; } }
+
+    .hero p {
+      max-width: 50ch;
+      text-align: center;
+      color: var(--muted);
+      margin: 1rem auto 0;
+      font-size: clamp(1rem, 1.5vw, 1.25rem);
+      opacity: 0;
+      transform: translateY(12px);
+      animation: rise 800ms cubic-bezier(.2,.7,.2,1) 200ms forwards;
+    }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+
+    /* ----- scroll-driven section reveal --------------------------------- */
+    section.card {
+      max-width: 64rem;
+      margin: 4rem auto;
+      padding: 2rem;
+      background: var(--surface);
+      border-radius: 1.25rem;
+      box-shadow: 0 20px 60px -20px oklch(from var(--accent) l c h / 0.25);
+      animation: fade-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 30%;
+    }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(40px) scale(0.98); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .stat {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin-top: 1rem; }
+    .grid > div { padding: 1.25rem; background: var(--bg); border-radius: 0.75rem; }
+
+    /* ----- reduced-motion: drop amplitude, keep cross-fade ------------- */
+    @media (prefers-reduced-motion: reduce) {
+      .hero h1, .hero p, section.card {
+        animation: none !important;
+        --angle: 90deg;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+
+    /* ----- safari scroll-timeline polyfill (no-op when unsupported) ----
+       For production, ship the flackr/scroll-timeline polyfill. This file
+       degrades gracefully: no scroll-timeline = sections just render visible. */
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Composite-only by default.</h1>
+    <p>Pure CSS hero — animated gradient via <code>@property</code>, scroll-driven section reveals via <code>animation-timeline: view()</code>, and a tight <code>prefers-reduced-motion</code> fallback. Open the page, scroll, then toggle the OS motion setting to compare.</p>
+  </header>
+
+  <section class="card">
+    <div class="stat">14 ms</div>
+    <p>Average INP target for hero interactions on a mid-tier laptop. This page sticks to <code>transform</code>, <code>opacity</code>, and a <code>@property</code>-typed gradient angle.</p>
+    <div class="grid">
+      <div><strong>composite-only props.</strong> No <code>height</code>/<code>top</code>/<code>margin</code> in any animation.</div>
+      <div><strong>scroll-driven.</strong> Sections fade in via <code>animation-timeline: view()</code>; gracefully degrades.</div>
+      <div><strong>reduced motion.</strong> The hero hue spin pauses; section reveals collapse to instant.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-bottom: 0.5rem">Why this exists</h2>
+    <p>Most "animated landings" still trigger layout on every frame and sneak <code>localStorage</code> into the artifact sandbox. This file is the canonical "you can do a real hero with three properties and one media query."</p>
+  </section>
+
+  <section class="card" style="margin-bottom: 6rem">
+    <h2 style="margin-bottom: 0.5rem">Try it</h2>
+    <ol style="padding-left: 1.25rem; color: var(--muted)">
+      <li>Scroll. Sections rise in via the view-progress timeline.</li>
+      <li>Open DevTools → Rendering → "Emulate CSS media feature <code>prefers-reduced-motion</code>". The hue spin freezes; fades collapse.</li>
+      <li>Open Performance → Web Vitals lane. INP should sit comfortably under 200 ms.</li>
+    </ol>
+  </section>
+</body>
+</html>

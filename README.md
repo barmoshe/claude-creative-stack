@@ -4,7 +4,7 @@ Scaffolding + reference pack for building **art, animation, graphics, UX/UI, gam
 
 Designed to be mounted into a [Claude Project](https://support.claude.com/en/articles/9517075-what-are-projects) so every conversation is grounded in the same facts, follows the same defaults, and has ready-made scaffolds to build against.
 
-> Targets the Claude ecosystem as of **April 2026** — Opus 4.7, Sonnet 4.6, Haiku 4.5. See [`knowledge/99-caveats.md`](knowledge/99-caveats.md) for values Anthropic rotates silently.
+> Targets the Claude ecosystem as of **May 2026** — Opus 4.7, Sonnet 4.6, Haiku 4.5. See [`knowledge/99-caveats.md`](knowledge/99-caveats.md) for values Anthropic rotates silently.
 
 ---
 
@@ -53,6 +53,20 @@ All respect the real artifact constraints: composite-only CSS, `window.storage` 
 [`palette-oklch`](mcp/servers/palette-oklch) is a real TypeScript MCP server (not a placeholder) for generating WCAG-checked oklch color palettes. See [`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json) for the drop-in client config.
 
 ---
+
+## Quick start
+
+Three concrete flows that exercise the whole stack. Each assumes you've installed into a Claude Project (next section) and registered the MCPs.
+
+| You want to… | Open | Then |
+|---|---|---|
+| **Build a playable game** | [`recipes/game-jam.md`](recipes/game-jam.md) | Use the `artifact-game-builder` skill; start from [`artifacts/react/game-ecs-starter.jsx`](artifacts/react/game-ecs-starter.jsx) or [`artifacts/html/kaplay-top-down.html`](artifacts/html/kaplay-top-down.html). |
+| **Animate a landing page** | [`recipes/animated-landing.md`](recipes/animated-landing.md) | Use the `animation-composer` skill; start from [`artifacts/html/css-animation-hero.html`](artifacts/html/css-animation-hero.html) or [`artifacts/react/bento-grid-landing.jsx`](artifacts/react/bento-grid-landing.jsx). |
+| **Tell a data story** | [`recipes/data-story.md`](recipes/data-story.md) | Use [`prompts/build-dataviz.md`](prompts/build-dataviz.md); start from [`artifacts/react/dataviz-dashboard.jsx`](artifacts/react/dataviz-dashboard.jsx). |
+| **Run an agentic asset pipeline** | [`recipes/agentic-asset-pipeline.md`](recipes/agentic-asset-pipeline.md) | Uses `asset-generator` + `palette-oklch` + `sprite-packer` MCPs to ship a tile set into Kaplay. |
+| **Critique your own artifact** | [`prompts/critique-and-refine.md`](prompts/critique-and-refine.md) | Use the `critique-loop` skill, or the [`shader-jam.jsx`](artifacts/react/shader-jam.jsx) flagship for vision-grounded feedback. |
+
+See [`docs/diagram.md`](docs/diagram.md) for a one-page visual of how knowledge / prompts / skills / artifacts / MCP fit together.
 
 ## Install
 
@@ -106,7 +120,7 @@ This repo does **not** duplicate prior art. For deeper coverage, install in para
 - [awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills) / [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) — discovery lists.
 - Plugin registries: [buildwithclaude.com](https://buildwithclaude.com) · [claudemarketplaces.com](https://claudemarketplaces.com) · [claudepluginhub.com](https://www.claudepluginhub.com).
 
-#### One-shot install via Claude Code plugin marketplaces
+### One-shot install via Claude Code plugin marketplaces
 
 ```sh
 # Add the four marketplaces

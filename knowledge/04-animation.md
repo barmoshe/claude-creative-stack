@@ -2,7 +2,7 @@
 
 ## 4.1 Modern CSS animation
 
-| Feature | Syntax | Support (Apr 2026) |
+| Feature | Syntax | Support (May 2026) |
 |---|---|---|
 | `@keyframes` + `animation` | classic | universal |
 | `transition` / `transform` / `opacity` | classic | universal (composite-only) |
@@ -41,7 +41,7 @@ details[open] { height: auto; }
 
 | Library | Version | npm | Notes |
 |---|---|---|---|
-| GSAP | 3.14.2 | `gsap` | Free for commercial use since **Apr 30, 2025** (Webflow-owned). All plugins free. `@gsap/react` ships `useGSAP()`. |
+| GSAP | 3.14.2 | `gsap` | Free for commercial use since 2025 (Webflow-owned). All plugins free. `@gsap/react` ships `useGSAP()`. |
 | Motion (was Framer Motion) | 12.x (~12.38) | `motion` | Renamed from `framer-motion`. Import `motion/react`. Vue: `motion-v`. |
 | Anime.js | 4.3.x | `animejs` | Full rewrite. ESM-first. ~10 KB gzip. API: `animate`, `createTimeline`, `createAnimation`, `createDraggable`, `utils`, `stagger`, `eases`, `spring`. |
 | Popmotion | legacy (folded into Motion) | `popmotion` | Use Motion instead. |

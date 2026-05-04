@@ -1,6 +1,6 @@
 # Knowledge — Index
 
-This folder is the reference context for Claude working inside the `claude-creative-stack` Project. Chunks are split so retrieval stays clean. Date target: **April 2026**.
+This folder is the reference context for Claude working inside the `claude-creative-stack` Project. Chunks are split so retrieval stays clean. Date target: **May 2026**.
 
 ## Routing table
 
@@ -16,14 +16,20 @@ This folder is the reference context for Claude working inside the `claude-creat
 | D3, Recharts, Chart.js, Plotly, Observable Plot, Visx, ECharts, nivo, deck.gl, regl | [`08-dataviz.md`](08-dataviz.md) |
 | XML tags, few-shot, chain of thought, system prompts, caching strategy, long-context, tool-use prompting | [`09-prompting.md`](09-prompting.md) |
 | Combining Skills + Artifacts + MCP, critique loops, recursive Claude calls inside artifacts, asset pipelines | [`10-workflows.md`](10-workflows.md) |
+| Driving Photoshop / Blender / Ableton / Fusion / SketchUp via MCP — when to use which connector | [`11-creative-connectors.md`](11-creative-connectors.md) |
+| WebGPU, TSL, WGSL, GLSL, compute shaders, NodeMaterial, the WebGL2 fallback path | [`12-shaders-webgpu.md`](12-shaders-webgpu.md) |
+| Generating images, voice, music, video via Replicate / Fal / ElevenLabs / Suno / Luma — provider selection, cost, prompts | [`13-asset-pipelines.md`](13-asset-pipelines.md) |
+| INP / LCP / CLS targets, prefers-reduced-motion, keyboard nav for canvas, profiling, color contrast | [`14-accessibility-performance.md`](14-accessibility-performance.md) |
+| Exporting canvas → PNG/GIF/MP4/WebM, MediaRecorder, WebCodecs, ffmpeg.wasm, sprite packing | [`15-export-recording.md`](15-export-recording.md) |
 | "Is this version still current? Is this model ID still valid?" | [`99-caveats.md`](99-caveats.md) |
 
 ## Reading priority for cold starts
 
 1. `03-artifacts.md` — always relevant; sandbox constraints are easy to violate.
 2. `01-claude-ecosystem.md` — grounding on model IDs and API shapes.
-3. The domain file matching the user's task (animation / graphics / games / audio / dataviz).
-4. `99-caveats.md` — last check before hardcoding any version or model ID.
+3. The domain file matching the user's task (animation / graphics / games / audio / dataviz / connectors / shaders / asset-pipelines).
+4. `14-accessibility-performance.md` — apply before declaring anything "done."
+5. `99-caveats.md` — last check before hardcoding any version or model ID.
 
 ## Conventions
 

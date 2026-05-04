@@ -1,0 +1,7 @@
+node_modules
+**/node_modules
+dist
+build
+docs/archive
+playground/node_modules
+mcp/servers/*/node_modules

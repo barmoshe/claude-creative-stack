@@ -1,0 +1,152 @@
+# Validation workflow for claude-creative-stack.
+#
+# Jobs:
+#   knowledge   — markdown integrity + markdownlint
+#   links       — lychee link check (best-effort: failures are warnings, not fatal)
+#   skills      — SKILL.md frontmatter against the project schema
+#   artifacts   — HTML well-formed; JSX parses
+#   mcp         — every server under mcp/servers/* builds + tests
+#   playground  — typecheck the optional Vite project, if present
+#
+# `npm run validate` from the repo root mirrors most of this locally.
+
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  knowledge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Markdown integrity
+        run: |
+          set -e
+          for f in knowledge/*.md; do
+            [ -s "$f" ] || { echo "Empty: $f"; exit 1; }
+            # Flag explicit unresolved markers; benign `{{ jsx-double-brace }}` and
+            # XML scaffold placeholders like `{{DOC_1}}` in 09-prompting.md are intentional.
+            if grep -nE '\{\{(TODO|FIXME|TBD|UNFINISHED|FILL_IN)\}\}' "$f"; then
+              echo "Unresolved marker in $f"; exit 1
+            fi
+          done
+          echo "knowledge/ markdown integrity OK"
+      - name: markdownlint
+        run: |
+          npx --yes markdownlint-cli2 \
+            "knowledge/**/*.md" \
+            "skills/**/*.md" \
+            "prompts/**/*.md" \
+            "recipes/**/*.md" \
+            "README.md" "CLAUDE.md" \
+            "skills/README.md" \
+            "skills/*/scripts/README.md" \
+            "skills/*/assets/README.md" \
+            "mcp/README.md" \
+            "mcp/servers/*/README.md" \
+            "playground/README.md" \
+            "artifacts/README.md" \
+            "prompts/README.md" \
+            "recipes/README.md" \
+            "docs/diagram.md"
+
+  links:
+    runs-on: ubuntu-latest
+    # Best-effort: external link rot shouldn't fail PRs; surface in logs only.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Link check (lychee)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --no-progress 'knowledge/**/*.md' 'skills/**/*.md' 'prompts/**/*.md' 'recipes/**/*.md' 'README.md' 'CLAUDE.md'
+          fail: false
+
+  skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate SKILL.md frontmatter
+        run: node scripts/validate-skills.mjs
+
+  artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Parse JSX artifacts
+        run: |
+          set -e
+          npm install --no-save esbuild
+          for f in artifacts/react/*.jsx; do
+            npx esbuild --bundle=false --log-level=error --loader:.jsx=jsx "$f" > /dev/null
+          done
+          echo "artifacts/react OK"
+      - name: Sanity-check HTML artifacts
+        run: |
+          set -e
+          for f in artifacts/html/*.html; do
+            [ -s "$f" ] || { echo "Empty: $f"; exit 1; }
+            grep -q "</html>" "$f" || { echo "Missing </html>: $f"; exit 1; }
+          done
+          echo "artifacts/html OK"
+
+  mcp:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [palette-oklch, sprite-packer, asset-router]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build & test mcp/servers/${{ matrix.server }}
+        working-directory: mcp/servers/${{ matrix.server }}
+        run: |
+          set -e
+          npm install
+          npm run build
+          if npm run --silent 2>&1 | grep -qE "^\s+test"; then npm test; fi
+
+  playground:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        run: |
+          if [ -f playground/package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.present == 'true'
+        with:
+          node-version: '20'
+      - name: Typecheck playground
+        if: steps.detect.outputs.present == 'true'
+        working-directory: playground
+        run: |
+          npm install
+          npm run typecheck

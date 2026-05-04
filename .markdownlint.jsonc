@@ -1,0 +1,26 @@
+// markdownlint config. Loose rules — this is a knowledge base, not a published book.
+// Style conventions match the existing repo: asterisk emphasis, atx headings,
+// dash bullets, no enforced blank lines around lists/fences/headings/tables.
+{
+  "default": true,
+  "MD003": { "style": "atx" },
+  "MD004": { "style": "dash" },
+  "MD007": { "indent": 2 },
+  "MD013": false,                    // line length — irrelevant for tables / code-heavy docs
+  "MD022": false,                    // blanks around headings — repo style runs them tight
+  "MD024": { "siblings_only": true },// duplicate headings allowed under different parents
+  "MD025": false,                    // multiple top-level H1s allowed
+  "MD031": false,                    // blanks around fences — repo style runs them tight
+  "MD032": false,                    // blanks around lists — repo style runs them tight
+  "MD033": false,                    // inline HTML allowed (<details>, <kbd>, etc.)
+  "MD034": false,                    // bare URLs allowed
+  "MD036": false,                    // emphasis-as-heading — sometimes intentional
+  "MD040": false,                    // fenced code without lang allowed (small inline blocks)
+  "MD041": false,                    // first line need not be H1 (skill frontmatter precedes)
+  "MD046": false,                    // mixed code-block styles allowed
+  "MD049": { "style": "asterisk" },  // match existing repo emphasis style
+  "MD050": { "style": "asterisk" },
+  "MD058": false,                    // blanks around tables — repo style runs them tight
+  "MD060": false                     // table-column-style — overly opinionated about pipe whitespace
+}
+

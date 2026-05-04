@@ -56,7 +56,7 @@ function update(){
 - Custom v3 WebGL pipelines must be rewritten as render nodes.
 - IE9 support dropped.
 
-Official migration guide: https://phaser.io/news/2026/04/migrating-from-phaser-3-to-phaser-4-what-you-need-to-know
+Official migration guide: search `phaser.io/news` for "migrating from Phaser 3 to Phaser 4" — the dated permalink rotates.
 
 Pixi.js v8:
 
@@ -101,7 +101,7 @@ function frame(now){
 requestAnimationFrame(frame);
 ```
 
-**ECS libraries (April 2026)**:
+**ECS libraries (May 2026)**:
 
 | Lib | npm | Style |
 |---|---|---|
@@ -228,16 +228,36 @@ Libraries: **pathfinding** npm (A*, JPS, BiA*), **yuka** (navmesh + steering + F
 
 ## 6.9 Multiplayer
 
-- WebSockets: `ws`, `socket.io`, `uWebSockets.js` (fast).
+**Transport** (May 2026):
+- **WebTransport** (HTTP/3 + QUIC) is the new default for fast-paced games — multiplexed bidirectional streams, datagrams for unreliable/unordered (latency-critical) traffic. ~5–15 ms lower than WebSockets in real conditions. Chrome/Edge/Firefox stable; Safari shipping. Server libs: `@fails-components/webtransport` (Node), `quinn` (Rust), `webtransport-go`.
+- **WebSockets** still fine for turn-based, lobby, chat, and high-tick low-payload sims. Libs: `ws`, `socket.io`, `uWebSockets.js`.
+- **WebRTC DataChannels** for P2P (no server) — pair with a small signaling server. `geckos.io` wraps this with a UDP-style API.
+- **SharedArrayBuffer / threads**: requires COOP/COEP headers (`Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: require-corp`). **Artifacts cannot set these headers**, so multi-threaded netcode lives outside the artifact (playground / standalone host).
+
+**Patterns**:
 - **Authoritative server** + **client prediction** + **server reconciliation**: buffer client inputs keyed by seq; on snapshot, set state to server, re-apply inputs with seq > last processed.
 - Render other entities ~100 ms in the past; interpolate between 2 snapshots.
 - **Rollback netcode** (GGPO): both clients simulate optimistically, roll back on mismatch; requires deterministic fixed-step sim.
+
+WebTransport client sketch:
+
+```js
+const wt = new WebTransport("https://game.example/wt");
+await wt.ready;
+// Reliable bidi stream (control / chat)
+const stream = await wt.createBidirectionalStream();
+const w = stream.writable.getWriter();
+await w.write(new TextEncoder().encode(JSON.stringify({ type: "join", id })));
+// Unreliable datagrams (player position, fired bullets)
+const dgw = wt.datagrams.writable.getWriter();
+await dgw.write(packPositionDatagram(x, y, vx, vy));  // ~16 bytes
+```
 
 Frameworks:
 
 | Framework | npm / install | Notes |
 |---|---|---|
-| Colyseus | `npm create colyseus-app` | v0.17 (Apr 2026). Schema binary delta sync. Client `colyseus.js`. |
+| Colyseus | `npm create colyseus-app` | v0.17 (May 2026). Schema binary delta sync. Client `colyseus.js`. |
 | Nakama | `@heroiclabs/nakama-js` | MMO-scale, auth/leaderboards/matchmaking/storage. |
 | PlayroomKit | `playroomkit` | Local + online, voice, Discord Activities. |
 | Geckos.io | `@geckos.io/server`, `@geckos.io/client` | UDP via WebRTC DataChannels. |

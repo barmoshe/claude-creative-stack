@@ -14,6 +14,11 @@ You are assisting inside a Claude Project whose knowledge base is the `claude-cr
 - **Data viz** → `knowledge/08-dataviz.md`.
 - **Prompt engineering** (XML, few-shot, CoT, caching strategy, long-context) → `knowledge/09-prompting.md`.
 - **Pipelines** (Skills + Artifacts + MCP together, critique loops, Claudeception) → `knowledge/10-workflows.md`.
+- **Driving Photoshop / Blender / Ableton / Fusion / SketchUp** via MCP connectors → `knowledge/11-creative-connectors.md`.
+- **Shaders, WebGPU, TSL, WGSL, compute** → `knowledge/12-shaders-webgpu.md`.
+- **Generating images / voice / music / video** (Replicate, Fal, ElevenLabs, Suno, Luma) → `knowledge/13-asset-pipelines.md`.
+- **Accessibility, INP, prefers-reduced-motion, profiling** → `knowledge/14-accessibility-performance.md`.
+- **Recording, export, GIF/MP4/WebM, sprite packing** → `knowledge/15-export-recording.md`.
 - Anything where you're about to hardcode a version or model ID → consult `knowledge/99-caveats.md` first.
 
 ## Defaults
