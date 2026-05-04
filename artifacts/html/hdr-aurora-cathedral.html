@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HDR Aurora Cathedral · claude-creative-stack</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; color: #e8e8f0; font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+    canvas#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+    #ui { position: fixed; inset: 0; pointer-events: none; }
+    #ui > * { pointer-events: auto; }
+
+    #title { position: fixed; top: 22px; left: 24px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; mix-blend-mode: screen; opacity: 0; transform: translateY(6px); animation: rise .9s .2s ease forwards; }
+    #title em { color: oklch(0.86 0.30 145); font-style: normal; }
+
+    #hdr-badge { position: fixed; top: 22px; right: 24px; padding: 4px 10px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .55; transition: opacity .3s, border-color .3s, color .3s; }
+    #hdr-badge.is-wide { color: oklch(0.92 0.32 145); border-color: oklch(0.72 0.30 145); opacity: 1; }
+    #hdr-badge.is-hdr  { color: oklch(0.95 0.34 110); border-color: oklch(0.80 0.32 110); opacity: 1; }
+
+    #swatches { position: fixed; bottom: 80px; left: 24px; display: flex; gap: 8px; opacity: 0; transform: translateY(8px); animation: rise .8s .5s ease forwards; }
+    .sw { width: 36px; height: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); transition: transform .2s ease; box-shadow: 0 4px 18px rgba(0,0,0,.35); }
+    .sw:hover { transform: scale(1.08) translateY(-2px); }
+
+    #controls { position: fixed; bottom: 24px; left: 24px; display: flex; gap: 8px; opacity: 0; animation: fade .8s .7s ease forwards; }
+    button { background: rgba(20,20,28,.55); color: #e8e8f0; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 8px 14px; font: inherit; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); cursor: pointer; transition: transform .15s, background .15s, border-color .15s; }
+    button:hover { transform: translateY(-1px); background: rgba(40,40,55,.7); border-color: rgba(255,255,255,.28); }
+    button:active { transform: translateY(0); }
+
+    #hint { position: fixed; bottom: 28px; right: 24px; opacity: .5; max-width: 280px; text-align: right; }
+
+    @keyframes fade { to { opacity: 1; } }
+    @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      #title, #swatches, #controls { animation: none; opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+  <div id="ui">
+    <div id="title">HDR <em>Aurora</em> Cathedral</div>
+    <div id="hdr-badge">Display</div>
+    <div id="swatches"></div>
+    <div id="controls">
+      <button id="audio-btn">Audio: off</button>
+      <button id="regen-btn">New palette</button>
+      <button id="shot-btn">Screenshot</button>
+    </div>
+    <div id="hint">Move cursor for parallax. Drag to lift exposure. Wake the drone for audio-reactive bloom.</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
+  <script>
+  (() => {
+    // ---------- artifact-safe storage ----------
+    const store = (typeof window !== "undefined" && window.storage) ? window.storage : {
+      getItem: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } },
+      setItem: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} },
+    };
+
+    // ---------- oklch -> linear-sRGB. Out-of-gamut chroma yields values > 1
+    // or < 0 — that is the HDR signal we feed into the bloom pipeline.
+    const oklchToLinear = (L, C, h) => {
+      const a = C * Math.cos(h * Math.PI / 180);
+      const b = C * Math.sin(h * Math.PI / 180);
+      const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+      const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+      const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+      const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+      return [
+         4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+      ];
+    };
+
+    // ---------- palette generation (5 oklch stops with chroma > sRGB gamut) ----------
+    const mulberry32 = (a) => () => {
+      let t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+
+    const buildPalette = (s) => {
+      const r = mulberry32(s);
+      const baseHue = r() * 360;
+      const spread = 26 + r() * 32;
+      const stops = [];
+      for (let i = 0; i < 5; i++) {
+        const t = i / 4;
+        const L = 0.55 + 0.18 * t;
+        const C = 0.22 + 0.10 * (1 - t);
+        const h = (baseHue + (i - 2) * spread + 360) % 360;
+        stops.push({ L, C, h });
+      }
+      return stops;
+    };
+
+    const seedFromStore = parseInt(store.getItem("hdr-aurora-seed") || "", 10);
+    let seed = Number.isFinite(seedFromStore) ? seedFromStore : Math.floor(Math.random() * 1e9);
+    let palette = buildPalette(seed);
+
+    const paletteUniformValue = () => palette.map(p => {
+      const [r, g, b] = oklchToLinear(p.L, p.C, p.h);
+      return new THREE.Vector3(r, g, b);
+    });
+
+    const renderSwatches = () => {
+      const el = document.getElementById("swatches");
+      el.innerHTML = "";
+      palette.forEach((p) => {
+        const div = document.createElement("div");
+        div.className = "sw";
+        div.style.background = `oklch(${p.L.toFixed(3)} ${p.C.toFixed(3)} ${p.h.toFixed(1)})`;
+        div.title = `oklch(${p.L.toFixed(2)} ${p.C.toFixed(2)} ${p.h.toFixed(0)})`;
+        el.appendChild(div);
+      });
+    };
+
+    // ---------- HDR / wide-gamut display detection ----------
+    const updateBadge = () => {
+      const badge = document.getElementById("hdr-badge");
+      const isHdr  = matchMedia("(dynamic-range: high)").matches;
+      const isRec  = matchMedia("(color-gamut: rec2020)").matches;
+      const isP3   = matchMedia("(color-gamut: p3)").matches;
+      badge.classList.toggle("is-hdr", isHdr);
+      badge.classList.toggle("is-wide", !isHdr && (isRec || isP3));
+      badge.textContent = isHdr
+        ? `HDR · ${isRec ? "Rec2020" : isP3 ? "P3" : "sRGB"}`
+        : isRec ? "SDR · Rec2020" : isP3 ? "SDR · P3" : "SDR · sRGB";
+    };
+
+    // ---------- Three.js HDR pipeline ----------
+    const canvas = document.getElementById("gl");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.autoClear = false;
+    renderer.toneMapping = THREE.NoToneMapping; // ACES applied manually in composite pass
+
+    const fsCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const fsGeo = new THREE.PlaneGeometry(2, 2);
+
+    // HalfFloat is widely supported with linear filtering across mobile + desktop.
+    const hdrParams = {
+      type: THREE.HalfFloatType,
+      format: THREE.RGBAFormat,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      depthBuffer: false,
+      stencilBuffer: false,
+    };
+
+    let sceneRT, brightRT, blurA, blurB;
+    const allocRTs = () => {
+      [sceneRT, brightRT, blurA, blurB].forEach(rt => rt && rt.dispose());
+      const w = Math.max(2, Math.floor(canvas.clientWidth  * renderer.getPixelRatio()));
+      const h = Math.max(2, Math.floor(canvas.clientHeight * renderer.getPixelRatio()));
+      sceneRT  = new THREE.WebGLRenderTarget(w, h, hdrParams);
+      const qw = Math.max(2, Math.floor(w / 4));
+      const qh = Math.max(2, Math.floor(h / 4));
+      brightRT = new THREE.WebGLRenderTarget(qw, qh, hdrParams);
+      blurA    = new THREE.WebGLRenderTarget(qw, qh, hdrParams);
+      blurB    = new THREE.WebGLRenderTarget(qw, qh, hdrParams);
+    };
+
+    // ---------- pass 1: aurora HDR ----------
+    const auroraMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime:       { value: 0 },
+        uResolution: { value: new THREE.Vector2() },
+        uMouse:      { value: new THREE.Vector2(0, 0) },
+        uAudio:      { value: 0 },
+        uExposure:   { value: 1.2 },
+        uPalette:    { value: paletteUniformValue() },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }
+      `,
+      fragmentShader: `
+        precision highp float;
+        varying vec2 vUv;
+        uniform vec2 uResolution;
+        uniform float uTime;
+        uniform vec2 uMouse;
+        uniform float uAudio;
+        uniform float uExposure;
+        uniform vec3 uPalette[5];
+
+        float hash21(vec2 p){ p = fract(p * vec2(234.34, 435.345)); p += dot(p, p + 34.23); return fract(p.x * p.y); }
+        float noise(vec2 p){
+          vec2 i = floor(p), f = fract(p);
+          float a = hash21(i);
+          float b = hash21(i + vec2(1.0, 0.0));
+          float c = hash21(i + vec2(0.0, 1.0));
+          float d = hash21(i + vec2(1.0, 1.0));
+          vec2 u = f * f * (3.0 - 2.0 * f);
+          return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+        }
+        float fbm(vec2 p){
+          float s = 0.0, a = 0.5;
+          for (int i = 0; i < 6; i++){ s += a * noise(p); p = p * 2.02 + vec2(13.7, -7.3); a *= 0.5; }
+          return s;
+        }
+
+        // Constant-index palette ramp — WebGL1 / GLSL ES 1.00 safe.
+        vec3 paletteRamp(float t){
+          t = clamp(t, 0.0, 1.0);
+          if (t < 0.25)      return mix(uPalette[0], uPalette[1], t / 0.25);
+          else if (t < 0.50) return mix(uPalette[1], uPalette[2], (t - 0.25) / 0.25);
+          else if (t < 0.75) return mix(uPalette[2], uPalette[3], (t - 0.50) / 0.25);
+          else               return mix(uPalette[3], uPalette[4], (t - 0.75) / 0.25);
+        }
+
+        float starfield(vec2 uv){
+          vec2 g = floor(uv * 220.0);
+          float h = hash21(g);
+          float s = step(0.997, h);
+          float twinkle = 0.5 + 0.5 * sin(uTime * 2.0 + h * 43.0);
+          return s * twinkle;
+        }
+
+        void main(){
+          vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
+          vec2 mouse = uMouse * 0.6;
+
+          float sky = smoothstep(-0.7, 0.7, uv.y + 0.1);
+          vec3 col = mix(uPalette[0] * 0.05, uPalette[1] * 0.10, sky);
+
+          col += vec3(starfield(uv + mouse * 0.02)) * 0.85;
+
+          float aurora = 0.0;
+          for (int k = 0; k < 3; k++){
+            float ks = 1.0 + float(k) * 0.6;
+            vec2 p = uv * vec2(1.4, 0.6) * ks;
+            p.x += uTime * (0.05 + float(k) * 0.02) + mouse.x * 0.4;
+            p.y += sin(uTime * 0.1 + float(k)) * 0.08;
+            float warp  = fbm(p + uTime * 0.06);
+            float sheet = fbm(p * 1.6 + vec2(warp * 1.4, -warp * 0.6));
+            float band  = exp(-pow(uv.y - (0.05 - float(k) * 0.18) - mouse.y * 0.2 + warp * 0.25, 2.0) * 8.0);
+            aurora += pow(sheet, 1.5) * band * (0.9 - float(k) * 0.2);
+          }
+          aurora *= (1.0 + uAudio * 1.6);
+
+          float ramp = 0.5 + 0.5 * sin(uv.x * 1.3 + uTime * 0.12);
+          vec3 auroraCol = paletteRamp(ramp);
+
+          col += auroraCol * aurora * uExposure;
+
+          float ground = smoothstep(-0.55, -0.5, -uv.y);
+          col *= 1.0 - ground * 0.85;
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
+    });
+    const auroraScene = new THREE.Scene();
+    auroraScene.add(new THREE.Mesh(fsGeo, auroraMat));
+
+    // ---------- pass 2: bright extract (soft knee) ----------
+    const brightMat = new THREE.ShaderMaterial({
+      uniforms: {
+        tSrc:       { value: null },
+        uThreshold: { value: 1.0 },
+        uKnee:      { value: 0.6 },
+      },
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }`,
+      fragmentShader: `
+        precision highp float;
+        varying vec2 vUv;
+        uniform sampler2D tSrc;
+        uniform float uThreshold;
+        uniform float uKnee;
+        void main(){
+          vec3 c = texture2D(tSrc, vUv).rgb;
+          float br = max(c.r, max(c.g, c.b));
+          float soft = clamp(br - uThreshold + uKnee, 0.0, 2.0 * uKnee);
+          soft = soft * soft / (4.0 * uKnee + 1e-4);
+          float w = max(br - uThreshold, soft) / max(br, 1e-4);
+          gl_FragColor = vec4(c * w, 1.0);
+        }
+      `,
+    });
+    const brightScene = new THREE.Scene();
+    brightScene.add(new THREE.Mesh(fsGeo, brightMat));
+
+    // ---------- pass 3: separable 9-tap gaussian blur ----------
+    const blurMat = new THREE.ShaderMaterial({
+      uniforms: {
+        tSrc:   { value: null },
+        uTexel: { value: new THREE.Vector2() },
+        uDir:   { value: new THREE.Vector2(1, 0) },
+      },
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }`,
+      fragmentShader: `
+        precision highp float;
+        varying vec2 vUv;
+        uniform sampler2D tSrc;
+        uniform vec2 uTexel;
+        uniform vec2 uDir;
+        void main(){
+          vec2 d = uTexel * uDir;
+          vec3 sum = vec3(0.0);
+          sum += texture2D(tSrc, vUv - 4.0 * d).rgb * 0.0162;
+          sum += texture2D(tSrc, vUv - 3.0 * d).rgb * 0.0540;
+          sum += texture2D(tSrc, vUv - 2.0 * d).rgb * 0.1216;
+          sum += texture2D(tSrc, vUv - 1.0 * d).rgb * 0.1946;
+          sum += texture2D(tSrc, vUv).rgb           * 0.2270;
+          sum += texture2D(tSrc, vUv + 1.0 * d).rgb * 0.1946;
+          sum += texture2D(tSrc, vUv + 2.0 * d).rgb * 0.1216;
+          sum += texture2D(tSrc, vUv + 3.0 * d).rgb * 0.0540;
+          sum += texture2D(tSrc, vUv + 4.0 * d).rgb * 0.0162;
+          gl_FragColor = vec4(sum, 1.0);
+        }
+      `,
+    });
+    const blurScene = new THREE.Scene();
+    blurScene.add(new THREE.Mesh(fsGeo, blurMat));
+
+    // ---------- pass 4: composite (ACES + vignette + dither) ----------
+    const compositeMat = new THREE.ShaderMaterial({
+      uniforms: {
+        tScene:         { value: null },
+        tBloom:         { value: null },
+        uBloomStrength: { value: 0.7 },
+        uExposure:      { value: 1.0 },
+        uVignette:      { value: 0.5 },
+        uTime:          { value: 0 },
+      },
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }`,
+      fragmentShader: `
+        precision highp float;
+        varying vec2 vUv;
+        uniform sampler2D tScene;
+        uniform sampler2D tBloom;
+        uniform float uBloomStrength;
+        uniform float uExposure;
+        uniform float uVignette;
+        uniform float uTime;
+
+        // ACES Filmic approximation (Narkowicz 2015).
+        vec3 aces(vec3 x){
+          const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+          return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+        }
+
+        float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+
+        void main(){
+          vec3 base  = texture2D(tScene, vUv).rgb;
+          vec3 bloom = texture2D(tBloom, vUv).rgb;
+          vec3 hdr = (base + bloom * uBloomStrength) * uExposure;
+
+          vec2 d = vUv - 0.5;
+          float v = 1.0 - dot(d, d) * uVignette * 2.5;
+          hdr *= v;
+
+          vec3 ldr = aces(hdr);
+          ldr += (hash(gl_FragCoord.xy + uTime) - 0.5) / 255.0;
+          gl_FragColor = vec4(ldr, 1.0);
+        }
+      `,
+    });
+    const compositeScene = new THREE.Scene();
+    compositeScene.add(new THREE.Mesh(fsGeo, compositeMat));
+
+    // ---------- resize ----------
+    const resize = () => {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      renderer.setSize(w, h, false);
+      auroraMat.uniforms.uResolution.value.set(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
+      allocRTs();
+    };
+    window.addEventListener("resize", resize);
+
+    // ---------- input ----------
+    const mouse = { x: 0, y: 0, target: { x: 0, y: 0 } };
+    let exposureTarget = 1.2;
+    window.addEventListener("pointermove", (e) => {
+      mouse.target.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+      mouse.target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+    });
+    const liftExposure = () => exposureTarget = 2.2;
+    const dropExposure = () => exposureTarget = 1.2;
+    window.addEventListener("pointerdown",   liftExposure);
+    window.addEventListener("pointerup",     dropExposure);
+    window.addEventListener("pointercancel", dropExposure);
+
+    // ---------- audio (Tone.js drone -> analyser -> shader) ----------
+    let audioOn = false, analyser = null, audioRig = null;
+    const audioBtn = document.getElementById("audio-btn");
+
+    const initAudio = async () => {
+      if (typeof Tone === "undefined") return false;
+      await Tone.start();
+      const reverb = new Tone.Reverb({ decay: 12, wet: 0.6 }).toDestination();
+      const filter = new Tone.Filter(900, "lowpass").connect(reverb);
+      const lfo    = new Tone.LFO(0.05, 280, 1500).start();
+      lfo.connect(filter.frequency);
+      const synth = new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 1.2, modulationIndex: 4,
+        envelope:           { attack: 4, decay: 1, sustain: 0.9, release: 8  },
+        modulationEnvelope: { attack: 6, decay: 1, sustain: 0.5, release: 10 },
+      }).connect(filter);
+      synth.volume.value = -14;
+      synth.triggerAttack(["C2", "G2", "Eb3", "Bb3", "F4"]);
+      analyser = new Tone.Analyser("waveform", 256);
+      filter.connect(analyser);
+      audioRig = { reverb, filter, lfo, synth };
+      return true;
+    };
+
+    audioBtn.addEventListener("click", async () => {
+      if (!audioOn) {
+        const ok = await initAudio();
+        if (ok) { audioOn = true; audioBtn.textContent = "Audio: on"; }
+      } else {
+        if (audioRig) audioRig.synth.releaseAll();
+        audioOn = false;
+        audioBtn.textContent = "Audio: off";
+      }
+    });
+
+    // ---------- regen palette ----------
+    document.getElementById("regen-btn").addEventListener("click", () => {
+      seed = Math.floor(Math.random() * 1e9);
+      store.setItem("hdr-aurora-seed", String(seed));
+      palette = buildPalette(seed);
+      auroraMat.uniforms.uPalette.value = paletteUniformValue();
+      renderSwatches();
+    });
+
+    // ---------- screenshot ----------
+    document.getElementById("shot-btn").addEventListener("click", () => {
+      const url = renderer.domElement.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `hdr-aurora-${seed}.png`;
+      a.click();
+    });
+
+    // ---------- main loop ----------
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t0 = performance.now() / 1000;
+    let exposure = 1.2;
+    let audioEnv = 0;
+
+    const tick = () => {
+      requestAnimationFrame(tick);
+      const t = performance.now() / 1000 - t0;
+
+      auroraMat.uniforms.uTime.value    = reduced ? t * 0.25 : t;
+      compositeMat.uniforms.uTime.value = t;
+
+      mouse.x += (mouse.target.x - mouse.x) * 0.06;
+      mouse.y += (mouse.target.y - mouse.y) * 0.06;
+      auroraMat.uniforms.uMouse.value.set(mouse.x, mouse.y);
+
+      exposure += (exposureTarget - exposure) * 0.08;
+      auroraMat.uniforms.uExposure.value = exposure;
+
+      if (audioOn && analyser) {
+        const buf = analyser.getValue();
+        let s = 0; for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+        audioEnv = Math.sqrt(s / buf.length);
+      } else {
+        audioEnv *= 0.96;
+      }
+      auroraMat.uniforms.uAudio.value = audioEnv;
+
+      // pass 1: aurora -> sceneRT
+      renderer.setRenderTarget(sceneRT);
+      renderer.render(auroraScene, fsCamera);
+
+      // pass 2: bright extract -> brightRT
+      brightMat.uniforms.tSrc.value = sceneRT.texture;
+      renderer.setRenderTarget(brightRT);
+      renderer.render(brightScene, fsCamera);
+
+      // pass 3a: blur H -> blurA
+      blurMat.uniforms.tSrc.value = brightRT.texture;
+      blurMat.uniforms.uTexel.value.set(1 / brightRT.width, 1 / brightRT.height);
+      blurMat.uniforms.uDir.value.set(1, 0);
+      renderer.setRenderTarget(blurA);
+      renderer.render(blurScene, fsCamera);
+
+      // pass 3b: blur V -> blurB
+      blurMat.uniforms.tSrc.value = blurA.texture;
+      blurMat.uniforms.uTexel.value.set(1 / blurA.width, 1 / blurA.height);
+      blurMat.uniforms.uDir.value.set(0, 1);
+      renderer.setRenderTarget(blurB);
+      renderer.render(blurScene, fsCamera);
+
+      // pass 4: composite to canvas
+      compositeMat.uniforms.tScene.value = sceneRT.texture;
+      compositeMat.uniforms.tBloom.value = blurB.texture;
+      renderer.setRenderTarget(null);
+      renderer.render(compositeScene, fsCamera);
+    };
+
+    resize();
+    renderSwatches();
+    updateBadge();
+    matchMedia("(dynamic-range: high)").addEventListener?.("change", updateBadge);
+    matchMedia("(color-gamut: rec2020)").addEventListener?.("change", updateBadge);
+    matchMedia("(color-gamut: p3)").addEventListener?.("change", updateBadge);
+    requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>

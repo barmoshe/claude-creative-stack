@@ -29,6 +29,7 @@ From [`../knowledge/03-artifacts.md`](../knowledge/03-artifacts.md) and [`../kno
 | [`html/procgen-dungeon.html`](html/procgen-dungeon.html) | Seeded BSP dungeon with regenerate button and editable seed. |
 | [`html/kaplay-top-down.html`](html/kaplay-top-down.html) | Kaplay top-down mover with trauma-based screen shake. |
 | [`html/tone-procmusic.html`](html/tone-procmusic.html) | Tone.js procedural music — euclidean rhythm + scale-constrained melody. |
+| [`html/hdr-aurora-cathedral.html`](html/hdr-aurora-cathedral.html) | HDR pipeline flagship — Three.js r128 fullscreen aurora with FloatType render targets, hand-rolled bloom (bright extract + separable gaussian + ACES tone-map), oklch wide-gamut palette mapped through linear-sRGB so out-of-gamut chroma drives bloom, Tone.js drone audio-reactivity, and a `(dynamic-range: high) / (color-gamut: rec2020)` badge. |
 | [`html/barmoshe-portfolio.html`](html/barmoshe-portfolio.html) | Long-form personal portfolio (kept for reference). |
 
 ## React / JSX starters (paste into a Claude chat)
