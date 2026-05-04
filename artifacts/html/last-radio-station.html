@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Last Radio Station · claude-creative-stack</title>
+  <style>
+    :root {
+      --amber:  oklch(0.86 0.17 75);
+      --amber2: oklch(0.74 0.18 60);
+      --dim:    oklch(0.42 0.04 80);
+      --bg:     oklch(0.18 0.02 60);
+      --bg2:    oklch(0.12 0.02 60);
+      --chassis: oklch(0.28 0.04 50);
+      --chassis2: oklch(0.20 0.03 50);
+      --metal: oklch(0.55 0.02 60);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg2); color: var(--amber); font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace; }
+    body { display: grid; place-items: center; padding: 32px 16px; background:
+      radial-gradient(ellipse at 50% 0%, oklch(0.22 0.04 60) 0%, var(--bg2) 60%);
+      min-height: 100vh; }
+
+    .radio { width: min(960px, 100%); background: linear-gradient(180deg, var(--chassis) 0%, var(--chassis2) 100%); border-radius: 28px; padding: 28px; box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.10),
+      inset 0 -1px 0 rgba(0,0,0,.45),
+      0 30px 80px -20px rgba(0,0,0,.7),
+      0 4px 20px rgba(0,0,0,.4);
+      position: relative; }
+
+    .header { display: flex; align-items: baseline; justify-content: space-between; padding: 0 8px 18px; border-bottom: 1px solid oklch(0.22 0.02 60); }
+    .brand { font-weight: 700; letter-spacing: .28em; text-transform: uppercase; font-size: 12px; color: var(--metal); }
+    .brand em { color: var(--amber); font-style: normal; }
+    .serial { font-size: 10px; color: var(--dim); letter-spacing: .14em; }
+
+    .display {
+      margin: 22px 0 14px;
+      background: linear-gradient(180deg, oklch(0.18 0.04 80) 0%, oklch(0.12 0.03 80) 100%);
+      border-radius: 12px; padding: 18px 22px;
+      box-shadow:
+        inset 0 2px 6px rgba(0,0,0,.6),
+        inset 0 -1px 0 rgba(255,255,255,.04),
+        0 0 0 1px oklch(0.10 0.02 60);
+      display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 22px;
+    }
+    .freq {
+      font-family: "DSEG7Classic", ui-monospace, monospace;
+      font-size: 56px; font-weight: 700; letter-spacing: .04em;
+      color: var(--amber);
+      text-shadow: 0 0 18px oklch(0.70 0.20 75 / .65), 0 0 2px oklch(0.95 0.2 75);
+      font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .freq-unit { font-size: 14px; color: var(--amber2); letter-spacing: .12em; margin-left: 6px; vertical-align: top; }
+
+    .station-name {
+      font-size: 13px; letter-spacing: .22em; text-transform: uppercase;
+      color: var(--amber2); text-shadow: 0 0 8px oklch(0.70 0.18 75 / .35);
+      align-self: end; padding-bottom: 6px;
+    }
+    .station-name.dim { color: var(--dim); text-shadow: none; }
+
+    .meter { display: flex; gap: 3px; align-items: end; height: 36px; }
+    .meter-bar { width: 5px; background: oklch(0.20 0.03 80); border-radius: 1px; }
+    .meter-bar.lit { background: var(--amber); box-shadow: 0 0 6px oklch(0.78 0.18 75 / .8); }
+
+    .dial-frame {
+      background: linear-gradient(180deg, oklch(0.14 0.02 60) 0%, oklch(0.10 0.02 60) 100%);
+      border-radius: 10px; padding: 10px 0 4px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,.5), inset 0 -1px 0 rgba(255,255,255,.04);
+      position: relative; overflow: hidden; cursor: ew-resize; touch-action: none;
+      user-select: none; -webkit-user-select: none;
+    }
+    .dial-canvas { display: block; width: 100%; height: 70px; }
+    .needle {
+      position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
+      background: linear-gradient(180deg, oklch(0.95 0.20 30) 0%, oklch(0.70 0.22 30) 100%);
+      box-shadow: 0 0 12px oklch(0.85 0.20 30 / .9);
+      pointer-events: none;
+    }
+    .needle::before {
+      content: ""; position: absolute; top: -3px; left: -5px; width: 12px; height: 8px;
+      background: oklch(0.95 0.20 30); border-radius: 2px;
+      box-shadow: 0 0 10px oklch(0.85 0.20 30 / .8);
+    }
+
+    .pane-row { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin-top: 18px; }
+    @media (max-width: 720px) { .pane-row { grid-template-columns: 1fr; } }
+
+    .broadcast {
+      background: linear-gradient(180deg, oklch(0.10 0.02 80) 0%, oklch(0.06 0.01 80) 100%);
+      border-radius: 12px; padding: 18px 22px;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,.6), 0 0 0 1px oklch(0.10 0.02 60);
+      min-height: 240px; position: relative; overflow: hidden;
+    }
+    .scanlines {
+      position: absolute; inset: 0; pointer-events: none; opacity: .15; mix-blend-mode: overlay;
+      background: repeating-linear-gradient(0deg, transparent 0, transparent 2px, oklch(0.40 0.10 80) 3px, transparent 4px);
+    }
+    .broadcast-body {
+      white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: var(--amber);
+      text-shadow: 0 0 6px oklch(0.65 0.18 75 / .6);
+      min-height: 200px;
+    }
+    .broadcast-body.silence { color: var(--dim); text-shadow: none; }
+    .cursor { display: inline-block; width: 8px; height: 1em; background: var(--amber); animation: blink 1s steps(2) infinite; vertical-align: -2px; margin-left: 2px; box-shadow: 0 0 10px oklch(0.80 0.18 75 / .8); }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .logbook {
+      background: linear-gradient(180deg, oklch(0.10 0.02 80) 0%, oklch(0.06 0.01 80) 100%);
+      border-radius: 12px; padding: 14px 16px;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,.6), 0 0 0 1px oklch(0.10 0.02 60);
+      min-height: 240px; max-height: 320px; overflow-y: auto;
+    }
+    .logbook h3 { margin: 0 0 10px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--amber2); }
+    .logbook-empty { color: var(--dim); font-size: 12px; padding: 8px 0; }
+    .log-entry { padding: 8px 0; border-bottom: 1px dashed oklch(0.20 0.02 80); cursor: pointer; transition: color .15s; }
+    .log-entry:last-child { border-bottom: none; }
+    .log-entry:hover { color: oklch(0.94 0.18 75); }
+    .log-freq { font-weight: 700; color: var(--amber); }
+    .log-name { color: var(--amber2); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; margin-left: 6px; }
+    .log-snippet { color: var(--dim); font-size: 11px; margin-top: 2px; line-height: 1.4; max-height: 28px; overflow: hidden; text-overflow: ellipsis; }
+
+    .controls { display: flex; gap: 12px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+    button {
+      background: linear-gradient(180deg, oklch(0.32 0.04 60) 0%, oklch(0.22 0.03 60) 100%);
+      color: var(--amber); border: 1px solid oklch(0.40 0.04 60); border-radius: 24px;
+      padding: 10px 20px; font: inherit; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+      cursor: pointer; transition: transform .12s, box-shadow .12s, border-color .12s;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.3);
+    }
+    button:hover { border-color: var(--amber2); box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 0 14px oklch(0.70 0.18 75 / .35); }
+    button:active { transform: translateY(1px); }
+    button.live { color: oklch(0.95 0.22 30); border-color: oklch(0.70 0.22 30); }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+
+    .hint { text-align: center; font-size: 11px; color: var(--dim); margin-top: 14px; letter-spacing: .14em; text-transform: uppercase; }
+
+    @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
+  </style>
+</head>
+<body>
+  <div class="radio">
+    <div class="header">
+      <div class="brand">FAR-VOX <em>// Mk.IV</em></div>
+      <div class="serial">UNIT 0231 · LIC. PENDING</div>
+    </div>
+
+    <div class="display">
+      <div>
+        <span class="freq" id="freq">100.0</span><span class="freq-unit">MHz · FM</span>
+      </div>
+      <div class="station-name dim" id="stationName">—— between bands ——</div>
+      <div class="meter" id="meter"></div>
+    </div>
+
+    <div class="dial-frame" id="dialFrame">
+      <canvas class="dial-canvas" id="dial"></canvas>
+      <div class="needle"></div>
+    </div>
+
+    <div class="pane-row">
+      <div class="broadcast">
+        <div class="scanlines"></div>
+        <div class="broadcast-body silence" id="broadcast">— power off —</div>
+      </div>
+      <div class="logbook">
+        <h3>Logbook</h3>
+        <div id="log"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="powerBtn">Power</button>
+      <button id="saveBtn" disabled>Log this broadcast</button>
+      <button id="clearBtn">Clear logbook</button>
+    </div>
+
+    <div class="hint">Drag the dial. Tune slowly. Audio wakes with power.</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
+  <script>
+  (() => {
+    // ---------- safe storage ----------
+    const store = (typeof window !== "undefined" && window.storage) ? window.storage : {
+      getItem: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } },
+      setItem: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} },
+    };
+
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+    // ---------- generators per station ----------
+    const callsigns = ["EAGLE NINE", "SPARROW THREE", "WOLF FIVE", "LIGHTHOUSE TWO", "ORCHID SEVEN", "WIDOW ONE"];
+    const numbersGen = () => {
+      const cs = pick(callsigns);
+      const groups = [];
+      const n = 4 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < n; i++) {
+        let g = "";
+        for (let j = 0; j < 5; j++) g += Math.floor(Math.random() * 10);
+        groups.push(g);
+      }
+      const tail = pick(["", "", "", " confirm.", " repeat sequence.", " end transmission.", " stand by."]);
+      return `${cs}.\n${groups.join("  ")}.${tail}\n\n`;
+    };
+
+    const djTopics = [
+      "Tuesdays", "the smell of basements", "what my grandmother said about lampshades",
+      "anyone named Greg", "the way light falls through water", "a particular blue",
+      "the third drink", "fluorescent kitchens at 2am", "people who whistle in elevators",
+      "the silence after a phone call",
+    ];
+    const djTails = [
+      "Coming up after this, more of nothing in particular.",
+      "You're listening to Drift, I think. Or I am.",
+      "I'll be here. Probably.",
+      "If you're still out there, hello.",
+      "Nobody requested this. I'm playing it anyway.",
+    ];
+    const djGen = () => `...and so anyway, that's why I never trusted ${pick(djTopics)}.\n\n[a long pause]\n\n${pick(djTails)}\n\n`;
+
+    const cities = ["Vellumere", "Hush", "the Ninth Saturday", "Old Heliacope", "Backwater Junction", "Maundy", "Pellem"];
+    const conditions = ["light feathers", "scattered apologies", "occasional declarations", "lukewarm regret", "isolated kindness", "mild forgetting", "thin recollections"];
+    const directions = ["west of last week", "the direction you used to face", "the other room", "no fixed bearing", "due melancholy"];
+    const weatherGen = () => {
+      const c = pick(cities);
+      return `Forecast for ${c}.\nThis evening: ${pick(conditions)}, increasing overnight.\nTomorrow: ${pick(conditions)} with periods of ${pick(conditions)}.\nHigh of ${30 + Math.floor(Math.random() * 60)} degrees in memory.\nWinds from the ${pick(directions)} at trace speeds.\nUV index: irrelevant.\n\n`;
+    };
+
+    const convoFragments = [
+      "and then she said it didn't matter.",
+      "...if you'd just told me.",
+      "no, the BLUE one. with the chip.",
+      "...you can't take that back.",
+      "I forgot her name on purpose.",
+      "you said you'd call.",
+      "it isn't about the money.",
+      "well, yeah, but who's counting.",
+    ];
+    const convoGen = () => {
+      const a = pick(convoFragments), b = pick(convoFragments);
+      return `(...)  ${a}\n\n        ${b}\n\n(...)\n\n`;
+    };
+
+    const holdLines = [
+      "Your call is important to us.",
+      "All attendants are currently attending.",
+      "Please continue to hold.",
+      "Estimated wait: indefinite.",
+      "Thank you for not hanging up.",
+    ];
+    const holdGen = () => `[hold music]\n\n${pick(holdLines)}\n\n[hold music]\n\n`;
+
+    const whispers = ["come back", "you knew", "we waited", "the door is open", "it remembers you", "look behind", "later than you think"];
+    const whisperGen = () => whispers.slice().sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 3)).map(w => `        ${w}`).join("\n") + "\n\n";
+
+    const musicGen = () => `Drift FM · uninterrupted music for the empty hour.\n\n  ♪  ♪    ♪      ♪  ♪    ♪\n        ♪    ♪      ♪    ♪\n  ♪      ♪  ♪    ♪      ♪\n\n[continues]\n\n`;
+    const carrierGen = () => `————————————————————————————\n\n   pure carrier · 1 kHz tone\n\n————————————————————————————\n\n`;
+
+    // ---------- station table ----------
+    const STATIONS = [
+      { freq: 88.7,  name: "NUMBERS",     gen: numbersGen,  kind: "voice" },
+      { freq: 91.3,  name: "DRIFT TALK",  gen: djGen,       kind: "voice" },
+      { freq: 94.1,  name: "WX · NOWHERE", gen: weatherGen, kind: "voice" },
+      { freq: 97.5,  name: "DRIFT FM",    gen: musicGen,    kind: "music" },
+      { freq: 100.0, name: "CARRIER",     gen: carrierGen,  kind: "tone"  },
+      { freq: 103.2, name: "OVERHEARD",   gen: convoGen,    kind: "voice" },
+      { freq: 106.4, name: "ON HOLD",     gen: holdGen,     kind: "hold"  },
+      { freq: 107.9, name: "WHISPERS",    gen: whisperGen,  kind: "noise" },
+    ];
+
+    // ---------- state ----------
+    const FMIN = 87.5, FMAX = 108.0;
+    let freq = parseFloat(store.getItem("radio-freq")) || 100.0;
+    if (!Number.isFinite(freq)) freq = 100.0;
+    let powered = false;
+    let signal = 0;            // 0..1
+    let activeStation = null;  // station or null
+    let pendingChars = "";
+    let displayedClean = "";   // pre-corruption text shown
+    let queueTimer = 0;
+    let charTimer = 0;
+    let logbook = [];
+    try { logbook = JSON.parse(store.getItem("radio-log") || "[]") || []; } catch {}
+
+    const $freq = document.getElementById("freq");
+    const $name = document.getElementById("stationName");
+    const $broadcast = document.getElementById("broadcast");
+    const $meter = document.getElementById("meter");
+    const $dial = document.getElementById("dial");
+    const $dialFrame = document.getElementById("dialFrame");
+    const $power = document.getElementById("powerBtn");
+    const $save = document.getElementById("saveBtn");
+    const $clear = document.getElementById("clearBtn");
+    const $log = document.getElementById("log");
+
+    // build meter bars
+    const N_BARS = 14;
+    for (let i = 0; i < N_BARS; i++) {
+      const b = document.createElement("div");
+      b.className = "meter-bar";
+      b.style.height = `${10 + i * 2}px`;
+      $meter.appendChild(b);
+    }
+    const meterBars = $meter.children;
+
+    // ---------- dial canvas ----------
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dctx = $dial.getContext("2d");
+    const resizeDial = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = $dial.clientWidth, h = $dial.clientHeight;
+      $dial.width = Math.floor(w * dpr); $dial.height = Math.floor(h * dpr);
+      dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    window.addEventListener("resize", resizeDial);
+
+    const drawDial = () => {
+      const w = $dial.clientWidth, h = $dial.clientHeight;
+      dctx.clearRect(0, 0, w, h);
+      // viewport: show 8 MHz around current freq
+      const span = 8.0;
+      const fmin = freq - span / 2, fmax = freq + span / 2;
+      const xOf = (f) => ((f - fmin) / span) * w;
+
+      // bg gradient
+      const grad = dctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "oklch(0.16 0.02 60)");
+      grad.addColorStop(1, "oklch(0.10 0.02 60)");
+      dctx.fillStyle = grad;
+      dctx.fillRect(0, 0, w, h);
+
+      // ticks every 0.1 MHz, big tick every 1 MHz
+      for (let f = Math.ceil(fmin * 10) / 10; f <= fmax; f += 0.1) {
+        const x = xOf(f);
+        const isMajor = Math.abs(f - Math.round(f)) < 0.02;
+        const isMinor = Math.abs(f * 2 - Math.round(f * 2)) < 0.02;
+        dctx.strokeStyle = isMajor ? "oklch(0.78 0.16 75 / 0.85)" : isMinor ? "oklch(0.55 0.10 75 / 0.55)" : "oklch(0.42 0.06 75 / 0.35)";
+        dctx.lineWidth = isMajor ? 1.4 : 0.8;
+        dctx.beginPath();
+        dctx.moveTo(x, isMajor ? 6 : isMinor ? 14 : 20);
+        dctx.lineTo(x, h - 18);
+        dctx.stroke();
+        if (isMajor && f >= FMIN && f <= FMAX) {
+          dctx.fillStyle = "oklch(0.78 0.14 75)";
+          dctx.font = "10px ui-monospace, monospace";
+          dctx.textAlign = "center";
+          dctx.fillText(f.toFixed(0), x, h - 4);
+        }
+      }
+
+      // station markers
+      for (const s of STATIONS) {
+        if (s.freq < fmin - 0.5 || s.freq > fmax + 0.5) continue;
+        const x = xOf(s.freq);
+        // little triangle above
+        dctx.fillStyle = "oklch(0.92 0.20 30 / 0.8)";
+        dctx.beginPath();
+        dctx.moveTo(x - 4, 0); dctx.lineTo(x + 4, 0); dctx.lineTo(x, 6); dctx.closePath();
+        dctx.fill();
+        dctx.fillStyle = "oklch(0.78 0.14 30)";
+        dctx.font = "9px ui-monospace, monospace";
+        dctx.textAlign = "center";
+        dctx.fillText(s.name, x, h - 22);
+      }
+    };
+
+    // ---------- tuning interaction ----------
+    let dragX = null, dragF = null;
+    const onDown = (e) => {
+      $dialFrame.setPointerCapture?.(e.pointerId);
+      dragX = e.clientX; dragF = freq;
+    };
+    const onMove = (e) => {
+      if (dragX === null) return;
+      const w = $dial.clientWidth;
+      const span = 8.0;
+      const dx = e.clientX - dragX;
+      const df = -(dx / w) * span; // drag right -> lower freq (like a tape)
+      freq = clamp(dragF + df, FMIN, FMAX);
+    };
+    const onUp = () => { dragX = null; dragF = null; store.setItem("radio-freq", freq.toFixed(2)); };
+    $dialFrame.addEventListener("pointerdown", onDown);
+    $dialFrame.addEventListener("pointermove", onMove);
+    $dialFrame.addEventListener("pointerup", onUp);
+    $dialFrame.addEventListener("pointercancel", onUp);
+    // also wheel-tunable
+    $dialFrame.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      freq = clamp(freq + Math.sign(e.deltaY) * 0.05, FMIN, FMAX);
+      store.setItem("radio-freq", freq.toFixed(2));
+    }, { passive: false });
+
+    // ---------- audio rig ----------
+    let audio = null;
+    const initAudio = async () => {
+      if (audio || typeof Tone === "undefined") return audio;
+      await Tone.start();
+      const master = new Tone.Volume(-6).toDestination();
+      const reverb = new Tone.Reverb({ decay: 4, wet: 0.25 }).connect(master);
+
+      // STATIC: pink-ish noise through low-pass, modulated by signal
+      const noise = new Tone.Noise("pink").start();
+      const noiseLP = new Tone.Filter(2400, "lowpass").connect(reverb);
+      const noiseHP = new Tone.Filter(120, "highpass").connect(noiseLP);
+      const noiseGain = new Tone.Volume(-12).connect(noiseHP);
+      noise.connect(noiseGain);
+
+      // CARRIER: pure sine
+      const carrier = new Tone.Oscillator(1000, "sine").start();
+      const carrierGain = new Tone.Volume(-Infinity).connect(reverb);
+      carrier.connect(carrierGain);
+
+      // VOICE clicks: tiny FM bursts when characters appear
+      const voicePluck = new Tone.MetalSynth({
+        envelope: { attack: 0.001, decay: 0.04, release: 0.05 },
+        harmonicity: 5.1, modulationIndex: 12, resonance: 800, octaves: 1.2,
+      }).connect(new Tone.Volume(-32).connect(reverb));
+
+      // MUSIC station: slow generative pad + arpeggio (only audible when on 97.5)
+      const musicGain = new Tone.Volume(-Infinity).connect(reverb);
+      const pad = new Tone.PolySynth(Tone.AMSynth, {
+        envelope: { attack: 4, decay: 1, sustain: 0.7, release: 8 },
+      }).connect(musicGain);
+      pad.volume.value = -10;
+      pad.triggerAttack(["C3", "G3", "Eb4", "Bb4"]);
+      const arp = new Tone.PluckSynth({ attackNoise: 0.4, dampening: 4000, resonance: 0.9 }).connect(musicGain);
+      arp.volume.value = -16;
+      const scale = ["C4", "Eb4", "F4", "G4", "Bb4", "C5", "Eb5"];
+      const arpLoop = new Tone.Loop((t) => arp.triggerAttack(pick(scale), t), "8n").start(0);
+      Tone.Transport.bpm.value = 60;
+      Tone.Transport.start();
+
+      // HOLD station: cheesy chord progression
+      const holdGain = new Tone.Volume(-Infinity).connect(reverb);
+      const holdSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" }, envelope: { attack: 0.4, decay: 0.5, sustain: 0.5, release: 1.2 } }).connect(holdGain);
+      holdSynth.volume.value = -10;
+      const holdProg = [["C4", "E4", "G4"], ["A3", "C4", "E4"], ["F3", "A3", "C4"], ["G3", "B3", "D4"]];
+      let holdIdx = 0;
+      const holdLoop = new Tone.Loop((t) => { holdSynth.triggerAttackRelease(holdProg[holdIdx % holdProg.length], "1n", t); holdIdx++; }, "1n").start(0);
+
+      // WHISPERS station: low filtered noise bursts
+      const whisperGain = new Tone.Volume(-Infinity).connect(reverb);
+      const whisperNoise = new Tone.Noise("brown").start();
+      const whisperFilter = new Tone.Filter(600, "lowpass").connect(whisperGain);
+      const whisperAmp = new Tone.AmplitudeEnvelope({ attack: 1, decay: 0.5, sustain: 0.4, release: 2 }).connect(whisperFilter);
+      whisperNoise.connect(whisperAmp);
+      whisperAmp.triggerAttack();
+
+      audio = { master, reverb, noiseGain, carrierGain, voicePluck, musicGain, holdGain, whisperGain, whisperAmp };
+      return audio;
+    };
+
+    const setAudioForStation = () => {
+      if (!audio || !powered) return;
+      const sNoise = 1 - signal; // static louder when poorly tuned
+      // noise volume sweeps -28 dB (locked in) up to -6 dB (pure static between bands)
+      audio.noiseGain.volume.rampTo(-28 + 22 * sNoise, 0.15);
+
+      const isCarrier = activeStation && activeStation.kind === "tone";
+      audio.carrierGain.volume.rampTo(isCarrier ? -22 + signal * 14 : -Infinity, 0.2);
+
+      const isMusic = activeStation && activeStation.kind === "music";
+      audio.musicGain.volume.rampTo(isMusic ? -16 + signal * 12 : -Infinity, 0.3);
+
+      const isHold = activeStation && activeStation.kind === "hold";
+      audio.holdGain.volume.rampTo(isHold ? -18 + signal * 10 : -Infinity, 0.3);
+
+      const isWhisper = activeStation && activeStation.kind === "noise";
+      audio.whisperGain.volume.rampTo(isWhisper ? -22 + signal * 14 : -Infinity, 0.3);
+    };
+
+    // ---------- text corruption (signal -> garbage) ----------
+    const STATIC_CHARS = "▒▓░█▌▎▍▏▕░▒▓·~–—#%*";
+    const corrupt = (text, sig) => {
+      if (sig > 0.96) return text;
+      let out = "";
+      for (const c of text) {
+        if (c === "\n" || c === " ") { out += c; continue; }
+        const corruptProb = clamp(1 - sig, 0, 1) * 0.85;
+        if (Math.random() < corruptProb) out += STATIC_CHARS[Math.floor(Math.random() * STATIC_CHARS.length)];
+        else out += c;
+      }
+      return out;
+    };
+    const pureStatic = (lines, cols) => {
+      let out = "";
+      for (let i = 0; i < lines; i++) {
+        for (let j = 0; j < cols; j++) out += STATIC_CHARS[Math.floor(Math.random() * STATIC_CHARS.length)];
+        out += "\n";
+      }
+      return out;
+    };
+
+    // ---------- update / render ----------
+    let staticBuf = "";
+    let staticTimer = 0;
+
+    const tuneStation = () => {
+      let nearest = null, nearestDist = Infinity;
+      for (const s of STATIONS) {
+        const d = Math.abs(s.freq - freq);
+        if (d < nearestDist) { nearestDist = d; nearest = s; }
+      }
+      signal = clamp(1 - nearestDist / 0.5, 0, 1);
+      // hysteresis: lock to nearest only if within 0.5 MHz
+      const next = nearestDist < 0.5 ? nearest : null;
+      if (next !== activeStation) {
+        activeStation = next;
+        pendingChars = "";
+        displayedClean = "";
+        queueTimer = 0;
+        if (activeStation) pendingChars = activeStation.gen();
+      }
+    };
+
+    const tick = (now) => {
+      requestAnimationFrame(tick);
+      const dt = 1 / 60;
+
+      tuneStation();
+
+      $freq.textContent = freq.toFixed(1);
+      if (!powered) {
+        $name.textContent = "—— power off ——";
+        $name.classList.add("dim");
+        $broadcast.textContent = "— power off —";
+        $broadcast.classList.add("silence");
+        for (const b of meterBars) b.classList.remove("lit");
+        $save.disabled = true;
+        return;
+      }
+
+      $broadcast.classList.remove("silence");
+      if (activeStation) {
+        $name.textContent = activeStation.name;
+        $name.classList.remove("dim");
+        $save.disabled = false;
+      } else {
+        $name.textContent = "—— between bands ——";
+        $name.classList.add("dim");
+        $save.disabled = true;
+      }
+
+      // meter
+      const litCount = Math.round(signal * N_BARS);
+      for (let i = 0; i < N_BARS; i++) {
+        meterBars[i].classList.toggle("lit", i < litCount);
+      }
+
+      // typewriter reveal
+      charTimer += dt;
+      const charInterval = activeStation ? (activeStation.kind === "voice" ? 0.025 : 0.05) : 0.04;
+      while (charTimer > charInterval && pendingChars.length > 0) {
+        charTimer -= charInterval;
+        const ch = pendingChars[0];
+        displayedClean += ch;
+        pendingChars = pendingChars.slice(1);
+        // tiny voice click
+        if (activeStation && (activeStation.kind === "voice" || activeStation.kind === "hold") && /\S/.test(ch) && audio) {
+          if (Math.random() < 0.18) audio.voicePluck.triggerAttackRelease("C5", 0.02);
+        }
+      }
+      // queue next broadcast after a pause
+      if (activeStation && pendingChars.length === 0) {
+        queueTimer += dt;
+        if (queueTimer > 2.5) {
+          queueTimer = 0;
+          pendingChars = activeStation.gen();
+        }
+      }
+
+      // limit displayed text length so it doesn't grow forever
+      if (displayedClean.length > 800) displayedClean = displayedClean.slice(-800);
+
+      // build display: between stations show pure static; on station show corrupted text
+      let text;
+      if (!activeStation) {
+        // refresh static
+        staticTimer += dt;
+        if (staticTimer > 0.08) { staticTimer = 0; staticBuf = pureStatic(8, 48); }
+        text = staticBuf;
+      } else {
+        text = corrupt(displayedClean, signal);
+      }
+      $broadcast.innerHTML = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + (activeStation && pendingChars.length > 0 ? '<span class="cursor"></span>' : "");
+
+      // audio levels
+      setAudioForStation();
+
+      drawDial();
+    };
+
+    // ---------- power button ----------
+    $power.addEventListener("click", async () => {
+      powered = !powered;
+      $power.textContent = powered ? "Power · ON" : "Power";
+      $power.classList.toggle("live", powered);
+      if (powered) {
+        await initAudio();
+      } else {
+        // mute
+        if (audio) {
+          audio.noiseGain.volume.rampTo(-Infinity, 0.2);
+          audio.carrierGain.volume.rampTo(-Infinity, 0.2);
+          audio.musicGain.volume.rampTo(-Infinity, 0.2);
+          audio.holdGain.volume.rampTo(-Infinity, 0.2);
+          audio.whisperGain.volume.rampTo(-Infinity, 0.2);
+        }
+      }
+    });
+
+    // ---------- log ----------
+    const renderLog = () => {
+      $log.innerHTML = "";
+      if (logbook.length === 0) {
+        const e = document.createElement("div");
+        e.className = "logbook-empty";
+        e.textContent = "Nothing logged yet. Tune to a station and tap LOG to capture what you heard.";
+        $log.appendChild(e);
+        return;
+      }
+      for (const entry of logbook.slice().reverse()) {
+        const div = document.createElement("div");
+        div.className = "log-entry";
+        div.innerHTML = `<span class="log-freq">${entry.freq.toFixed(1)}</span><span class="log-name">${entry.name}</span><div class="log-snippet">${entry.snippet.replace(/[<>&]/g, "")}</div>`;
+        div.addEventListener("click", () => {
+          freq = entry.freq;
+          store.setItem("radio-freq", freq.toFixed(2));
+        });
+        $log.appendChild(div);
+      }
+    };
+
+    $save.addEventListener("click", () => {
+      if (!activeStation) return;
+      const snippet = displayedClean.trim().split("\n").slice(0, 2).join(" · ").slice(0, 80);
+      logbook.push({ freq: activeStation.freq, name: activeStation.name, snippet, at: Date.now() });
+      if (logbook.length > 30) logbook = logbook.slice(-30);
+      store.setItem("radio-log", JSON.stringify(logbook));
+      renderLog();
+    });
+
+    $clear.addEventListener("click", () => {
+      logbook = [];
+      store.setItem("radio-log", "[]");
+      renderLog();
+    });
+
+    // ---------- boot ----------
+    resizeDial();
+    renderLog();
+    requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>
