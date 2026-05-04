@@ -30,6 +30,7 @@ From [`../knowledge/03-artifacts.md`](../knowledge/03-artifacts.md) and [`../kno
 | [`html/kaplay-top-down.html`](html/kaplay-top-down.html) | Kaplay top-down mover with trauma-based screen shake. |
 | [`html/tone-procmusic.html`](html/tone-procmusic.html) | Tone.js procedural music — euclidean rhythm + scale-constrained melody. |
 | [`html/hdr-aurora-cathedral.html`](html/hdr-aurora-cathedral.html) | HDR pipeline flagship — Three.js r128 fullscreen aurora with FloatType render targets, hand-rolled bloom (bright extract + separable gaussian + ACES tone-map), oklch wide-gamut palette mapped through linear-sRGB so out-of-gamut chroma drives bloom, Tone.js drone audio-reactivity, and a `(dynamic-range: high) / (color-gamut: rec2020)` badge. |
+| [`html/mycelium-grove.html`](html/mycelium-grove.html) | Click-to-seed generative-art piece. Branching hyphae grow from each spore via a probabilistic L-system (continue / branch / die per gen), a spatial hash detects cross-tree proximity, and the first contact between two networks forms a bond — one Tone.js pluck per bond, hue-mapped through a pentatonic. Long ink-trail decay, oklch palette, `prefers-reduced-motion` respected, last spore hue persisted via `window.storage`. |
 | [`html/barmoshe-portfolio.html`](html/barmoshe-portfolio.html) | Long-form personal portfolio (kept for reference). |
 
 ## React / JSX starters (paste into a Claude chat)

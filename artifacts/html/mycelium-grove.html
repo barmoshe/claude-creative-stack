@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mycelium Grove · claude-creative-stack</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #06050d; color: #e9e6f1; font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; cursor: crosshair; }
+    canvas#cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+    #ui { position: fixed; inset: 0; pointer-events: none; }
+    #ui > * { pointer-events: auto; }
+
+    #title { position: fixed; top: 22px; left: 24px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; mix-blend-mode: screen; opacity: 0; transform: translateY(6px); animation: rise 1.0s .2s ease forwards; }
+    #title em { color: oklch(0.84 0.22 145); font-style: normal; }
+
+    #stats { position: fixed; top: 22px; right: 24px; font-feature-settings: "tnum" 1; opacity: .55; letter-spacing: .04em; }
+    #stats span { color: oklch(0.86 0.22 145); }
+
+    #help { position: fixed; bottom: 24px; left: 24px; max-width: 320px; opacity: 0; animation: fade 1.0s 1.6s ease forwards; }
+    #help b { color: oklch(0.88 0.22 145); font-weight: 600; }
+
+    #controls { position: fixed; bottom: 24px; right: 24px; display: flex; gap: 8px; opacity: 0; animation: fade 1.0s 1.0s ease forwards; }
+    button { background: rgba(20,18,30,.55); color: #e9e6f1; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 8px 14px; font: inherit; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); cursor: pointer; transition: transform .15s, background .15s, border-color .15s; }
+    button:hover { transform: translateY(-1px); background: rgba(40,36,55,.7); border-color: rgba(255,255,255,.28); }
+    button:active { transform: translateY(0); }
+
+    /* Toast for connection events — composite-only animations. */
+    #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(.96); padding: 10px 18px; border-radius: 999px; background: rgba(10,8,16,.55); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; transition: opacity .35s ease, transform .35s ease; pointer-events: none; letter-spacing: .12em; text-transform: uppercase; font-size: 11px; }
+    #toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    @keyframes fade { to { opacity: 1; } }
+    @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      #title, #help, #controls { animation: none; opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="cv"></canvas>
+  <div id="ui">
+    <div id="title">Mycelium <em>Grove</em></div>
+    <div id="stats"><span id="stat-spores">0</span> spores · <span id="stat-bonds">0</span> bonds</div>
+    <div id="help"><b>Click anywhere</b> to seed a spore. Watch hyphae unfurl. When two networks meet, a bond forms — a single chime per bond.</div>
+    <div id="controls">
+      <button id="audio-btn">Sound: off</button>
+      <button id="rain-btn">Spore rain</button>
+      <button id="reset-btn">Forget</button>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
+  <script>
+  (() => {
+    // ---------- artifact-safe storage ----------
+    const store = (typeof window !== "undefined" && window.storage) ? window.storage : {
+      getItem: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } },
+      setItem: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} },
+    };
+
+    // ---------- canvas ----------
+    const canvas = document.getElementById("cv");
+    const ctx = canvas.getContext("2d");
+    let DPR = Math.min(window.devicePixelRatio || 1, 2);
+    let W = 0, H = 0;
+    const resize = () => {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = canvas.clientWidth;
+      H = canvas.clientHeight;
+      canvas.width  = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      // reset trail buffer to opaque dark to avoid white frame on resize
+      ctx.fillStyle = "#06050d";
+      ctx.fillRect(0, 0, W, H);
+    };
+    window.addEventListener("resize", resize);
+
+    // ---------- world ----------
+    /*
+     * Trees: independent organisms. Each has a hue.
+     * Nodes: skeletal points. Each node has parent index and tree id.
+     * Tips: animated growing endpoints; settle into a node when progress = 1.
+     * Bonds: cross-tree connections; emit a one-shot chime + a flash on both trees.
+     */
+    const trees = [];
+    const nodes = [];
+    const tips  = [];
+    const bonds = [];
+    let nextTreeId = 0;
+    const MAX_NODES = 9000;
+
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const seed = (x, y, hue) => {
+      if (nodes.length > MAX_NODES) return;
+      const treeId = nextTreeId++;
+      const h = hue ?? Math.floor(Math.random() * 360);
+      trees.push({ id: treeId, hue: h, lifeFlash: 1, lastBondAt: 0 });
+      const rootIdx = nodes.length;
+      nodes.push({ treeId, x, y, parent: -1, gen: 0, born: clock, dead: false });
+
+      const n = 4 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+        const len = 22 + Math.random() * 16;
+        spawnTip(rootIdx, a, len);
+      }
+      audio.thump?.(h);
+      updateStats();
+    };
+
+    const spawnTip = (parentIdx, angle, length) => {
+      const p = nodes[parentIdx];
+      tips.push({
+        parentIdx,
+        treeId: p.treeId,
+        angle,
+        length,
+        progress: 0,
+        speed: 0.55 + Math.random() * 0.55,
+        gen: p.gen + 1,
+      });
+    };
+
+    // ---------- spatial hash for cross-tree proximity ----------
+    const CELL = 28;
+    const grid = new Map();
+    const key = (cx, cy) => cx * 100003 + cy;
+    const indexNode = (idx) => {
+      const n = nodes[idx];
+      const cx = Math.floor(n.x / CELL), cy = Math.floor(n.y / CELL);
+      const k = key(cx, cy);
+      let bucket = grid.get(k);
+      if (!bucket) { bucket = []; grid.set(k, bucket); }
+      bucket.push(idx);
+    };
+
+    const findCrossTreeNeighbour = (idx, radius) => {
+      const n = nodes[idx];
+      const cx = Math.floor(n.x / CELL), cy = Math.floor(n.y / CELL);
+      let bestIdx = -1, bestD2 = radius * radius;
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const bucket = grid.get(key(cx + dx, cy + dy));
+          if (!bucket) continue;
+          for (const j of bucket) {
+            if (j === idx) continue;
+            const m = nodes[j];
+            if (m.treeId === n.treeId || m.dead) continue;
+            const ddx = m.x - n.x, ddy = m.y - n.y;
+            const d2 = ddx * ddx + ddy * ddy;
+            if (d2 < bestD2) { bestD2 = d2; bestIdx = j; }
+          }
+        }
+      }
+      return bestIdx;
+    };
+
+    // ---------- bond formation ----------
+    const formBond = (a, b) => {
+      bonds.push({ a, b, age: 0 });
+      const na = nodes[a], nb = nodes[b];
+      trees[na.treeId].lifeFlash = 1;
+      trees[nb.treeId].lifeFlash = 1;
+      trees[na.treeId].lastBondAt = clock;
+      trees[nb.treeId].lastBondAt = clock;
+      audio.chime?.((trees[na.treeId].hue + trees[nb.treeId].hue) / 2);
+      flashToast(`bond · ${bonds.length}`);
+      updateStats();
+    };
+
+    // ---------- update / render ----------
+    let clock = 0;
+    let breath = 0;
+
+    const update = (dt) => {
+      clock += dt;
+      breath = 0.5 + 0.5 * Math.sin(clock * 0.6);
+
+      // grow tips
+      for (let i = tips.length - 1; i >= 0; i--) {
+        const t = tips[i];
+        t.progress += t.speed * dt;
+        if (t.progress < 1) continue;
+
+        const p = nodes[t.parentIdx];
+        const nx = p.x + Math.cos(t.angle) * t.length;
+        const ny = p.y + Math.sin(t.angle) * t.length;
+
+        // tips dying off-screen — just discard, don't create node
+        if (nx < -10 || nx > W + 10 || ny < -10 || ny > H + 10) {
+          tips.splice(i, 1);
+          continue;
+        }
+
+        const newIdx = nodes.length;
+        nodes.push({ treeId: t.treeId, x: nx, y: ny, parent: t.parentIdx, gen: t.gen, born: clock, dead: false });
+        indexNode(newIdx);
+
+        // continue / branch / die
+        const dieProb = Math.min(0.62, 0.04 + t.gen * 0.045);
+        const branchProb = 0.16;
+        const r = Math.random();
+        if (r < dieProb || t.length < 4.5) {
+          // tip terminates
+        } else if (r < dieProb + branchProb) {
+          const j = (Math.PI / 4) * (0.45 + Math.random() * 0.6);
+          spawnTip(newIdx, t.angle - j, t.length * (0.74 + Math.random() * 0.08));
+          spawnTip(newIdx, t.angle + j, t.length * (0.74 + Math.random() * 0.08));
+        } else {
+          const dj = (Math.random() - 0.5) * 0.55;
+          spawnTip(newIdx, t.angle + dj, t.length * (0.84 + Math.random() * 0.08));
+        }
+
+        // bond detection — only at fresh tips, only once per node
+        const neighbour = findCrossTreeNeighbour(newIdx, 22);
+        if (neighbour >= 0) formBond(newIdx, neighbour);
+
+        tips.splice(i, 1);
+      }
+
+      // bond ageing
+      for (const b of bonds) b.age += dt;
+
+      // tree flashes decay
+      for (const t of trees) t.lifeFlash *= Math.pow(0.18, dt);
+
+      // hard cap on bonds list to avoid overdraw
+      if (bonds.length > 500) bonds.splice(0, bonds.length - 500);
+    };
+
+    const render = () => {
+      // long trail decay — reads as ink seeping into paper
+      ctx.fillStyle = "rgba(6, 5, 13, 0.10)";
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.lineCap = "round";
+
+      // edges (parent -> node)
+      for (let i = 1; i < nodes.length; i++) {
+        const n = nodes[i];
+        if (n.parent < 0) continue;
+        const p = nodes[n.parent];
+        const tree = trees[n.treeId];
+        const age = clock - n.born;
+        const alpha = Math.max(0, 1 - age / 60); // long fade
+        if (alpha < 0.02) continue;
+        const flash = tree.lifeFlash;
+        const L = 0.62 + flash * 0.20 + breath * 0.04;
+        const C = 0.16 + flash * 0.10;
+        ctx.strokeStyle = `oklch(${L.toFixed(3)} ${C.toFixed(3)} ${tree.hue} / ${alpha.toFixed(3)})`;
+        ctx.lineWidth = Math.max(0.45, 2.4 - n.gen * 0.13);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(n.x, n.y);
+        ctx.stroke();
+      }
+
+      // growing tips — bright leading dot
+      ctx.globalCompositeOperation = "lighter";
+      for (const t of tips) {
+        const p = nodes[t.parentIdx];
+        const x = p.x + Math.cos(t.angle) * t.length * t.progress;
+        const y = p.y + Math.sin(t.angle) * t.length * t.progress;
+        const tree = trees[t.treeId];
+        ctx.fillStyle = `oklch(0.94 0.28 ${tree.hue} / 0.85)`;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // bonds — bridge with a fading flash
+      for (const b of bonds) {
+        const a = nodes[b.a], c = nodes[b.b];
+        const ta = trees[a.treeId], tb = trees[c.treeId];
+        const flash = Math.max(0, 1 - b.age / 6);
+        const hue = ((ta.hue + tb.hue) / 2 + 360) % 360;
+        ctx.strokeStyle = `oklch(${(0.86 + flash * 0.08).toFixed(3)} ${(0.22 + flash * 0.10).toFixed(3)} ${hue} / ${(0.32 + 0.55 * flash).toFixed(3)})`;
+        ctx.lineWidth = 0.9 + flash * 1.4;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y);
+        ctx.stroke();
+        if (flash > 0.1) {
+          ctx.fillStyle = `oklch(0.96 0.32 ${hue} / ${(flash * 0.8).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(a.x, a.y, 2.4 + flash * 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(c.x, c.y, 2.4 + flash * 2, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.globalCompositeOperation = "source-over";
+    };
+
+    // ---------- audio (lazy Tone.js) ----------
+    let audioOn = false;
+    const audio = {};
+    const audioBtn = document.getElementById("audio-btn");
+
+    const initAudio = async () => {
+      if (typeof Tone === "undefined") return false;
+      await Tone.start();
+      const reverb = new Tone.Reverb({ decay: 14, wet: 0.55 }).toDestination();
+      const lp = new Tone.Filter(2200, "lowpass").connect(reverb);
+
+      // a barely-there pad to give a forest hush
+      const pad = new Tone.PolySynth(Tone.AMSynth, {
+        envelope: { attack: 6, decay: 2, sustain: 0.7, release: 12 },
+      }).connect(lp);
+      pad.volume.value = -28;
+      pad.triggerAttack(["A1", "E2", "C3", "G3"]);
+
+      // chime per bond — pluck on a pentatonic
+      const pluck = new Tone.PluckSynth({ attackNoise: 0.6, dampening: 4500, resonance: 0.92 }).connect(lp);
+      pluck.volume.value = -8;
+      const scale = ["C4", "D4", "E4", "G4", "A4", "C5", "D5", "E5", "G5"];
+      audio.chime = (hue) => {
+        const idx = Math.floor(((hue % 360) / 360) * scale.length);
+        pluck.triggerAttack(scale[((idx % scale.length) + scale.length) % scale.length]);
+      };
+
+      // thump per spore
+      const thump = new Tone.MembraneSynth({ pitchDecay: 0.08, octaves: 4, envelope: { attack: 0.001, decay: 0.5, sustain: 0 } }).connect(lp);
+      thump.volume.value = -16;
+      audio.thump = () => thump.triggerAttackRelease("C2", "8n");
+
+      return true;
+    };
+
+    audioBtn.addEventListener("click", async () => {
+      if (!audioOn) {
+        const ok = await initAudio();
+        if (ok) { audioOn = true; audioBtn.textContent = "Sound: on"; }
+      } else {
+        audioOn = false;
+        audioBtn.textContent = "Sound: off";
+        // mute by detaching destination — simpler: just unset chime/thump
+        audio.chime = null;
+        audio.thump = null;
+      }
+    });
+
+    // ---------- spore rain ----------
+    let rainTimer = 0, rainOn = false;
+    document.getElementById("rain-btn").addEventListener("click", (e) => {
+      rainOn = !rainOn;
+      e.currentTarget.textContent = rainOn ? "Stop rain" : "Spore rain";
+    });
+
+    // ---------- reset / forget ----------
+    document.getElementById("reset-btn").addEventListener("click", () => {
+      trees.length = 0;
+      nodes.length = 0;
+      tips.length = 0;
+      bonds.length = 0;
+      grid.clear();
+      nextTreeId = 0;
+      // wash the canvas
+      ctx.fillStyle = "#06050d";
+      ctx.fillRect(0, 0, W, H);
+      updateStats();
+      flashToast("forgotten");
+    });
+
+    // ---------- pointer ----------
+    canvas.addEventListener("pointerdown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      seed(e.clientX - rect.left, e.clientY - rect.top);
+      const t = trees[trees.length - 1];
+      if (t) store.setItem("mycelium-last-hue", String(t.hue));
+    });
+
+    // ---------- stats + toast ----------
+    const $spores = document.getElementById("stat-spores");
+    const $bonds  = document.getElementById("stat-bonds");
+    const updateStats = () => {
+      $spores.textContent = trees.length.toString();
+      $bonds.textContent  = bonds.length.toString();
+    };
+
+    let toastTimer = 0;
+    const $toast = document.getElementById("toast");
+    const flashToast = (msg) => {
+      $toast.textContent = msg;
+      $toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $toast.classList.remove("show"), 1100);
+    };
+
+    // ---------- restore last seed colour ----------
+    const lastHue = parseFloat(store.getItem("mycelium-last-hue"));
+    if (Number.isFinite(lastHue)) {
+      // seed one tree gently in centre on first paint, so the page isn't empty
+      requestAnimationFrame(() => seed(W / 2, H / 2, lastHue));
+    }
+
+    // ---------- main loop ----------
+    let lastT = performance.now();
+    const tick = (now) => {
+      requestAnimationFrame(tick);
+      const dt = Math.min(0.05, (now - lastT) / 1000);
+      lastT = now;
+
+      if (rainOn) {
+        rainTimer += dt;
+        if (rainTimer > (reduced ? 1.4 : 0.7)) {
+          rainTimer = 0;
+          seed(Math.random() * W, Math.random() * H);
+        }
+      }
+
+      update(reduced ? dt * 0.5 : dt);
+      render();
+    };
+
+    resize();
+    requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>
