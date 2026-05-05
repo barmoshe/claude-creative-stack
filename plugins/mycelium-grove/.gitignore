@@ -1,0 +1,26 @@
+build/
+build-*/
+out/
+
+# JUCE-generated
+JuceLibraryCode/
+*.xcodeproj/
+*.vcxproj
+*.vcxproj.user
+*.vcxproj.filters
+*.sln
+*.suo
+
+# IDE
+.vscode/
+.idea/
+.cache/
+compile_commands.json
+CMakeUserPresets.json
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# OS
+.DS_Store
+Thumbs.db
