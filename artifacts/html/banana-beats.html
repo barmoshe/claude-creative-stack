@@ -1,0 +1,1650 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Banana Beats · Monkey Sequencer</title>
+  <style>
+    :root {
+      --bg: oklch(0.95 0.03 85);
+      --bg2: oklch(0.92 0.04 80);
+      --chassis: oklch(0.88 0.07 75);
+      --chassis2: oklch(0.78 0.08 70);
+      --display: oklch(0.22 0.06 145);
+      --display2: oklch(0.15 0.05 140);
+      --text: oklch(0.20 0.02 85);
+      --text-muted: oklch(0.45 0.03 80);
+      --text-light: oklch(0.92 0.02 95);
+      --metal: oklch(0.50 0.04 60);
+      --accent: oklch(0.85 0.19 90);
+      --accent-hi: oklch(0.92 0.20 88);
+      --accent-glow: oklch(0.80 0.20 90 / .6);
+      --hot: oklch(0.68 0.22 25);
+      --cool: oklch(0.62 0.16 230);
+      --border-warm: oklch(0.72 0.06 70);
+      --tk0: oklch(0.68 0.18 30);
+      --tk1: oklch(0.76 0.16 65);
+      --tk2: oklch(0.62 0.16 230);
+      --tk3: oklch(0.68 0.16 185);
+      --tk4: oklch(0.58 0.18 305);
+      --tk5: oklch(0.85 0.19 90);
+      --tk6: oklch(0.62 0.18 145);
+      --tk7: oklch(0.78 0.16 55);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg);
+      font: 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--text); }
+    body { display: grid; place-items: center; padding: 28px 16px;
+      background: radial-gradient(ellipse at 50% 0%, oklch(0.96 0.05 85) 0%, var(--bg) 60%);
+      min-height: 100vh; }
+
+    .machine {
+      width: min(860px, 100%);
+      background: linear-gradient(180deg, var(--chassis) 0%, var(--chassis2) 100%);
+      border-radius: 28px; padding: 24px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.6),
+        inset 0 -2px 0 rgba(0,0,0,.12),
+        0 20px 60px -15px rgba(100,70,30,.25),
+        0 4px 12px rgba(100,70,30,.15);
+      position: relative;
+    }
+
+    .header { display: flex; align-items: center; justify-content: space-between;
+      padding: 0 4px 16px; border-bottom: 1px solid var(--border-warm);
+      flex-wrap: wrap; gap: 8px; }
+    .brand { font-weight: 700; letter-spacing: .28em; text-transform: uppercase;
+      font-size: 12px; color: var(--metal); white-space: nowrap; }
+    .brand em { color: oklch(0.55 0.16 90); font-style: normal; }
+    .hdr-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.75 0.04 75);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.2); flex-shrink: 0; }
+    .led.on { background: oklch(0.65 0.20 145); box-shadow: 0 0 10px oklch(0.60 0.20 145 / .6); }
+    .bpm-wrap { display: flex; align-items: center; gap: 4px; }
+    .bpm-label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--metal); }
+    .bpm-input { width: 52px; background: oklch(0.82 0.03 75); border: 1px solid var(--border-warm);
+      color: var(--text); padding: 4px 6px; border-radius: 4px; font: inherit; font-size: 12px;
+      text-align: center; font-variant-numeric: tabular-nums;
+      box-shadow: inset 0 1px 3px rgba(80,50,20,.15); }
+    .seed-label { font-size: 9px; color: var(--text-muted); letter-spacing: .08em; }
+
+    .ctrl-btn {
+      font: 600 11px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase;
+      padding: 7px 14px; border-radius: 6px; cursor: pointer; border: none;
+      background: linear-gradient(180deg, oklch(0.75 0.06 70), oklch(0.65 0.06 65));
+      color: oklch(0.35 0.04 70);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 2px 4px rgba(80,50,20,.25);
+      transition: transform 0.1s, box-shadow 0.1s, color 0.1s;
+    }
+    .ctrl-btn:hover { color: oklch(0.40 0.14 145); }
+    .ctrl-btn:active { transform: translateY(1px); box-shadow: inset 0 1px 3px rgba(80,50,20,.3); }
+    .ctrl-btn.live { color: oklch(0.55 0.18 25); background: linear-gradient(180deg, oklch(0.78 0.10 30), oklch(0.68 0.10 25));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 0 12px oklch(0.60 0.18 25 / .3); }
+
+    .display {
+      margin: 16px 0 12px;
+      background: linear-gradient(180deg, var(--display) 0%, var(--display2) 100%);
+      border-radius: 14px; padding: 0; overflow: hidden;
+      box-shadow:
+        inset 0 2px 8px rgba(0,0,0,.7),
+        inset 0 -1px 0 rgba(255,255,255,.03),
+        0 0 0 2px oklch(0.65 0.06 70);
+      position: relative;
+    }
+    .display::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.08) 2px, rgba(0,0,0,.08) 4px);
+      mix-blend-mode: overlay; opacity: 0.5; z-index: 2;
+    }
+    .display canvas { display: block; width: 100%; height: 240px; }
+
+    .pad-grid { padding: 12px 0 8px; }
+    .pad-row { display: flex; align-items: center; gap: 0; margin-bottom: 3px; }
+    .pad-label { width: 56px; font-size: 10px; font-weight: 700; letter-spacing: .14em;
+      text-transform: uppercase; text-align: right; padding-right: 8px; flex-shrink: 0; }
+    .pad-cells { display: flex; gap: 3px; flex: 1; }
+    .pad-cells .spacer { width: 4px; flex-shrink: 0; }
+    .pad {
+      width: 100%; aspect-ratio: 1; border: none; border-radius: 5px; cursor: pointer;
+      background: oklch(0.84 0.04 75);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.5),
+        0 3px 0 oklch(0.65 0.05 70),
+        0 5px 8px rgba(80,50,20,.2);
+      transition: transform 0.06s ease, box-shadow 0.06s ease;
+      flex: 1; min-width: 0; padding: 0;
+    }
+    .pad:active { transform: translateY(2px);
+      box-shadow: inset 0 1px 3px rgba(80,50,20,.3); }
+    .pad.on {
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.4),
+        0 3px 0 var(--tc),
+        0 0 14px var(--tc);
+      background: var(--tc);
+    }
+    .pad.current { transform: translateY(2px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 1px 2px rgba(80,50,20,.2); }
+    .pad.on.current {
+      box-shadow: inset 0 0 0 2px oklch(0.95 0.02 85), 0 0 16px var(--tc);
+      background: var(--tc); filter: brightness(1.2);
+    }
+    .pad-reroll { width: 28px; height: 28px; flex-shrink: 0; margin-left: 4px; border: none;
+      background: none; cursor: pointer; font-size: 14px; border-radius: 4px;
+      color: var(--text-muted); transition: color .15s; }
+    .pad-reroll:hover { color: var(--accent); }
+
+    .tabs { display: flex; gap: 2px; padding: 8px 0 0; }
+    .tab { font: 600 10px ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase;
+      padding: 8px 16px; border: none; border-radius: 6px 6px 0 0; cursor: pointer;
+      background: oklch(0.80 0.04 75); color: var(--text-muted);
+      box-shadow: inset 0 -2px 0 rgba(80,50,20,.1);
+      transition: color .15s, background .15s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: oklch(0.72 0.05 70); color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+
+    .panel {
+      background: linear-gradient(180deg, oklch(0.76 0.05 72), oklch(0.72 0.05 70));
+      border-radius: 0 8px 8px 8px; padding: 14px 16px;
+      box-shadow: inset 0 2px 6px rgba(80,50,20,.15);
+      max-height: 260px; overflow-y: auto; margin-bottom: 12px;
+    }
+    .panel::-webkit-scrollbar { width: 6px; }
+    .panel::-webkit-scrollbar-track { background: transparent; }
+    .panel::-webkit-scrollbar-thumb { background: oklch(0.60 0.04 70); border-radius: 3px; }
+
+    .mixer-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+    .mixer-label { width: 52px; font-size: 10px; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; }
+    .mixer-slider { flex: 1; max-width: 140px; height: 4px; accent-color: var(--tc);
+      cursor: pointer; }
+    .mixer-val { font-size: 10px; width: 32px; text-align: right; font-variant-numeric: tabular-nums;
+      color: var(--text-muted); }
+    .mixer-btn { font: 700 10px ui-monospace, monospace; width: 24px; height: 24px;
+      border-radius: 4px; border: 1px solid oklch(0.60 0.04 70); cursor: pointer;
+      background: oklch(0.78 0.04 75); color: var(--text-muted);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
+      transition: all .12s; display: grid; place-items: center; }
+    .mixer-btn:hover { border-color: var(--text-muted); }
+    .mixer-btn.active { background: oklch(0.55 0.16 90); color: oklch(0.15 0.02 85);
+      border-color: oklch(0.55 0.16 90); }
+    .mixer-btn.solo-active { background: var(--hot); color: #fff; border-color: var(--hot); }
+
+    .fx-slot { padding: 10px 0; border-bottom: 1px solid oklch(0.68 0.04 70); }
+    .fx-slot:last-child { border-bottom: none; }
+    .fx-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .fx-params { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px 16px; }
+    .fx-param { display: flex; flex-direction: column; gap: 2px; }
+    .fx-param label { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+    .fx-param input[type="range"] { width: 100%; height: 4px; accent-color: oklch(0.55 0.16 90); cursor: pointer; }
+    .fx-param .val { font-size: 9px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+    .preset-item { display: flex; align-items: center; gap: 8px; padding: 6px 0;
+      border-bottom: 1px solid oklch(0.68 0.04 70); }
+    .preset-item:last-child { border-bottom: none; }
+    .preset-name { font-weight: 700; font-size: 12px; flex: 1; }
+    .preset-actions { display: flex; gap: 4px; }
+    .preset-btn { font: 600 10px ui-monospace, monospace; padding: 3px 8px; border-radius: 4px;
+      border: 1px solid oklch(0.60 0.04 70); background: oklch(0.78 0.04 75);
+      color: var(--text-muted); cursor: pointer; transition: all .12s; }
+    .preset-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .preset-btn.del { color: var(--hot); }
+    .preset-save-row { display: flex; gap: 6px; margin-bottom: 10px; }
+    .preset-input { flex: 1; background: oklch(0.82 0.03 75); border: 1px solid oklch(0.65 0.04 70);
+      color: var(--text); padding: 6px 10px; border-radius: 6px; font: inherit; font-size: 12px;
+      box-shadow: inset 0 1px 3px rgba(80,50,20,.1); }
+
+    .kb-hint { padding: 8px 4px 0; text-align: center;
+      font-size: 10px; color: var(--text-muted); letter-spacing: .08em; opacity: .6; }
+
+    @keyframes breathe { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+
+    @media (max-width: 600px) {
+      .machine { padding: 14px; border-radius: 18px; }
+      .header { gap: 6px; }
+      .pad-label { width: 40px; font-size: 9px; }
+      .panel { max-height: 200px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }
+      .pad { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
+  <script>
+  // ─── Banana Beats v2 ─────────────────────────────────────────────────────────
+  (function(){
+  "use strict";
+
+  const h = React.createElement;
+  const { useState, useEffect, useRef, useReducer, useCallback, useMemo } = React;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ─── Utilities (kept from v1) ─────────────────────────────────────────────────
+
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function euclidean(steps, hits) {
+    if (hits <= 0) return new Array(steps).fill(false);
+    if (hits >= steps) return new Array(steps).fill(true);
+    const p = [];
+    for (let i = 0; i < steps; i++)
+      p.push(Math.floor(i * hits / steps) !== Math.floor((i - 1) * hits / steps));
+    return p;
+  }
+
+  const SCALES = {
+    pentatonic: [0, 2, 4, 7, 9],
+    dorian: [0, 2, 3, 5, 7, 9, 10],
+    minor: [0, 2, 3, 5, 7, 8, 10],
+    blues: [0, 3, 5, 6, 7, 10],
+  };
+
+  function markovGenerate(steps, scale, order, seed) {
+    const rng = mulberry32(seed);
+    const notes = SCALES[scale] || SCALES.pentatonic;
+    const result = [];
+    let prev = notes[0];
+    for (let i = 0; i < steps; i++) {
+      const idx = notes.indexOf(prev);
+      const jump = rng() < 0.3 ? Math.floor(rng() * notes.length) : Math.max(0, Math.min(notes.length - 1, idx + (rng() < 0.5 ? 1 : -1)));
+      prev = notes[jump];
+      result.push(rng() < 0.6 ? 48 + prev + (rng() < 0.3 ? 12 : 0) : 0);
+    }
+    return result;
+  }
+
+  function densityNoise(steps, density, seed) {
+    const rng = mulberry32(seed);
+    return Array.from({ length: steps }, () => rng() < density);
+  }
+
+  const bus = {
+    _h: {},
+    on(e, f) { (this._h[e] || (this._h[e] = [])).push(f); },
+    off(e, f) { this._h[e] = (this._h[e] || []).filter(x => x !== f); },
+    emit(e, d) { (this._h[e] || []).forEach(f => f(d)); }
+  };
+
+  function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  // ─── Track definitions (kept from v1) ─────────────────────────────────────────
+
+  const TRACK_DEFS = [
+    { name: "Kick",   gen: "euclidean", k: 4,  density: 0, scale: "", order: 0, color: "var(--tk0)" },
+    { name: "Snare",  gen: "euclidean", k: 2,  density: 0, scale: "", order: 0, color: "var(--tk1)" },
+    { name: "C-Hat",  gen: "euclidean", k: 11, density: 0, scale: "", order: 0, color: "var(--tk2)" },
+    { name: "O-Hat",  gen: "euclidean", k: 3,  density: 0, scale: "", order: 0, color: "var(--tk3)" },
+    { name: "Bongo",  gen: "euclidean", k: 5,  density: 0, scale: "", order: 0, color: "var(--tk4)" },
+    { name: "Shaker", gen: "noise",     k: 0,  density: 0.6, scale: "", order: 0, color: "var(--tk5)" },
+    { name: "Bass",   gen: "markov",    k: 0,  density: 0, scale: "dorian", order: 2, color: "var(--tk6)" },
+    { name: "Lead",   gen: "markov",    k: 0,  density: 0, scale: "pentatonic", order: 1, color: "var(--tk7)" },
+  ];
+
+  const TRACK_COLORS_RAW = [
+    "oklch(0.68 0.18 30)", "oklch(0.76 0.16 65)", "oklch(0.62 0.16 230)", "oklch(0.68 0.16 185)",
+    "oklch(0.58 0.18 305)", "oklch(0.85 0.19 90)", "oklch(0.62 0.18 145)", "oklch(0.78 0.16 55)"
+  ];
+
+  function generatePattern(def, steps, seed) {
+    if (def.gen === "euclidean") return euclidean(steps, def.k);
+    if (def.gen === "noise") return densityNoise(steps, def.density, seed);
+    if (def.gen === "markov") return markovGenerate(steps, def.scale, def.order, seed);
+    return new Array(steps).fill(false);
+  }
+
+  function buildTracks(defs, steps, seed) {
+    return defs.map((def, i) => ({
+      ...def, id: i, steps,
+      pattern: generatePattern(def, steps, seed + i * 1000),
+      gain: 0.8, pan: 0, mute: false, solo: false,
+      sendReverb: i >= 6 ? 0.3 : 0.1,
+      sendDelay: i === 7 ? 0.25 : 0.05,
+    }));
+  }
+
+  // ─── Initial state + Reducer (kept from v1) ──────────────────────────────────
+
+  const STEPS = 16;
+
+  function createInitialState() {
+    const seed = Math.floor(Math.random() * 1000000);
+    return {
+      bpm: 96, seed, isPlaying: false, activeTab: "seq", vibe: "chill",
+      tracks: buildTracks(TRACK_DEFS, STEPS, seed),
+      fx: [
+        { type: "reverb", enabled: true, params: { decay: 4, wet: 0.3, preDelay: 0.01 } },
+        { type: "delay", enabled: true, params: { delayTime: 0.25, feedback: 0.3, wet: 0.2 } },
+        { type: "filter", enabled: false, params: { frequency: 2000, Q: 1, wet: 0.5 } },
+        { type: "distortion", enabled: false, params: { amount: 0.3, wet: 0.4, oversample: 0 } },
+      ],
+      master: { gain: 0.8, limiter: true },
+      character: { state: "idle", trauma: 0, barsPlayed: 0 },
+      presets: [],
+      currentStep: -1,
+    };
+  }
+
+  function reducer(state, action) {
+    switch (action.type) {
+      case "PLAY": return { ...state, isPlaying: true };
+      case "STOP": return { ...state, isPlaying: false, currentStep: -1, character: { ...state.character, state: "idle", barsPlayed: 0 } };
+      case "SET_BPM": return { ...state, bpm: Math.max(40, Math.min(180, action.value)) };
+      case "SET_STEP": return { ...state, currentStep: action.step };
+      case "REROLL_ALL": {
+        const seed = Math.floor(Math.random() * 1000000);
+        return { ...state, seed, tracks: state.tracks.map((t, i) => ({ ...t, pattern: generatePattern(TRACK_DEFS[i], t.steps, seed + i * 1000) })) };
+      }
+      case "REROLL_TRACK": {
+        const seed = Math.floor(Math.random() * 1000000);
+        const tracks = state.tracks.map((t, i) => i === action.id ? { ...t, pattern: generatePattern(TRACK_DEFS[i], t.steps, seed) } : t);
+        return { ...state, tracks };
+      }
+      case "TOGGLE_STEP": {
+        const tracks = state.tracks.map((t, i) => {
+          if (i !== action.trackId) return t;
+          const pattern = [...t.pattern];
+          if (typeof pattern[action.step] === "number") {
+            pattern[action.step] = pattern[action.step] ? 0 : 60;
+          } else {
+            pattern[action.step] = !pattern[action.step];
+          }
+          return { ...t, pattern };
+        });
+        return { ...state, tracks };
+      }
+      case "SET_GAIN": {
+        const tracks = state.tracks.map((t, i) => i === action.id ? { ...t, gain: action.value } : t);
+        return { ...state, tracks };
+      }
+      case "SET_PAN": {
+        const tracks = state.tracks.map((t, i) => i === action.id ? { ...t, pan: action.value } : t);
+        return { ...state, tracks };
+      }
+      case "MUTE": {
+        const tracks = state.tracks.map((t, i) => i === action.id ? { ...t, mute: !t.mute } : t);
+        return { ...state, tracks };
+      }
+      case "SOLO": {
+        const tracks = state.tracks.map((t, i) => i === action.id ? { ...t, solo: !t.solo } : t);
+        return { ...state, tracks };
+      }
+      case "SET_SEND": {
+        const tracks = state.tracks.map((t, i) => i === action.id ? { ...t, [action.send]: action.value } : t);
+        return { ...state, tracks };
+      }
+      case "SET_FX_PARAM": {
+        const fx = state.fx.map((f, i) => {
+          if (i !== action.slot) return f;
+          return { ...f, params: { ...f.params, [action.key]: action.value } };
+        });
+        return { ...state, fx };
+      }
+      case "TOGGLE_FX": {
+        const fx = state.fx.map((f, i) => i === action.slot ? { ...f, enabled: !f.enabled } : f);
+        return { ...state, fx };
+      }
+      case "SET_MASTER_GAIN": return { ...state, master: { ...state.master, gain: action.value } };
+      case "SET_TAB": return { ...state, activeTab: action.tab };
+      case "SET_VIBE": return { ...state, vibe: action.vibe };
+      case "SET_CHARACTER": return { ...state, character: { ...state.character, ...action.data } };
+      case "SAVE_PRESET": {
+        const preset = { id: Date.now().toString(), name: action.name, bpm: state.bpm, seed: state.seed, tracks: state.tracks, fx: state.fx, master: state.master, vibe: state.vibe };
+        return { ...state, presets: [...state.presets, preset] };
+      }
+      case "LOAD_PRESET": {
+        const p = state.presets.find(x => x.id === action.id);
+        if (!p) return state;
+        return { ...state, bpm: p.bpm, seed: p.seed, tracks: p.tracks, fx: p.fx, master: p.master, vibe: p.vibe };
+      }
+      case "DELETE_PRESET": return { ...state, presets: state.presets.filter(p => p.id !== action.id) };
+      case "LOAD_SAVED": return { ...state, ...action.data };
+      default: return state;
+    }
+  }
+
+  // ─── Audio Engine (kept from v1) ──────────────────────────────────────────────
+
+  let audioReady = false;
+  let synths = [];
+  let trackGains = [];
+  let trackPans = [];
+  let reverbSend, delaySend, reverbGain, delayGain, masterGain, limiter;
+  let sequences = [];
+
+  function createAudio() {
+    if (audioReady) return;
+    synths = [
+      new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 6, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.2 }, volume: -4 }),
+      new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.1 }, volume: -8 }),
+      new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.03 }, volume: -12 }),
+      new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.25, sustain: 0.05, release: 0.15 }, volume: -14 }),
+      new Tone.MembraneSynth({ pitchDecay: 0.03, octaves: 3, envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.1 }, volume: -8 }),
+      new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.02 }, volume: -16 }),
+      new Tone.MonoSynth({ oscillator: { type: "square" }, filter: { Q: 2, frequency: 400 },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.4, release: 0.3 },
+        filterEnvelope: { baseFrequency: 120, octaves: 2.5, attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.3 }, volume: -6 }),
+      new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.3 }, volume: -10 }),
+    ];
+
+    const filters = {
+      1: new Tone.Filter({ frequency: 1000, type: "bandpass", Q: 1.5 }),
+      2: new Tone.Filter({ frequency: 6000, type: "highpass" }),
+      3: new Tone.Filter({ frequency: 6000, type: "highpass" }),
+      5: new Tone.Filter({ frequency: 3000, type: "highpass" }),
+    };
+
+    trackGains = synths.map(() => new Tone.Gain(0.8));
+    trackPans = synths.map(() => new Tone.Panner(0));
+
+    reverbSend = new Tone.Reverb({ decay: 4, wet: 1, preDelay: 0.01 });
+    delaySend = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.3, wet: 1 });
+    reverbGain = new Tone.Gain(0.15);
+    delayGain = new Tone.Gain(0.1);
+    masterGain = new Tone.Gain(0.8);
+    limiter = new Tone.Limiter(-3);
+
+    synths.forEach((s, i) => {
+      if (filters[i]) { s.connect(filters[i]); filters[i].connect(trackGains[i]); }
+      else { s.connect(trackGains[i]); }
+      trackGains[i].connect(trackPans[i]);
+      trackPans[i].connect(masterGain);
+      trackPans[i].connect(reverbGain);
+      trackPans[i].connect(delayGain);
+    });
+    reverbGain.connect(reverbSend);
+    reverbSend.connect(masterGain);
+    delayGain.connect(delaySend);
+    delaySend.connect(masterGain);
+    masterGain.connect(limiter);
+    limiter.toDestination();
+    audioReady = true;
+  }
+
+  function triggerTrack(trackIdx, val, time) {
+    if (!val) return;
+    const s = synths[trackIdx];
+    if (trackIdx === 0) s.triggerAttackRelease("C1", "8n", time);
+    else if (trackIdx === 4) s.triggerAttackRelease("C3", "16n", time);
+    else if (trackIdx === 6 && typeof val === "number" && val > 0) s.triggerAttackRelease(midiToFreq(val), "8n", time, 0.7);
+    else if (trackIdx === 7 && typeof val === "number" && val > 0) s.triggerAttackRelease(midiToFreq(val), "16n", time, 0.5);
+    else if ([1, 2, 3, 5].includes(trackIdx)) s.triggerAttackRelease("16n", time);
+  }
+
+  function rebuildSequences(getState) {
+    disposeSequences();
+    const mainSeq = new Tone.Sequence((time, stepIdx) => {
+      const st = getState();
+      const hasSolo = st.tracks.some(t => t.solo);
+      st.tracks.forEach((track, i) => {
+        const audible = hasSolo ? track.solo : !track.mute;
+        if (!audible) return;
+        trackGains[i].gain.value = track.gain;
+        trackPans[i].pan.value = track.pan;
+        triggerTrack(i, track.pattern[stepIdx], time);
+      });
+      Tone.Draw.schedule(() => {
+        bus.emit("step", { step: stepIdx });
+        const st2 = getState();
+        const hasSolo2 = st2.tracks.some(t => t.solo);
+        st2.tracks.forEach((track, i) => {
+          const audible = hasSolo2 ? track.solo : !track.mute;
+          const val = track.pattern[stepIdx];
+          if (!val || !audible) return;
+          if (i === 0) bus.emit("kick", { step: stepIdx });
+          else if (i === 1) bus.emit("snare", { step: stepIdx });
+          else if (i === 2 || i === 3) bus.emit("hat", { step: stepIdx });
+          else if (i === 4) bus.emit("bongo", { step: stepIdx });
+          else if (i === 6) bus.emit("bass", { step: stepIdx });
+          else if (i === 7) bus.emit("lead", { step: stepIdx });
+        });
+        if (stepIdx % 4 === 0) bus.emit("accent", { step: stepIdx });
+        if (stepIdx === 0) bus.emit("loopWrap", {});
+      }, time);
+    }, [...Array(STEPS).keys()], "16n");
+    mainSeq.start(0);
+    sequences.push(mainSeq);
+  }
+
+  function disposeSequences() {
+    sequences.forEach(s => { try { s.stop(); s.dispose(); } catch(e){} });
+    sequences = [];
+  }
+
+  // ─── Persistence (kept from v1) ───────────────────────────────────────────────
+
+  let saveTimer;
+  function debounceSave(state) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try {
+        if (window.storage) {
+          await window.storage.set("banana-beats-v2", JSON.stringify({
+            presets: state.presets,
+            lastSession: { bpm: state.bpm, vibe: state.vibe, tracks: state.tracks.map(t => ({ ...t })), fx: state.fx, master: state.master }
+          }));
+        }
+      } catch (e) {}
+    }, 500);
+  }
+
+  async function loadSaved() {
+    try {
+      if (window.storage) {
+        const r = await window.storage.get("banana-beats-v2");
+        if (r && r.value) return JSON.parse(r.value);
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // ─── Physics Helpers ──────────────────────────────────────────────────────────
+
+  function springStep(current, target, velocity, stiffness, damping, dt) {
+    const force = (target - current) * stiffness - velocity * damping;
+    const newVel = velocity + force * dt;
+    return { value: current + newVel * dt, velocity: newVel };
+  }
+
+  function updateVerletPoint(p, ax, ay, damp) {
+    const vx = (p.x - p.px) * damp + ax;
+    const vy = (p.y - p.py) * damp + ay;
+    p.px = p.x; p.py = p.y;
+    p.x += vx; p.y += vy;
+  }
+
+  function constrainDist(a, b, len) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    const diff = (dist - len) / dist * 0.5;
+    a.x += dx * diff; a.y += dy * diff;
+    b.x -= dx * diff; b.y -= dy * diff;
+  }
+
+  // ─── Canvas Stage ─────────────────────────────────────────────────────────────
+
+  function createStage(canvas) {
+    const ctx = canvas.getContext("2d");
+    const W = 812, H = 240;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // ─── Trauma / shake ───
+    let trauma = 0;
+    function addTrauma(amt) { trauma = Math.min(1, trauma + amt); }
+    function getShake() {
+      const s = trauma * trauma;
+      return { x: (Math.random() * 2 - 1) * 12 * s, y: (Math.random() * 2 - 1) * 12 * s };
+    }
+
+    // ─── Flash ───
+    let flashAlpha = 0;
+
+    // ─── Monkey state ───
+    const mk = {
+      baseX: W * 0.5, baseY: H * 0.6,
+      bodyStretchY: 1, bodyStretchVel: 0,
+      bodyOffY: 0, bodyBounceVel: 0,
+      headTilt: 0, headTiltVel: 0,
+      headBobY: 0, headBobVel: 0,
+      blinkTimer: 3 + Math.random() * 4, isBlinking: false, blinkDur: 0,
+      pupilOX: 0, pupilOY: 0,
+      eyebrowRaise: 0, eyebrowVel: 0,
+      mouthOpen: 0, mouthSmile: 0.5,
+      earLJ: 0, earLV: 0, earRJ: 0, earRV: 0,
+      legPhase: 0,
+      tail: [],
+      bananaHeld: true,
+      bananaX: 0, bananaY: 0, bananaVX: 0, bananaVY: 0,
+      bananaAng: 0, bananaAngV: 0, bananaTimer: 0,
+      tuftPhase: 0,
+      state: "idle",
+      barsPlayed: 0,
+      lastInput: Date.now(),
+    };
+
+    // Init tail (5 verlet points)
+    for (let i = 0; i < 5; i++) {
+      mk.tail.push({ x: mk.baseX - 20 - i * 12, y: mk.baseY + 10 + i * 4, px: mk.baseX - 20 - i * 12, py: mk.baseY + 10 + i * 4 });
+    }
+
+    // ─── Particles ───
+    const particles = [];
+    function spawnDust(x, y, count) {
+      if (reducedMotion) return;
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x, y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2.5 - 1,
+          life: 0.5, maxLife: 0.5, size: 2 + Math.random() * 2,
+          color: "oklch(0.50 0.08 55)", type: "dust", ang: 0, angV: 0
+        });
+      }
+    }
+    function spawnBananaConfetti(x, y, count) {
+      if (reducedMotion) return;
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x, y, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 5 - 2,
+          life: 1.5, maxLife: 1.5, size: 4 + Math.random() * 4,
+          color: "oklch(0.85 0.19 90)", type: "banana", ang: Math.random() * 6.28, angV: (Math.random() - 0.5) * 0.3
+        });
+      }
+    }
+    function spawnSparks(x, y, count, color) {
+      if (reducedMotion) return;
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x, y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 4 - 1,
+          life: 0.3, maxLife: 0.3, size: 1.5 + Math.random() * 1.5,
+          color: color || "oklch(0.85 0.19 90)", type: "spark", ang: 0, angV: 0
+        });
+      }
+    }
+
+    // ─── Ambient leaves ───
+    const leaves = [];
+    for (let i = 0; i < 8; i++) {
+      leaves.push({
+        x: Math.random() * W, y: Math.random() * H * 0.7,
+        speed: 0.15 + Math.random() * 0.25,
+        size: 4 + Math.random() * 5,
+        rot: Math.random() * 6.28,
+        rotSpeed: (Math.random() - 0.5) * 0.008,
+        opacity: 0.15 + Math.random() * 0.2,
+        depth: 0.3 + Math.random() * 0.7,
+      });
+    }
+
+    // ─── Bus listeners ───
+    bus.on("kick", () => {
+      addTrauma(0.3);
+      mk.bodyStretchVel += 10;
+      mk.mouthOpen = 0.6;
+      mk.lastInput = Date.now();
+      spawnSparks(mk.baseX, mk.baseY + 30, 4, TRACK_COLORS_RAW[0]);
+    });
+    bus.on("snare", () => {
+      addTrauma(0.12);
+      mk.earLV += 8; mk.earRV -= 6;
+      spawnDust(mk.baseX, mk.baseY + 40, 8);
+      mk.lastInput = Date.now();
+      spawnSparks(mk.baseX, mk.baseY, 3, TRACK_COLORS_RAW[1]);
+    });
+    bus.on("hat", () => {
+      mk.headBobVel -= 3;
+      mk.lastInput = Date.now();
+    });
+    bus.on("bongo", () => {
+      addTrauma(0.08);
+      mk.bodyStretchVel += 5;
+      mk.lastInput = Date.now();
+      spawnSparks(mk.baseX, mk.baseY + 20, 3, TRACK_COLORS_RAW[4]);
+    });
+    bus.on("bass", () => {
+      mk.bodyStretchVel -= 7;
+      mk.lastInput = Date.now();
+      spawnSparks(mk.baseX - 10, mk.baseY + 30, 3, TRACK_COLORS_RAW[6]);
+    });
+    bus.on("lead", (d) => {
+      mk.tail[mk.tail.length - 1].px -= 4;
+      mk.pupilOX = Math.sin((d.step || 0) * 0.4) * 2.5;
+      mk.pupilOY = Math.cos((d.step || 0) * 0.3) * 1.5;
+      mk.lastInput = Date.now();
+      spawnSparks(mk.baseX + 15, mk.baseY - 20, 3, TRACK_COLORS_RAW[7]);
+    });
+    bus.on("accent", () => {
+      if (mk.bananaHeld) {
+        mk.bananaHeld = false;
+        mk.bananaX = mk.baseX + 25; mk.bananaY = mk.baseY - 10;
+        mk.bananaVX = 2 + Math.random() * 2;
+        mk.bananaVY = -6 - Math.random() * 3;
+        mk.bananaAngV = 0.15 + Math.random() * 0.2;
+        mk.bananaTimer = 1.2;
+      }
+      spawnBananaConfetti(mk.baseX, mk.baseY - 30, 12);
+      mk.eyebrowVel += 6;
+      mk.lastInput = Date.now();
+    });
+    bus.on("loopWrap", () => {
+      flashAlpha = 0.25;
+      mk.barsPlayed++;
+    });
+    let beatPhase = 0;
+    bus.on("step", (d) => { beatPhase = d.step / STEPS; });
+
+    // ─── Draw background ───
+    function drawBackground(t) {
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, "oklch(0.30 0.08 230)");
+      skyGrad.addColorStop(0.4, "oklch(0.22 0.07 175)");
+      skyGrad.addColorStop(1, "oklch(0.14 0.05 145)");
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Moon glow
+      const glowPulse = 0.18 + Math.sin(t * 0.3) * 0.04;
+      const sunGrad = ctx.createRadialGradient(W * 0.82, H * 0.12, 0, W * 0.82, H * 0.12, 55);
+      sunGrad.addColorStop(0, "oklch(0.92 0.18 90 / " + (glowPulse + 0.25) + ")");
+      sunGrad.addColorStop(0.4, "oklch(0.80 0.14 65 / " + glowPulse + ")");
+      sunGrad.addColorStop(1, "transparent");
+      ctx.fillStyle = sunGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Stars / fireflies
+      const rng = mulberry32(42);
+      for (let i = 0; i < 20; i++) {
+        const sx = rng() * W, sy = rng() * H * 0.45;
+        const bright = 0.3 + Math.sin(t * 0.8 + i * 1.3) * 0.2;
+        ctx.fillStyle = "oklch(0.95 0.04 90 / " + bright + ")";
+        ctx.beginPath();
+        ctx.arc(sx, sy, 0.8 + rng() * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Far hills
+      ctx.fillStyle = "oklch(0.18 0.07 145)";
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 4) {
+        ctx.lineTo(x, H * 0.48 + Math.sin(x * 0.007 + 1.2) * 28 + Math.sin(x * 0.018) * 10);
+      }
+      ctx.lineTo(W, H); ctx.fill();
+
+      // Mid canopy
+      ctx.fillStyle = "oklch(0.16 0.08 140)";
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 3) {
+        const base = H * 0.58;
+        const tree = Math.sin(x * 0.012 + 0.5) * 22 + Math.sin(x * 0.03) * 8;
+        const palm = Math.max(0, Math.sin(x * 0.005) * 12);
+        ctx.lineTo(x, base + tree - palm);
+      }
+      ctx.lineTo(W, H); ctx.fill();
+
+      // Ground
+      const gndGrad = ctx.createLinearGradient(0, H * 0.78, 0, H);
+      gndGrad.addColorStop(0, "oklch(0.14 0.06 60)");
+      gndGrad.addColorStop(1, "oklch(0.10 0.04 50)");
+      ctx.fillStyle = gndGrad;
+      ctx.fillRect(0, H * 0.78, W, H * 0.22);
+
+      // Grass tufts
+      ctx.strokeStyle = "oklch(0.25 0.10 140)";
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = "round";
+      const grassRng = mulberry32(77);
+      for (let i = 0; i < 30; i++) {
+        const gx = grassRng() * W;
+        const gy = H * 0.78 + grassRng() * 4;
+        const gh = 4 + grassRng() * 6;
+        const sway = Math.sin(t * 1.2 + i * 0.7) * 2;
+        ctx.beginPath();
+        ctx.moveTo(gx, gy);
+        ctx.quadraticCurveTo(gx + sway, gy - gh, gx + sway * 1.5, gy - gh - 2);
+        ctx.stroke();
+      }
+
+      // Ground fog
+      const fogGrad = ctx.createLinearGradient(0, H * 0.72, 0, H * 0.82);
+      fogGrad.addColorStop(0, "transparent");
+      fogGrad.addColorStop(1, "oklch(0.25 0.06 100 / 0.15)");
+      ctx.fillStyle = fogGrad;
+      const fogShift = Math.sin(t * 0.4) * 10;
+      ctx.fillRect(fogShift, H * 0.72, W, H * 0.12);
+
+      // Hanging vines
+      drawVines(t);
+    }
+
+    function drawVines(t) {
+      ctx.strokeStyle = "oklch(0.22 0.09 145)";
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      const energy = trauma * 3 + 0.3;
+      for (let i = 0; i < 7; i++) {
+        const vx = 50 + i * 120;
+        const len = 30 + (i % 3) * 25;
+        ctx.beginPath();
+        ctx.moveTo(vx, 0);
+        for (let y = 0; y < len; y += 4) {
+          const sway = Math.sin(y * 0.06 + t * 0.8 + i * 1.5) * (4 + energy * 3) * (y / len);
+          ctx.lineTo(vx + sway, y);
+        }
+        ctx.stroke();
+        // Leaf at vine tip
+        const tipY = len;
+        const tipSway = Math.sin(tipY * 0.06 + t * 0.8 + i * 1.5) * (4 + energy * 3);
+        ctx.fillStyle = "oklch(0.28 0.12 140)";
+        ctx.beginPath();
+        ctx.ellipse(vx + tipSway, tipY + 3, 3, 5, tipSway * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // ─── Ambient leaves update ───
+    function tickLeaves(t) {
+      if (reducedMotion) return;
+      leaves.forEach(lf => {
+        lf.x -= lf.speed;
+        lf.y += Math.sin(t * 0.5 + lf.x * 0.01) * 0.15;
+        lf.rot += lf.rotSpeed;
+        if (lf.x < -20) { lf.x = W + 20; lf.y = Math.random() * H * 0.6; }
+        ctx.save();
+        ctx.globalAlpha = lf.opacity;
+        ctx.translate(lf.x, lf.y);
+        ctx.rotate(lf.rot);
+        ctx.fillStyle = "oklch(0.30 0.12 145)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, lf.size, lf.size * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Leaf vein
+        ctx.strokeStyle = "oklch(0.25 0.08 140)";
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(-lf.size, 0);
+        ctx.lineTo(lf.size, 0);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    // ─── Draw monkey ───
+    function drawMonkey(t, dt) {
+      const m = mk;
+      ctx.save();
+      ctx.translate(m.baseX, m.baseY + m.bodyOffY);
+
+      // --- Tail (back-most) ---
+      ctx.strokeStyle = "oklch(0.40 0.10 55)";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(m.tail[0].x - m.baseX, m.tail[0].y - m.baseY - m.bodyOffY);
+      for (let i = 1; i < m.tail.length; i++) {
+        ctx.lineTo(m.tail[i].x - m.baseX, m.tail[i].y - m.baseY - m.bodyOffY);
+      }
+      ctx.stroke();
+      // Tail tip curl
+      const tip = m.tail[m.tail.length - 1];
+      const prev = m.tail[m.tail.length - 2];
+      ctx.beginPath();
+      ctx.lineWidth = 3;
+      ctx.arc(tip.x - m.baseX, tip.y - m.baseY - m.bodyOffY, 4,
+        Math.atan2(tip.y - prev.y, tip.x - prev.x) - 1.5,
+        Math.atan2(tip.y - prev.y, tip.x - prev.x) + 1.5);
+      ctx.stroke();
+
+      // --- Back leg ---
+      const legTap = Math.sin(m.legPhase) * 3;
+      ctx.strokeStyle = "oklch(0.38 0.09 55)";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-7, 25);
+      ctx.quadraticCurveTo(-10, 35, -9 + legTap, 42);
+      ctx.stroke();
+      // Foot
+      ctx.fillStyle = "oklch(0.35 0.08 55)";
+      ctx.beginPath();
+      ctx.ellipse(-9 + legTap, 43, 5, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- Body ---
+      const sY = m.bodyStretchY;
+      const sX = 1 / sY; // volume preservation
+      ctx.save();
+      ctx.scale(sX, sY);
+      // Body gradient
+      const bodyGrad = ctx.createRadialGradient(2, -5, 5, 0, 5, 28);
+      bodyGrad.addColorStop(0, "oklch(0.48 0.11 60)");
+      bodyGrad.addColorStop(1, "oklch(0.38 0.10 55)");
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.ellipse(0, 5, 20, 26, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Belly
+      ctx.fillStyle = "oklch(0.62 0.07 70)";
+      ctx.beginPath();
+      ctx.ellipse(2, 10, 13, 17, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // --- Front leg ---
+      ctx.strokeStyle = "oklch(0.40 0.10 55)";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(7, 25);
+      ctx.quadraticCurveTo(10, 35, 9 - legTap, 42);
+      ctx.stroke();
+      ctx.fillStyle = "oklch(0.37 0.09 55)";
+      ctx.beginPath();
+      ctx.ellipse(9 - legTap, 43, 5, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- Back arm ---
+      ctx.strokeStyle = "oklch(0.38 0.09 55)";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      const backArmAngle = m.state === "dance" ? Math.sin(t * 3) * 0.5 : m.state === "freakout" ? -1.2 : 0.3;
+      ctx.beginPath();
+      ctx.moveTo(-16, -2);
+      ctx.quadraticCurveTo(-25, -2 + Math.sin(backArmAngle) * 15, -30, 5 + Math.cos(backArmAngle) * 20);
+      ctx.stroke();
+      // Hand
+      ctx.fillStyle = "oklch(0.52 0.06 70)";
+      ctx.beginPath();
+      ctx.arc(-30, 5 + Math.cos(backArmAngle) * 20, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- Head ---
+      const headY = -28 + m.headBobY;
+      ctx.save();
+      ctx.translate(2, headY);
+      ctx.rotate(m.headTilt * 0.01);
+
+      // Head shape
+      const headGrad = ctx.createRadialGradient(-2, -4, 5, 0, 0, 18);
+      headGrad.addColorStop(0, "oklch(0.48 0.11 60)");
+      headGrad.addColorStop(1, "oklch(0.38 0.10 55)");
+      ctx.fillStyle = headGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Face area
+      ctx.fillStyle = "oklch(0.58 0.06 70)";
+      ctx.beginPath();
+      ctx.ellipse(2, 3, 12, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- Ears ---
+      // Left ear
+      ctx.fillStyle = "oklch(0.42 0.10 55)";
+      ctx.beginPath();
+      ctx.ellipse(-16 + m.earLJ, -8, 6, 7, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "oklch(0.58 0.06 70)";
+      ctx.beginPath();
+      ctx.ellipse(-16 + m.earLJ, -8, 3.5, 4.5, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+      // Right ear
+      ctx.fillStyle = "oklch(0.42 0.10 55)";
+      ctx.beginPath();
+      ctx.ellipse(18 + m.earRJ, -8, 6, 7, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "oklch(0.58 0.06 70)";
+      ctx.beginPath();
+      ctx.ellipse(18 + m.earRJ, -8, 3.5, 4.5, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- Fur tufts ---
+      ctx.strokeStyle = "oklch(0.45 0.10 60)";
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      for (let i = 0; i < 3; i++) {
+        const fx = -4 + i * 4;
+        const fSway = Math.sin(t * 1.5 + i * 2) * 2;
+        ctx.beginPath();
+        ctx.moveTo(fx, -17);
+        ctx.quadraticCurveTo(fx + fSway, -23, fx + fSway * 1.5, -25);
+        ctx.stroke();
+      }
+
+      // --- Eyes ---
+      const eyeL = { x: -6, y: -5 };
+      const eyeR = { x: 8, y: -5 };
+      const eyeR_rad = 5;
+
+      [eyeL, eyeR].forEach(eye => {
+        // Sclera
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(eye.x, eye.y, eyeR_rad, 0, Math.PI * 2);
+        ctx.fill();
+        // Iris
+        ctx.fillStyle = "oklch(0.40 0.12 55)";
+        const ir = eyeR_rad * 0.55;
+        ctx.beginPath();
+        ctx.arc(eye.x + m.pupilOX, eye.y + m.pupilOY, ir, 0, Math.PI * 2);
+        ctx.fill();
+        // Pupil
+        ctx.fillStyle = "#111";
+        ctx.beginPath();
+        ctx.arc(eye.x + m.pupilOX * 1.2, eye.y + m.pupilOY * 1.2, ir * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Highlight
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.beginPath();
+        ctx.arc(eye.x + m.pupilOX * 0.3 - 1.5, eye.y + m.pupilOY * 0.3 - 1.5, ir * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        // Blink eyelid
+        if (m.isBlinking) {
+          ctx.fillStyle = "oklch(0.42 0.10 55)";
+          ctx.beginPath();
+          ctx.arc(eye.x, eye.y, eyeR_rad + 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      // --- Eyebrows ---
+      ctx.strokeStyle = "oklch(0.32 0.08 55)";
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      const browLift = m.eyebrowRaise;
+      // Left brow
+      ctx.beginPath();
+      ctx.moveTo(-10, -11 - browLift);
+      ctx.quadraticCurveTo(-6, -13 - browLift * 1.2, -2, -11 - browLift);
+      ctx.stroke();
+      // Right brow
+      ctx.beginPath();
+      ctx.moveTo(4, -11 - browLift);
+      ctx.quadraticCurveTo(8, -13 - browLift * 1.2, 12, -11 - browLift);
+      ctx.stroke();
+
+      // --- Mouth ---
+      if (m.mouthOpen > 0.3) {
+        // Open mouth
+        ctx.fillStyle = "oklch(0.30 0.08 20)";
+        ctx.beginPath();
+        ctx.ellipse(3, 8, 4, 3 + m.mouthOpen * 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Tongue hint
+        ctx.fillStyle = "oklch(0.55 0.15 15)";
+        ctx.beginPath();
+        ctx.ellipse(3, 9 + m.mouthOpen * 2, 2.5, 1.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Smile
+        ctx.strokeStyle = "oklch(0.32 0.06 55)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const smileW = 5 + m.mouthSmile * 2;
+        ctx.arc(3, 5, smileW, 0.15, Math.PI - 0.15);
+        ctx.stroke();
+      }
+
+      // Cheek blush (freakout)
+      if (m.state === "freakout") {
+        ctx.fillStyle = "oklch(0.65 0.15 15 / 0.3)";
+        ctx.beginPath();
+        ctx.ellipse(-8, 3, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(14, 3, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore(); // end head
+
+      // --- Front arm + banana ---
+      ctx.strokeStyle = "oklch(0.40 0.10 55)";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      const frontArmEnd = m.bananaHeld
+        ? { x: 25, y: 10 }
+        : { x: 22, y: 15 + Math.sin(t * 1.5) * 3 };
+      ctx.beginPath();
+      ctx.moveTo(16, -2);
+      ctx.quadraticCurveTo(22, 0, frontArmEnd.x, frontArmEnd.y);
+      ctx.stroke();
+      // Hand
+      ctx.fillStyle = "oklch(0.52 0.06 70)";
+      ctx.beginPath();
+      ctx.arc(frontArmEnd.x, frontArmEnd.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Banana in hand
+      if (m.bananaHeld) {
+        ctx.save();
+        ctx.translate(frontArmEnd.x + 3, frontArmEnd.y - 2);
+        ctx.rotate(-0.3);
+        drawBananaShape(ctx, 0, 0, 1);
+        ctx.restore();
+      }
+
+      ctx.restore(); // end monkey body translate
+    }
+
+    function drawBananaShape(c, x, y, scale) {
+      c.save();
+      c.translate(x, y);
+      c.scale(scale, scale);
+      // Body
+      c.fillStyle = "oklch(0.88 0.19 92)";
+      c.beginPath();
+      c.ellipse(0, 0, 4, 10, 0, 0, Math.PI * 2);
+      c.fill();
+      // Brown tip
+      c.fillStyle = "oklch(0.40 0.10 55)";
+      c.beginPath();
+      c.ellipse(0, 9, 2, 2, 0, 0, Math.PI * 2);
+      c.fill();
+      // Green stem
+      c.fillStyle = "oklch(0.45 0.12 145)";
+      c.beginPath();
+      c.ellipse(0, -10, 1.5, 2, 0, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+    }
+
+    // ─── Flying banana ───
+    function tickFlyingBanana(dt) {
+      if (mk.bananaHeld) return;
+      mk.bananaX += mk.bananaVX;
+      mk.bananaVY += 15 * dt; // gravity
+      mk.bananaY += mk.bananaVY;
+      mk.bananaAng += mk.bananaAngV;
+      mk.bananaTimer -= dt;
+      if (mk.bananaTimer <= 0) {
+        mk.bananaHeld = true;
+      }
+      // Draw flying banana
+      if (!mk.bananaHeld) {
+        ctx.save();
+        ctx.translate(mk.bananaX, mk.bananaY);
+        ctx.rotate(mk.bananaAng);
+        drawBananaShape(ctx, 0, 0, 1.2);
+        ctx.restore();
+      }
+    }
+
+    // ─── Update monkey physics ───
+    function updateMonkey(t, dt) {
+      const m = mk;
+
+      // Breathing
+      const breathTarget = 1 + Math.sin(t * 2.5) * 0.018;
+      const bs = springStep(m.bodyStretchY, breathTarget, m.bodyStretchVel, 12, 4, dt);
+      m.bodyStretchY = Math.max(0.8, Math.min(1.25, bs.value));
+      m.bodyStretchVel = bs.velocity;
+
+      // Body sway
+      m.bodyOffY = Math.sin(t * 1.5) * 1.5;
+
+      // Head bob spring
+      const hb = springStep(m.headBobY, 0, m.headBobVel, 15, 5, dt);
+      m.headBobY = hb.value; m.headBobVel = hb.velocity;
+
+      // Head tilt
+      const tiltTarget = m.state === "dance" ? Math.sin(t * 2) * 6 : 0;
+      const ht = springStep(m.headTilt, tiltTarget, m.headTiltVel, 8, 4, dt);
+      m.headTilt = ht.value; m.headTiltVel = ht.velocity;
+
+      // Eyebrow spring
+      const eb = springStep(m.eyebrowRaise, 0, m.eyebrowVel, 20, 6, dt);
+      m.eyebrowRaise = Math.max(0, eb.value); m.eyebrowVel = eb.velocity;
+
+      // Ear springs
+      const el = springStep(m.earLJ, 0, m.earLV, 25, 5, dt);
+      m.earLJ = el.value; m.earLV = el.velocity;
+      const er = springStep(m.earRJ, 0, m.earRV, 25, 5, dt);
+      m.earRJ = er.value; m.earRV = er.velocity;
+
+      // Mouth decay
+      m.mouthOpen *= 0.92;
+      if (m.mouthOpen < 0.05) m.mouthOpen = 0;
+
+      // Pupil decay
+      m.pupilOX *= 0.95;
+      m.pupilOY *= 0.95;
+
+      // Blink
+      m.blinkTimer -= dt;
+      if (m.blinkTimer <= 0 && !m.isBlinking) {
+        m.isBlinking = true;
+        m.blinkDur = 0.1;
+      }
+      if (m.isBlinking) {
+        m.blinkDur -= dt;
+        if (m.blinkDur <= 0) {
+          m.isBlinking = false;
+          m.blinkTimer = 3 + Math.random() * 4;
+        }
+      }
+
+      // Leg phase
+      if (m.state === "dance" || m.state === "nod") {
+        m.legPhase += dt * 8;
+      } else {
+        m.legPhase *= 0.95;
+      }
+
+      // Tail verlet
+      m.tail[0].x = m.baseX - 18;
+      m.tail[0].y = m.baseY + 12 + m.bodyOffY;
+      for (let i = 1; i < m.tail.length; i++) {
+        const wind = Math.sin(t * 1.2 + i * 0.8) * 0.12;
+        const wagBoost = m.state === "dance" ? Math.sin(t * 4 + i) * 0.3 : 0;
+        updateVerletPoint(m.tail[i], wind + wagBoost, 0.25, 0.97);
+      }
+      for (let iter = 0; iter < 3; iter++) {
+        for (let i = 1; i < m.tail.length; i++) {
+          constrainDist(m.tail[i - 1], m.tail[i], 12);
+        }
+      }
+
+      // Fur tuft phase
+      m.tuftPhase = t;
+
+      // Character FSM
+      const now = Date.now();
+      const idle = now - m.lastInput;
+      if (m.state === "idle" && idle > 25000) m.state = "yawn";
+      if (m.state === "yawn" && idle > 28000) m.state = "idle";
+      if (m.state === "idle" && idle < 500 && trauma > 0.05) m.state = "nod";
+      if (trauma >= 0.6 && m.state !== "yawn") m.state = "freakout";
+      if (m.barsPlayed >= 4 && m.state === "nod") m.state = "dance";
+      if (m.state === "freakout" && trauma < 0.15) m.state = m.barsPlayed >= 4 ? "dance" : "nod";
+
+      // Yawn mouth
+      if (m.state === "yawn") {
+        m.mouthOpen = 0.4 + Math.sin(t * 2) * 0.2;
+      }
+    }
+
+    // ─── Particle update + draw ───
+    function tickParticles(dt) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= dt;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        p.vy += 180 * dt; // gravity
+        p.x += p.vx;
+        p.y += p.vy * dt;
+        p.ang += p.angV;
+
+        const alpha = Math.max(0, p.life / p.maxLife);
+        ctx.globalAlpha = alpha;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.ang);
+        if (p.type === "banana") {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, p.size * 0.4, p.size, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "oklch(0.40 0.10 55)";
+          ctx.beginPath();
+          ctx.arc(0, p.size * 0.8, p.size * 0.15, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // ─── Main render loop ───
+    let lastTime = 0;
+    let raf;
+    function frame(now) {
+      raf = requestAnimationFrame(frame);
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      const t = now / 1000;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Shake
+      trauma = Math.max(0, trauma - 1.5 * dt);
+      if (!reducedMotion && trauma > 0.01) {
+        const s = getShake();
+        ctx.save();
+        ctx.translate(s.x, s.y);
+      }
+
+      drawBackground(t);
+      if (!reducedMotion) tickLeaves(t);
+
+      updateMonkey(t, dt);
+      drawMonkey(t, dt);
+      tickFlyingBanana(dt);
+
+      if (!reducedMotion) tickParticles(dt);
+
+      if (!reducedMotion && trauma > 0.01) ctx.restore();
+
+      // Flash overlay
+      if (flashAlpha > 0 && !reducedMotion) {
+        ctx.fillStyle = "rgba(255,255,200," + flashAlpha + ")";
+        ctx.fillRect(0, 0, W, H);
+        flashAlpha -= dt * 8;
+        if (flashAlpha < 0.01) flashAlpha = 0;
+      }
+    }
+    raf = requestAnimationFrame(frame);
+
+    return {
+      destroy() { cancelAnimationFrame(raf); },
+      setPlaying(p) {
+        if (p) { mk.state = "nod"; mk.barsPlayed = 0; mk.lastInput = Date.now(); }
+        else { mk.state = "idle"; mk.barsPlayed = 0; }
+      }
+    };
+  }
+
+  // ─── React Components ─────────────────────────────────────────────────────────
+
+  function Header({ state, dispatch }) {
+    return h("div", { className: "header" },
+      h("div", { style: { display: "flex", alignItems: "center", gap: "10px" } },
+        h("div", { className: "brand" }, "\uD83C\uDF4C ", h("em", null, "BANANA"), " BEATS"),
+        h("div", { className: "led" + (state.isPlaying ? " on" : "") })
+      ),
+      h("div", { className: "hdr-right" },
+        h("div", { className: "bpm-wrap" },
+          h("span", { className: "bpm-label" }, "BPM"),
+          h("input", {
+            type: "number", className: "bpm-input", value: state.bpm, min: 40, max: 180,
+            onChange: e => dispatch({ type: "SET_BPM", value: parseInt(e.target.value) || 96 })
+          })
+        ),
+        h("button", {
+          className: "ctrl-btn" + (state.isPlaying ? " live" : ""),
+          onClick: async () => {
+            if (!state.isPlaying) {
+              createAudio();
+              await Tone.start();
+              Tone.Transport.bpm.value = state.bpm;
+              dispatch({ type: "PLAY" });
+            } else {
+              Tone.Transport.stop();
+              Tone.Transport.position = 0;
+              disposeSequences();
+              dispatch({ type: "STOP" });
+            }
+          }
+        }, state.isPlaying ? "STOP" : "PLAY"),
+        h("button", { className: "ctrl-btn", onClick: () => dispatch({ type: "REROLL_ALL" }),
+          title: "Reroll all patterns" }, "\uD83C\uDFB2"),
+        h("span", { className: "seed-label" }, "#" + state.seed)
+      )
+    );
+  }
+
+  function PadGrid({ state, dispatch }) {
+    return h("div", { className: "pad-grid" },
+      state.tracks.map((track, ti) =>
+        h("div", { key: ti, className: "pad-row" },
+          h("div", { className: "pad-label", style: { color: TRACK_COLORS_RAW[ti] } }, track.name),
+          h("div", { className: "pad-cells" },
+            track.pattern.map((val, si) => {
+              const isSpacer = si > 0 && si % 4 === 0;
+              return h(React.Fragment, { key: si },
+                isSpacer ? h("div", { className: "spacer" }) : null,
+                h("button", {
+                  className: "pad" + (val ? " on" : "") + (state.currentStep === si ? " current" : ""),
+                  style: { "--tc": TRACK_COLORS_RAW[ti] },
+                  "aria-label": track.name + " step " + (si + 1) + (val ? ", active" : ", off"),
+                  onClick: () => dispatch({ type: "TOGGLE_STEP", trackId: ti, step: si })
+                })
+              );
+            })
+          ),
+          h("button", {
+            className: "pad-reroll", title: "Reroll " + track.name,
+            "aria-label": "Reroll " + track.name,
+            onClick: () => dispatch({ type: "REROLL_TRACK", id: ti })
+          }, "\uD83C\uDFB2")
+        )
+      )
+    );
+  }
+
+  function MixerTab({ state, dispatch }) {
+    return h("div", null,
+      state.tracks.map((track, ti) =>
+        h("div", { key: ti, className: "mixer-row" },
+          h("div", { className: "mixer-label", style: { color: TRACK_COLORS_RAW[ti] } }, track.name),
+          h("input", { type: "range", className: "mixer-slider", min: 0, max: 1, step: 0.01, value: track.gain,
+            style: { "--tc": TRACK_COLORS_RAW[ti], accentColor: TRACK_COLORS_RAW[ti] },
+            onChange: e => dispatch({ type: "SET_GAIN", id: ti, value: parseFloat(e.target.value) }) }),
+          h("div", { className: "mixer-val" }, Math.round(track.gain * 100) + "%"),
+          h("input", { type: "range", style: { width: "48px", accentColor: "oklch(0.62 0.16 230)" },
+            min: -1, max: 1, step: 0.1, value: track.pan,
+            onChange: e => dispatch({ type: "SET_PAN", id: ti, value: parseFloat(e.target.value) }) }),
+          h("button", { className: "mixer-btn" + (track.mute ? " active" : ""),
+            onClick: () => dispatch({ type: "MUTE", id: ti }) }, "M"),
+          h("button", { className: "mixer-btn" + (track.solo ? " solo-active" : ""),
+            onClick: () => dispatch({ type: "SOLO", id: ti }) }, "S")
+        )
+      ),
+      h("div", { className: "mixer-row", style: { borderTop: "2px solid oklch(0.65 0.04 70)", marginTop: "8px", paddingTop: "8px" } },
+        h("div", { className: "mixer-label", style: { fontWeight: 800 } }, "Master"),
+        h("input", { type: "range", className: "mixer-slider", min: 0, max: 1, step: 0.01, value: state.master.gain,
+          style: { accentColor: "oklch(0.55 0.16 90)" },
+          onChange: e => dispatch({ type: "SET_MASTER_GAIN", value: parseFloat(e.target.value) }) }),
+        h("div", { className: "mixer-val" }, Math.round(state.master.gain * 100) + "%")
+      )
+    );
+  }
+
+  function FxTab({ state, dispatch }) {
+    const fxNames = ["Reverb", "Delay", "Filter", "Distortion"];
+    const paramLabels = {
+      reverb: ["Decay", "Wet", "Pre-delay"],
+      delay: ["Time", "Feedback", "Wet"],
+      filter: ["Freq", "Q", "Wet"],
+      distortion: ["Amount", "Wet", "Drive"],
+    };
+    return h("div", null,
+      state.fx.map((fx, i) =>
+        h("div", { key: i, className: "fx-slot" },
+          h("div", { className: "fx-header" },
+            h("span", { style: { fontWeight: 700, fontSize: "11px", letterSpacing: ".1em", textTransform: "uppercase" } }, fxNames[i]),
+            h("button", {
+              className: "mixer-btn" + (fx.enabled ? " active" : ""),
+              onClick: () => dispatch({ type: "TOGGLE_FX", slot: i })
+            }, fx.enabled ? "ON" : "OFF")
+          ),
+          h("div", { className: "fx-params" },
+            Object.entries(fx.params).map(([key, val], pi) =>
+              h("div", { key: key, className: "fx-param" },
+                h("label", null, (paramLabels[fx.type] || [])[pi] || key),
+                h("input", { type: "range", min: 0, max: key === "frequency" ? 8000 : key === "Q" ? 10 : key === "decay" ? 10 : 1,
+                  step: key === "frequency" ? 50 : 0.01, value: val,
+                  onChange: e => dispatch({ type: "SET_FX_PARAM", slot: i, key, value: parseFloat(e.target.value) }) }),
+                h("span", { className: "val" }, typeof val === "number" ? val.toFixed(2) : val)
+              )
+            )
+          )
+        )
+      )
+    );
+  }
+
+  function PresetTab({ state, dispatch }) {
+    const [name, setName] = useState("");
+    return h("div", null,
+      h("div", { className: "preset-save-row" },
+        h("input", { type: "text", value: name, placeholder: "Preset name...",
+          className: "preset-input",
+          onChange: e => setName(e.target.value),
+          onKeyDown: e => { if (e.key === "Enter" && name.trim()) { dispatch({ type: "SAVE_PRESET", name: name.trim() }); setName(""); } }
+        }),
+        h("button", { className: "ctrl-btn", onClick: () => { if (name.trim()) { dispatch({ type: "SAVE_PRESET", name: name.trim() }); setName(""); } } }, "SAVE")
+      ),
+      state.presets.length === 0
+        ? h("div", { style: { color: "var(--text-muted)", fontSize: "11px", padding: "16px", textAlign: "center", letterSpacing: ".04em" } },
+            "No presets yet. Save the current pattern above.")
+        : state.presets.map(p =>
+            h("div", { key: p.id, className: "preset-item" },
+              h("div", { className: "preset-name" }, p.name),
+              h("span", { style: { fontSize: "10px", color: "var(--text-muted)" } }, p.bpm + " BPM"),
+              h("div", { className: "preset-actions" },
+                h("button", { className: "preset-btn", onClick: () => dispatch({ type: "LOAD_PRESET", id: p.id }) }, "Load"),
+                h("button", { className: "preset-btn del", onClick: () => dispatch({ type: "DELETE_PRESET", id: p.id }) }, "Del")
+              )
+            )
+          )
+    );
+  }
+
+  function StageDisplay({ state }) {
+    const canvasRef = useRef(null);
+    const stageRef = useRef(null);
+
+    useEffect(() => {
+      if (canvasRef.current && !stageRef.current) {
+        stageRef.current = createStage(canvasRef.current);
+      }
+      return () => { if (stageRef.current) { stageRef.current.destroy(); stageRef.current = null; } };
+    }, []);
+
+    useEffect(() => {
+      if (stageRef.current) stageRef.current.setPlaying(state.isPlaying);
+    }, [state.isPlaying]);
+
+    return h("div", { className: "display" },
+      h("canvas", { ref: canvasRef, tabIndex: 0, role: "application",
+        "aria-label": "Monkey character animation stage" })
+    );
+  }
+
+  // ─── App ──────────────────────────────────────────────────────────────────────
+
+  function App() {
+    const [state, dispatch] = useReducer(reducer, null, createInitialState);
+    const stateRef = useRef(state);
+    stateRef.current = state;
+
+    // Sync BPM
+    useEffect(() => {
+      if (Tone.Transport) Tone.Transport.bpm.value = state.bpm;
+    }, [state.bpm]);
+
+    // Sync master gain
+    useEffect(() => {
+      if (masterGain) masterGain.gain.value = state.master.gain;
+    }, [state.master.gain]);
+
+    // Sync FX params
+    useEffect(() => {
+      if (!audioReady) return;
+      const [rv, dl] = state.fx;
+      if (reverbSend) {
+        try { reverbSend.decay = rv.params.decay; } catch(e){}
+        reverbGain.gain.value = rv.enabled ? rv.params.wet * 0.5 : 0;
+      }
+      if (delaySend) {
+        try {
+          delaySend.feedback.value = dl.params.feedback;
+        } catch(e){}
+        delayGain.gain.value = dl.enabled ? dl.params.wet * 0.5 : 0;
+      }
+    }, [state.fx]);
+
+    // Build sequences when playing
+    useEffect(() => {
+      if (state.isPlaying && audioReady) {
+        rebuildSequences(() => stateRef.current);
+        Tone.Transport.bpm.value = state.bpm;
+        if (Tone.Transport.state !== "started") Tone.Transport.start();
+      }
+    }, [state.isPlaying]);
+
+    // Step tracking
+    useEffect(() => {
+      const onStep = (d) => dispatch({ type: "SET_STEP", step: d.step });
+      bus.on("step", onStep);
+      return () => bus.off("step", onStep);
+    }, []);
+
+    // Persistence
+    useEffect(() => { debounceSave(state); }, [state.presets, state.bpm, state.vibe, state.tracks, state.fx, state.master]);
+
+    // Load saved
+    useEffect(() => {
+      loadSaved().then(saved => {
+        if (saved && saved.lastSession) {
+          dispatch({ type: "SET_BPM", value: saved.lastSession.bpm || 96 });
+          if (saved.presets) {
+            saved.presets.forEach(p => dispatch({ type: "SAVE_PRESET", name: p.name || "Unnamed" }));
+          }
+        }
+      });
+    }, []);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+      const handler = (e) => {
+        if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
+        if (e.code === "Space") {
+          e.preventDefault();
+          if (!state.isPlaying) {
+            createAudio();
+            Tone.start().then(() => {
+              Tone.Transport.bpm.value = stateRef.current.bpm;
+              dispatch({ type: "PLAY" });
+            });
+          } else {
+            Tone.Transport.stop();
+            Tone.Transport.position = 0;
+            disposeSequences();
+            dispatch({ type: "STOP" });
+          }
+        }
+        if (e.key === "r" || e.key === "R") dispatch({ type: "REROLL_ALL" });
+        if (e.key >= "1" && e.key <= "8") dispatch({ type: "REROLL_TRACK", id: parseInt(e.key) - 1 });
+      };
+      addEventListener("keydown", handler);
+      return () => removeEventListener("keydown", handler);
+    }, [state.isPlaying]);
+
+    const tabs = ["seq", "mixer", "fx", "presets"];
+    const tabLabels = { seq: "Sequencer", mixer: "Mixer", fx: "FX", presets: "Presets" };
+    const panelContent = state.activeTab === "mixer" ? h(MixerTab, { state, dispatch })
+      : state.activeTab === "fx" ? h(FxTab, { state, dispatch })
+      : state.activeTab === "presets" ? h(PresetTab, { state, dispatch })
+      : null;
+
+    return h("div", { className: "machine" },
+      h(Header, { state, dispatch }),
+      h(StageDisplay, { state }),
+      h(PadGrid, { state, dispatch }),
+      h("div", { className: "tabs" },
+        tabs.map(tab =>
+          h("button", {
+            key: tab, className: "tab" + (state.activeTab === tab ? " active" : ""),
+            onClick: () => dispatch({ type: "SET_TAB", tab })
+          }, tabLabels[tab])
+        )
+      ),
+      panelContent ? h("div", { className: "panel" }, panelContent) : null,
+      h("div", { className: "kb-hint" }, "Space \u00B7 R \u00B7 1-8"),
+      h("div", { role: "status", "aria-live": "polite",
+        style: { position: "absolute", left: "-9999px", top: "-9999px" } },
+        state.isPlaying ? "Playing at " + state.bpm + " BPM" : "Stopped"
+      )
+    );
+  }
+
+  // ─── Mount ────────────────────────────────────────────────────────────────────
+  ReactDOM.render(h(App), document.getElementById("root"));
+
+  })();
+  </script>
+</body>
+</html>
