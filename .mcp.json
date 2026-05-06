@@ -1,0 +1,17 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/mcp-servers.json",
+  "mcpServers": {
+    "asset-router": {
+      "command": "node",
+      "args": ["./mcp/servers/asset-router/dist/index.js"],
+      "env": {
+        "REPLICATE_API_TOKEN": "${REPLICATE_API_TOKEN:-}",
+        "ELEVENLABS_API_KEY": "${ELEVENLABS_API_KEY:-}",
+        "FAL_KEY": "${FAL_KEY:-}",
+        "SUNO_API_KEY": "${SUNO_API_KEY:-}",
+        "LUMAAI_API_KEY": "${LUMAAI_API_KEY:-}",
+        "RUNWAY_API_KEY": "${RUNWAY_API_KEY:-}"
+      }
+    }
+  }
+}
