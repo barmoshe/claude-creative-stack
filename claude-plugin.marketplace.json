@@ -42,6 +42,11 @@
       "name": "procgen-toolkit",
       "description": "Seeded BSP, WFC, cellular-automata, and noise generators.",
       "source": { "type": "local", "path": "skills/procgen-toolkit" }
+    },
+    {
+      "name": "graphify",
+      "description": "Build and query a codebase knowledge graph (graphify by safishamsi). Maps any folder of code, docs, SQL, scripts, PDFs, images, audio, video into nodes/edges; surfaces god nodes, design rationale, and surprising cross-file connections.",
+      "source": { "type": "local", "path": "skills/graphify" }
     }
   ],
   "mcps": [
@@ -49,6 +54,11 @@
       "name": "palette-oklch",
       "description": "MCP server exposing the palette-generator logic as tool calls.",
       "source": { "type": "local", "path": "mcp/servers/palette-oklch" }
+    },
+    {
+      "name": "graphify",
+      "description": "MCP server for graphify — query a codebase knowledge graph from Claude. Install with `uv tool install graphifyy && graphify install`, then run as `graphify mcp`.",
+      "source": { "type": "git", "url": "https://github.com/safishamsi/graphify" }
     }
   ]
 }

@@ -19,6 +19,7 @@ You are assisting inside a Claude Project whose knowledge base is the `claude-cr
 - **Generating images / voice / music / video** (Replicate, Fal, ElevenLabs, Suno, Luma) → `knowledge/13-asset-pipelines.md`.
 - **Accessibility, INP, prefers-reduced-motion, profiling** → `knowledge/14-accessibility-performance.md`.
 - **Recording, export, GIF/MP4/WebM, sprite packing** → `knowledge/15-export-recording.md`.
+- **Codebase knowledge graphs** ("map this repo", "what connects X to Y", "find god nodes", design-rationale archaeology) → `skills/graphify/SKILL.md` + `recipes/codebase-knowledge-graph.md`.
 - Anything where you're about to hardcode a version or model ID → consult `knowledge/99-caveats.md` first.
 
 ## Defaults

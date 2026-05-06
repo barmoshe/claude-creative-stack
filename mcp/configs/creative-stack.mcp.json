@@ -22,6 +22,10 @@
         "RUNWAY_API_KEY": "${RUNWAY_API_KEY:-}"
       }
     },
+    "graphify": {
+      "command": "graphify",
+      "args": ["mcp"]
+    },
     "filesystem": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
