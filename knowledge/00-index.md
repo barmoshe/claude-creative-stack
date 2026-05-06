@@ -21,6 +21,7 @@ This folder is the reference context for Claude working inside the `claude-creat
 | Generating images, voice, music, video via Replicate / Fal / ElevenLabs / Suno / Luma — provider selection, cost, prompts | [`13-asset-pipelines.md`](13-asset-pipelines.md) |
 | INP / LCP / CLS targets, prefers-reduced-motion, keyboard nav for canvas, profiling, color contrast | [`14-accessibility-performance.md`](14-accessibility-performance.md) |
 | Exporting canvas → PNG/GIF/MP4/WebM, MediaRecorder, WebCodecs, ffmpeg.wasm, sprite packing | [`15-export-recording.md`](15-export-recording.md) |
+| Claude Code hooks (`SessionStart`, `Stop`, `UserPromptSubmit`), context injection, retrieval-on-prompt | [`16-hooks-and-retrieval.md`](16-hooks-and-retrieval.md) |
 | "Is this version still current? Is this model ID still valid?" | [`99-caveats.md`](99-caveats.md) |
 
 ## Reading priority for cold starts

@@ -28,7 +28,11 @@ pnpm-debug.log*
 
 # Claude
 .claude/settings.local.json
+.claude/ISSUES.local.md
 CLAUDE.local.md
+
+# graphify
+graphify-out/
 
 # Coverage / test
 coverage/

@@ -20,6 +20,7 @@ You are assisting inside a Claude Project whose knowledge base is the `claude-cr
 - **Accessibility, INP, prefers-reduced-motion, profiling** → `knowledge/14-accessibility-performance.md`.
 - **Recording, export, GIF/MP4/WebM, sprite packing** → `knowledge/15-export-recording.md`.
 - **Codebase knowledge graphs** ("map this repo", "what connects X to Y", "find god nodes", design-rationale archaeology) → `skills/graphify/SKILL.md` + `recipes/codebase-knowledge-graph.md`.
+- **Claude Code hooks & retrieval** (SessionStart briefings, Stop follow-ups, UserPromptSubmit RAG-lite, `additionalContext` mechanics) → `knowledge/16-hooks-and-retrieval.md`.
 - Anything where you're about to hardcode a version or model ID → consult `knowledge/99-caveats.md` first.
 
 ## Defaults
