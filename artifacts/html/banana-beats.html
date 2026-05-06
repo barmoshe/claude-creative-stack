@@ -96,7 +96,7 @@
       background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.08) 2px, rgba(0,0,0,.08) 4px);
       mix-blend-mode: overlay; opacity: 0.5; z-index: 2;
     }
-    .display canvas { display: block; width: 100%; height: 240px; }
+    .display canvas { display: block; width: 100%; height: 280px; }
 
     .pad-grid { padding: 12px 0 8px; }
     .pad-row { display: flex; align-items: center; gap: 0; margin-bottom: 3px; }
@@ -506,6 +506,7 @@
           const audible = hasSolo2 ? track.solo : !track.mute;
           const val = track.pattern[stepIdx];
           if (!val || !audible) return;
+          bus.emit("trackHit", { track: i, step: stepIdx, val });
           if (i === 0) bus.emit("kick", { step: stepIdx });
           else if (i === 1) bus.emit("snare", { step: stepIdx });
           else if (i === 2 || i === 3) bus.emit("hat", { step: stepIdx });
@@ -580,85 +581,48 @@
 
   function createStage(canvas) {
     const ctx = canvas.getContext("2d");
-    const W = 812, H = 240;
+    const W = 812, H = 280;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // ─── Trauma / shake ───
-    let trauma = 0;
+    // ─── Global stage state ───
+    let trauma = 0, flashAlpha = 0, beatPhase = 0;
+    let currentBPM = 96;
+    let isPlayingFlag = false;
+    const trackMute = new Array(8).fill(false);
+    const trackSolo = new Array(8).fill(false);
+    const trackEnergy = new Array(8).fill(0.25);
+    const spotlightFlash = new Array(8).fill(0);
+
     function addTrauma(amt) { trauma = Math.min(1, trauma + amt); }
     function getShake() {
       const s = trauma * trauma;
       return { x: (Math.random() * 2 - 1) * 12 * s, y: (Math.random() * 2 - 1) * 12 * s };
     }
 
-    // ─── Flash ───
-    let flashAlpha = 0;
-
-    // ─── Monkey state ───
-    const mk = {
-      baseX: W * 0.5, baseY: H * 0.6,
-      bodyStretchY: 1, bodyStretchVel: 0,
-      bodyOffY: 0, bodyBounceVel: 0,
-      headTilt: 0, headTiltVel: 0,
-      headBobY: 0, headBobVel: 0,
-      blinkTimer: 3 + Math.random() * 4, isBlinking: false, blinkDur: 0,
-      pupilOX: 0, pupilOY: 0,
-      eyebrowRaise: 0, eyebrowVel: 0,
-      mouthOpen: 0, mouthSmile: 0.5,
-      earLJ: 0, earLV: 0, earRJ: 0, earRV: 0,
-      legPhase: 0,
-      tail: [],
-      bananaHeld: true,
-      bananaX: 0, bananaY: 0, bananaVX: 0, bananaVY: 0,
-      bananaAng: 0, bananaAngV: 0, bananaTimer: 0,
-      tuftPhase: 0,
-      state: "idle",
-      barsPlayed: 0,
-      lastInput: Date.now(),
-    };
-
-    // Init tail (5 verlet points)
-    for (let i = 0; i < 5; i++) {
-      mk.tail.push({ x: mk.baseX - 20 - i * 12, y: mk.baseY + 10 + i * 4, px: mk.baseX - 20 - i * 12, py: mk.baseY + 10 + i * 4 });
-    }
-
-    // ─── Particles ───
+    // ─── Particle pool (capped at 200) ───
     const particles = [];
-    function spawnDust(x, y, count) {
+    function spawn(x, y, count, color, type, opts) {
       if (reducedMotion) return;
-      for (let i = 0; i < count; i++) {
+      const o = opts || {};
+      for (let i = 0; i < count && particles.length < 200; i++) {
         particles.push({
-          x, y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2.5 - 1,
-          life: 0.5, maxLife: 0.5, size: 2 + Math.random() * 2,
-          color: "oklch(0.50 0.08 55)", type: "dust", ang: 0, angV: 0
-        });
-      }
-    }
-    function spawnBananaConfetti(x, y, count) {
-      if (reducedMotion) return;
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x, y, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 5 - 2,
-          life: 1.5, maxLife: 1.5, size: 4 + Math.random() * 4,
-          color: "oklch(0.85 0.19 90)", type: "banana", ang: Math.random() * 6.28, angV: (Math.random() - 0.5) * 0.3
-        });
-      }
-    }
-    function spawnSparks(x, y, count, color) {
-      if (reducedMotion) return;
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x, y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 4 - 1,
-          life: 0.3, maxLife: 0.3, size: 1.5 + Math.random() * 1.5,
-          color: color || "oklch(0.85 0.19 90)", type: "spark", ang: 0, angV: 0
+          x, y,
+          vx: (Math.random() - 0.5) * (o.spread != null ? o.spread : 3),
+          vy: -Math.random() * (o.lift != null ? o.lift : 3) - (o.lift0 || 1),
+          life: o.life || 0.5, maxLife: o.life || 0.5,
+          size: (o.minSize || 1.5) + Math.random() * (o.sizeRange || 1.5),
+          color, type,
+          ang: Math.random() * 6.28,
+          angV: (Math.random() - 0.5) * (o.spin || 0.2),
+          gravity: o.gravity != null ? o.gravity : 180,
         });
       }
     }
 
-    // ─── Ambient leaves ───
+    // ─── Ambient leaves (depth-cycled) ───
     const leaves = [];
     for (let i = 0; i < 8; i++) {
       leaves.push({
@@ -668,68 +632,186 @@
         rot: Math.random() * 6.28,
         rotSpeed: (Math.random() - 0.5) * 0.008,
         opacity: 0.15 + Math.random() * 0.2,
-        depth: 0.3 + Math.random() * 0.7,
       });
     }
 
-    // ─── Bus listeners ───
-    bus.on("kick", () => {
-      addTrauma(0.3);
-      mk.bodyStretchVel += 10;
-      mk.mouthOpen = 0.6;
-      mk.lastInput = Date.now();
-      spawnSparks(mk.baseX, mk.baseY + 30, 4, TRACK_COLORS_RAW[0]);
-    });
-    bus.on("snare", () => {
-      addTrauma(0.12);
-      mk.earLV += 8; mk.earRV -= 6;
-      spawnDust(mk.baseX, mk.baseY + 40, 8);
-      mk.lastInput = Date.now();
-      spawnSparks(mk.baseX, mk.baseY, 3, TRACK_COLORS_RAW[1]);
-    });
-    bus.on("hat", () => {
-      mk.headBobVel -= 3;
-      mk.lastInput = Date.now();
-    });
-    bus.on("bongo", () => {
-      addTrauma(0.08);
-      mk.bodyStretchVel += 5;
-      mk.lastInput = Date.now();
-      spawnSparks(mk.baseX, mk.baseY + 20, 3, TRACK_COLORS_RAW[4]);
-    });
-    bus.on("bass", () => {
-      mk.bodyStretchVel -= 7;
-      mk.lastInput = Date.now();
-      spawnSparks(mk.baseX - 10, mk.baseY + 30, 3, TRACK_COLORS_RAW[6]);
-    });
-    bus.on("lead", (d) => {
-      mk.tail[mk.tail.length - 1].px -= 4;
-      mk.pupilOX = Math.sin((d.step || 0) * 0.4) * 2.5;
-      mk.pupilOY = Math.cos((d.step || 0) * 0.3) * 1.5;
-      mk.lastInput = Date.now();
-      spawnSparks(mk.baseX + 15, mk.baseY - 20, 3, TRACK_COLORS_RAW[7]);
-    });
-    bus.on("accent", () => {
-      if (mk.bananaHeld) {
-        mk.bananaHeld = false;
-        mk.bananaX = mk.baseX + 25; mk.bananaY = mk.baseY - 10;
-        mk.bananaVX = 2 + Math.random() * 2;
-        mk.bananaVY = -6 - Math.random() * 3;
-        mk.bananaAngV = 0.15 + Math.random() * 0.2;
-        mk.bananaTimer = 1.2;
+    // ─── Decorative drawers ───
+    function drawBananaBunch(x, y, s) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s, s);
+      // Vine
+      ctx.strokeStyle = "oklch(0.30 0.10 140)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -8); ctx.bezierCurveTo(2, -4, -1, -1, 0, 2);
+      ctx.stroke();
+      // 5 bananas
+      const bp = [[-4, 0, -0.4], [3, -1, 0.3], [-1, 4, -0.1], [5, 4, 0.4], [-5, 6, -0.5]];
+      for (const [bx, by, ang] of bp) {
+        ctx.save();
+        ctx.translate(bx, by); ctx.rotate(ang);
+        ctx.fillStyle = "oklch(0.85 0.19 90)";
+        ctx.beginPath(); ctx.ellipse(0, 0, 1.6, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "oklch(0.45 0.12 60)";
+        ctx.beginPath(); ctx.arc(0, 3.5, 0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       }
-      spawnBananaConfetti(mk.baseX, mk.baseY - 30, 12);
-      mk.eyebrowVel += 6;
-      mk.lastInput = Date.now();
-    });
-    bus.on("loopWrap", () => {
-      flashAlpha = 0.25;
-      mk.barsPlayed++;
-    });
-    let beatPhase = 0;
-    bus.on("step", (d) => { beatPhase = d.step / STEPS; });
+      ctx.restore();
+    }
 
-    // ─── Draw background ───
+    function drawHibiscus(x, y, s, hue) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s, s);
+      // 5 petals
+      ctx.fillStyle = "oklch(0.72 0.22 " + hue + ")";
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.beginPath();
+        ctx.ellipse(0, -4, 3, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      // Center stamen
+      ctx.fillStyle = "oklch(0.85 0.18 80)";
+      ctx.beginPath(); ctx.arc(0, 0, 1.8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "oklch(0.55 0.20 25)";
+      ctx.beginPath(); ctx.arc(0, 0, 0.9, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawPalmFrond(x, y, baseAng, t) {
+      ctx.save();
+      ctx.translate(x, y);
+      const sway = Math.sin(t * 0.6) * 0.05;
+      ctx.rotate(baseAng + sway);
+      // Stem
+      ctx.strokeStyle = "oklch(0.30 0.10 130)";
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(15, -8, 35, -18, 55, -22);
+      ctx.stroke();
+      // Leaflets along stem
+      ctx.fillStyle = "oklch(0.30 0.13 140)";
+      for (let i = 0; i < 8; i++) {
+        const tparam = i / 7;
+        const sx = tparam * 55, sy = -tparam * 22 - Math.sin(tparam * Math.PI) * 4;
+        const side = i % 2 === 0 ? 1 : -1;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(side * 0.9 + tparam * 0.3);
+        ctx.beginPath();
+        ctx.ellipse(0, side * 6, 2.5, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function drawTikiTorch(x, y, t, bpm) {
+      ctx.save();
+      ctx.translate(x, y);
+      // Bamboo pole
+      ctx.fillStyle = "oklch(0.45 0.10 80)";
+      ctx.fillRect(-2, 0, 4, 50);
+      ctx.strokeStyle = "oklch(0.30 0.06 70)";
+      ctx.lineWidth = 0.6;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-2, 8 + i * 12); ctx.lineTo(2, 8 + i * 12);
+        ctx.stroke();
+      }
+      // Cup
+      ctx.fillStyle = "oklch(0.32 0.08 60)";
+      ctx.beginPath();
+      ctx.ellipse(0, -2, 5, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Flame (flicker rate scales with BPM)
+      const flickerRate = 6 + bpm / 30;
+      const fy = -6 - Math.abs(Math.sin(t * flickerRate)) * 2;
+      const fw = 4 + Math.sin(t * flickerRate * 1.3) * 1;
+      ctx.fillStyle = "oklch(0.70 0.20 35 / 0.85)";
+      ctx.beginPath();
+      ctx.ellipse(0, fy - 4, fw, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "oklch(0.85 0.20 80 / 0.9)";
+      ctx.beginPath();
+      ctx.ellipse(0, fy - 3, fw * 0.6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "oklch(0.95 0.18 95)";
+      ctx.beginPath();
+      ctx.ellipse(0, fy - 2, fw * 0.3, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Glow
+      const glowGrad = ctx.createRadialGradient(0, fy - 4, 0, 0, fy - 4, 24);
+      glowGrad.addColorStop(0, "oklch(0.85 0.20 70 / 0.30)");
+      glowGrad.addColorStop(1, "transparent");
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(-24, fy - 28, 48, 32);
+      ctx.restore();
+    }
+
+    function drawSpotlight(cx, color, intensity) {
+      if (intensity <= 0.02) return;
+      const topY = 6, botY = 230;
+      const topW = 14, botW = 90;
+      const grad = ctx.createLinearGradient(cx, topY, cx, botY);
+      grad.addColorStop(0, color.replace("oklch(", "oklch(").replace(")", " / " + (intensity * 0.55).toFixed(3) + ")"));
+      grad.addColorStop(1, "transparent");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(cx - topW / 2, topY);
+      ctx.lineTo(cx + topW / 2, topY);
+      ctx.lineTo(cx + botW / 2, botY);
+      ctx.lineTo(cx - botW / 2, botY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawBambooStage() {
+      // Platform plank
+      const py = 232, pH = 18;
+      const plankGrad = ctx.createLinearGradient(0, py, 0, py + pH);
+      plankGrad.addColorStop(0, "oklch(0.42 0.08 65)");
+      plankGrad.addColorStop(1, "oklch(0.30 0.07 60)");
+      ctx.fillStyle = plankGrad;
+      ctx.fillRect(0, py, W, pH);
+      // Plank lines
+      ctx.strokeStyle = "oklch(0.22 0.05 60)";
+      ctx.lineWidth = 0.6;
+      for (let i = 0; i < 12; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * (W / 12), py);
+        ctx.lineTo(i * (W / 12) + 4, py + pH);
+        ctx.stroke();
+      }
+      // Top edge highlight
+      ctx.strokeStyle = "oklch(0.55 0.10 70)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, py + 0.5); ctx.lineTo(W, py + 0.5);
+      ctx.stroke();
+      // Bamboo support posts
+      ctx.fillStyle = "oklch(0.40 0.10 80)";
+      for (const sx of [60, W - 60]) {
+        ctx.fillRect(sx - 4, py + pH, 8, H - py - pH);
+        ctx.strokeStyle = "oklch(0.25 0.06 70)";
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.moveTo(sx - 4, py + pH + 6 + i * 9);
+          ctx.lineTo(sx + 4, py + pH + 6 + i * 9);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // ─── Background (kept from v2) ───
     function drawBackground(t) {
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, "oklch(0.30 0.08 230)");
@@ -737,7 +819,6 @@
       skyGrad.addColorStop(1, "oklch(0.14 0.05 145)");
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, W, H);
-
       // Moon glow
       const glowPulse = 0.18 + Math.sin(t * 0.3) * 0.04;
       const sunGrad = ctx.createRadialGradient(W * 0.82, H * 0.12, 0, W * 0.82, H * 0.12, 55);
@@ -746,10 +827,9 @@
       sunGrad.addColorStop(1, "transparent");
       ctx.fillStyle = sunGrad;
       ctx.fillRect(0, 0, W, H);
-
-      // Stars / fireflies
+      // Stars
       const rng = mulberry32(42);
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 22; i++) {
         const sx = rng() * W, sy = rng() * H * 0.45;
         const bright = 0.3 + Math.sin(t * 0.8 + i * 1.3) * 0.2;
         ctx.fillStyle = "oklch(0.95 0.04 90 / " + bright + ")";
@@ -757,61 +837,33 @@
         ctx.arc(sx, sy, 0.8 + rng() * 0.8, 0, Math.PI * 2);
         ctx.fill();
       }
-
       // Far hills
       ctx.fillStyle = "oklch(0.18 0.07 145)";
       ctx.beginPath(); ctx.moveTo(0, H);
       for (let x = 0; x <= W; x += 4) {
-        ctx.lineTo(x, H * 0.48 + Math.sin(x * 0.007 + 1.2) * 28 + Math.sin(x * 0.018) * 10);
+        ctx.lineTo(x, H * 0.42 + Math.sin(x * 0.007 + 1.2) * 28 + Math.sin(x * 0.018) * 10);
       }
       ctx.lineTo(W, H); ctx.fill();
-
       // Mid canopy
       ctx.fillStyle = "oklch(0.16 0.08 140)";
       ctx.beginPath(); ctx.moveTo(0, H);
       for (let x = 0; x <= W; x += 3) {
-        const base = H * 0.58;
+        const base = H * 0.52;
         const tree = Math.sin(x * 0.012 + 0.5) * 22 + Math.sin(x * 0.03) * 8;
         const palm = Math.max(0, Math.sin(x * 0.005) * 12);
         ctx.lineTo(x, base + tree - palm);
       }
       ctx.lineTo(W, H); ctx.fill();
-
-      // Ground
-      const gndGrad = ctx.createLinearGradient(0, H * 0.78, 0, H);
-      gndGrad.addColorStop(0, "oklch(0.14 0.06 60)");
-      gndGrad.addColorStop(1, "oklch(0.10 0.04 50)");
-      ctx.fillStyle = gndGrad;
-      ctx.fillRect(0, H * 0.78, W, H * 0.22);
-
-      // Grass tufts
-      ctx.strokeStyle = "oklch(0.25 0.10 140)";
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = "round";
-      const grassRng = mulberry32(77);
-      for (let i = 0; i < 30; i++) {
-        const gx = grassRng() * W;
-        const gy = H * 0.78 + grassRng() * 4;
-        const gh = 4 + grassRng() * 6;
-        const sway = Math.sin(t * 1.2 + i * 0.7) * 2;
-        ctx.beginPath();
-        ctx.moveTo(gx, gy);
-        ctx.quadraticCurveTo(gx + sway, gy - gh, gx + sway * 1.5, gy - gh - 2);
-        ctx.stroke();
-      }
-
       // Ground fog
-      const fogGrad = ctx.createLinearGradient(0, H * 0.72, 0, H * 0.82);
+      const fogGrad = ctx.createLinearGradient(0, H * 0.66, 0, H * 0.78);
       fogGrad.addColorStop(0, "transparent");
-      fogGrad.addColorStop(1, "oklch(0.25 0.06 100 / 0.15)");
+      fogGrad.addColorStop(1, "oklch(0.25 0.06 100 / 0.18)");
       ctx.fillStyle = fogGrad;
       const fogShift = Math.sin(t * 0.4) * 10;
-      ctx.fillRect(fogShift, H * 0.72, W, H * 0.12);
-
+      ctx.fillRect(fogShift, H * 0.66, W, H * 0.12);
       // Hanging vines
       drawVines(t);
     }
-
     function drawVines(t) {
       ctx.strokeStyle = "oklch(0.22 0.09 145)";
       ctx.lineWidth = 2;
@@ -827,7 +879,6 @@
           ctx.lineTo(vx + sway, y);
         }
         ctx.stroke();
-        // Leaf at vine tip
         const tipY = len;
         const tipSway = Math.sin(tipY * 0.06 + t * 0.8 + i * 1.5) * (4 + energy * 3);
         ctx.fillStyle = "oklch(0.28 0.12 140)";
@@ -836,15 +887,13 @@
         ctx.fill();
       }
     }
-
-    // ─── Ambient leaves update ───
     function tickLeaves(t) {
       if (reducedMotion) return;
       leaves.forEach(lf => {
         lf.x -= lf.speed;
         lf.y += Math.sin(t * 0.5 + lf.x * 0.01) * 0.15;
         lf.rot += lf.rotSpeed;
-        if (lf.x < -20) { lf.x = W + 20; lf.y = Math.random() * H * 0.6; }
+        if (lf.x < -20) { lf.x = W + 20; lf.y = Math.random() * H * 0.55; }
         ctx.save();
         ctx.globalAlpha = lf.opacity;
         ctx.translate(lf.x, lf.y);
@@ -853,424 +902,1076 @@
         ctx.beginPath();
         ctx.ellipse(0, 0, lf.size, lf.size * 0.4, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Leaf vein
         ctx.strokeStyle = "oklch(0.25 0.08 140)";
         ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(-lf.size, 0);
-        ctx.lineTo(lf.size, 0);
+        ctx.beginPath(); ctx.moveTo(-lf.size, 0); ctx.lineTo(lf.size, 0);
         ctx.stroke();
         ctx.restore();
       });
+      ctx.globalAlpha = 1;
     }
 
-    // ─── Draw monkey ───
-    function drawMonkey(t, dt) {
-      const m = mk;
-      ctx.save();
-      ctx.translate(m.baseX, m.baseY + m.bodyOffY);
+    // ─── Character system ───
+    const CHAR_DEFS = [
+      { name: "Kiko",  animal: "gorilla",      hue: 30,  size: 70 },
+      { name: "Riko",  animal: "capuchin",     hue: 65,  size: 45 },
+      { name: "Zuri",  animal: "frog",         hue: 230, size: 28 },
+      { name: "Luna",  animal: "chameleon",    hue: 185, size: 35 },
+      { name: "Bongo", animal: "spiderMonkey", hue: 305, size: 50 },
+      { name: "Mika",  animal: "toucan",       hue: 90,  size: 35 },
+      { name: "Jumba", animal: "elephant",     hue: 145, size: 75 },
+      { name: "Sol",   animal: "quetzal",      hue: 55,  size: 45 },
+    ];
 
-      // --- Tail (back-most) ---
-      ctx.strokeStyle = "oklch(0.40 0.10 55)";
-      ctx.lineWidth = 4;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.beginPath();
-      ctx.moveTo(m.tail[0].x - m.baseX, m.tail[0].y - m.baseY - m.bodyOffY);
-      for (let i = 1; i < m.tail.length; i++) {
-        ctx.lineTo(m.tail[i].x - m.baseX, m.tail[i].y - m.baseY - m.bodyOffY);
+    function charX(i) { return 52 + i * 101; }
+    function charY(i) { return 198 - Math.cos((i - 3.5) / 4.5) * 14; }
+    function charScaleBase(i) { return 0.78 + 0.22 * Math.cos((i - 3.5) / 4.5); }
+
+    function createCharacter(def, idx) {
+      const ch = {
+        idx, def,
+        x: charX(idx), y: charY(idx),
+        scale: charScaleBase(idx),
+        bodyOffY: 0, bodyOffYVel: 0,
+        bodySquash: 1, bodySquashVel: 0,
+        headBob: 0, headBobVel: 0,
+        armSwing: 0, armSwingVel: 0,
+        armSide: 0, // for L/R alternation
+        blinkTimer: 3 + Math.random() * 4, blinkDur: 0,
+        energyPulse: 0,
+        consecutiveHits: 0,
+        lastHitStep: -2,
+        tail: [], trunk: [],
+        custom: {},
+        floorShake: 0,
+      };
+      const tailCounts = { capuchin: 6, chameleon: 5, spiderMonkey: 7, quetzal: 8 };
+      const n = tailCounts[def.animal] || 0;
+      for (let i = 0; i < n; i++) {
+        ch.tail.push({ x: ch.x, y: ch.y + i * 5, px: ch.x, py: ch.y + i * 5 });
       }
-      ctx.stroke();
-      // Tail tip curl
-      const tip = m.tail[m.tail.length - 1];
-      const prev = m.tail[m.tail.length - 2];
-      ctx.beginPath();
-      ctx.lineWidth = 3;
-      ctx.arc(tip.x - m.baseX, tip.y - m.baseY - m.bodyOffY, 4,
-        Math.atan2(tip.y - prev.y, tip.x - prev.x) - 1.5,
-        Math.atan2(tip.y - prev.y, tip.x - prev.x) + 1.5);
-      ctx.stroke();
+      if (def.animal === "elephant") {
+        for (let i = 0; i < 5; i++) {
+          ch.trunk.push({ x: ch.x, y: ch.y + i * 4, px: ch.x, py: ch.y + i * 4 });
+        }
+      }
+      if (def.animal === "frog") {
+        ch.custom.spots = [];
+        const rng = mulberry32(idx * 1234 + 7);
+        for (let i = 0; i < 8; i++) {
+          ch.custom.spots.push({ ang: rng() * 6.28, r: 0.4 + rng() * 0.5, sz: 1 + rng() * 1.5 });
+        }
+        ch.custom.throat = 0;
+      }
+      if (def.animal === "chameleon") {
+        ch.custom.tongueT = 0;
+        ch.custom.eyeL = 0; ch.custom.eyeR = 0;
+        ch.custom.hueShift = 0;
+      }
+      if (def.animal === "quetzal") {
+        ch.custom.waves = [];
+      }
+      if (def.animal === "toucan") {
+        ch.custom.shimmy = 0;
+      }
+      if (def.animal === "gorilla") {
+        ch.custom.fistY = 0; ch.custom.fistVel = 0;
+      }
+      return ch;
+    }
 
-      // --- Back leg ---
-      const legTap = Math.sin(m.legPhase) * 3;
-      ctx.strokeStyle = "oklch(0.38 0.09 55)";
-      ctx.lineWidth = 5;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(-7, 25);
-      ctx.quadraticCurveTo(-10, 35, -9 + legTap, 42);
-      ctx.stroke();
-      // Foot
-      ctx.fillStyle = "oklch(0.35 0.08 55)";
-      ctx.beginPath();
-      ctx.ellipse(-9 + legTap, 43, 5, 2.5, 0, 0, Math.PI * 2);
-      ctx.fill();
+    const chars = CHAR_DEFS.map((d, i) => createCharacter(d, i));
 
-      // --- Body ---
-      const sY = m.bodyStretchY;
-      const sX = 1 / sY; // volume preservation
+    // ─── Update all characters ───
+    function updateChars(t, dt) {
+      const breathRate = 1.5 + (currentBPM - 60) / 120;
+      const springDamp = 2 + currentBPM / 60;
+      const legPhaseRate = (currentBPM / 60) * 4;
+
+      chars.forEach((ch, i) => {
+        const def = ch.def;
+
+        // Breathing (BPM-tempo-locked)
+        const breathTarget = 1 + Math.sin(t * breathRate) * 0.022;
+        const bs = springStep(ch.bodySquash, breathTarget, ch.bodySquashVel, 12, springDamp, dt);
+        ch.bodySquash = Math.max(0.78, Math.min(1.25, bs.value));
+        ch.bodySquashVel = bs.velocity;
+
+        // Body offY (impulse spring)
+        const bo = springStep(ch.bodyOffY, 0, ch.bodyOffYVel, 18, springDamp + 1, dt);
+        ch.bodyOffY = bo.value;
+        ch.bodyOffYVel = bo.velocity;
+
+        // Head bob spring
+        const hb = springStep(ch.headBob, 0, ch.headBobVel, 20, springDamp, dt);
+        ch.headBob = hb.value; ch.headBobVel = hb.velocity;
+
+        // Arm swing decay
+        const as = springStep(ch.armSwing, 0, ch.armSwingVel, 22, springDamp, dt);
+        ch.armSwing = as.value; ch.armSwingVel = as.velocity;
+
+        ch.energyPulse *= 0.92;
+        ch.floorShake *= 0.85;
+        spotlightFlash[i] *= 0.86;
+
+        // Blink
+        ch.blinkTimer -= dt;
+        if (ch.blinkTimer <= 0 && ch.blinkDur <= 0) {
+          ch.blinkDur = 0.1; ch.blinkTimer = 3 + Math.random() * 4;
+        }
+        if (ch.blinkDur > 0) ch.blinkDur -= dt;
+
+        // Verlet tail
+        if (ch.tail.length) {
+          const baseX = ch.x, baseY = ch.y + ch.bodyOffY + 4;
+          ch.tail[0].x = baseX; ch.tail[0].y = baseY;
+          for (let j = 1; j < ch.tail.length; j++) {
+            const wind = Math.sin(t * 1.2 + j * 0.6 + i) * 0.18;
+            const wagBoost = ch.energyPulse > 0.2 ? Math.sin(t * 6 + j) * 0.4 : 0;
+            updateVerletPoint(ch.tail[j], wind + wagBoost, 0.18, 0.94);
+          }
+          const segLen = def.animal === "spiderMonkey" ? 7 :
+                         def.animal === "quetzal" ? 6.2 :
+                         def.animal === "capuchin" ? 5.5 :
+                         def.animal === "chameleon" ? 5 : 6;
+          for (let it = 0; it < 3; it++) {
+            for (let j = 1; j < ch.tail.length; j++) constrainDist(ch.tail[j-1], ch.tail[j], segLen);
+          }
+        }
+        // Verlet trunk (elephant)
+        if (ch.trunk.length) {
+          const baseX = ch.x + 14, baseY = ch.y + ch.bodyOffY - 6;
+          ch.trunk[0].x = baseX; ch.trunk[0].y = baseY;
+          for (let j = 1; j < ch.trunk.length; j++) {
+            const sway = Math.sin(t * 1.5 + j * 0.3) * 0.18 + (ch.energyPulse > 0.2 ? -0.3 : 0);
+            updateVerletPoint(ch.trunk[j], sway, 0.12, 0.92);
+          }
+          for (let it = 0; it < 3; it++) {
+            for (let j = 1; j < ch.trunk.length; j++) constrainDist(ch.trunk[j-1], ch.trunk[j], 5);
+          }
+        }
+
+        // Custom physics
+        if (def.animal === "gorilla") {
+          const fs = springStep(ch.custom.fistY, 0, ch.custom.fistVel, 30, springDamp + 2, dt);
+          ch.custom.fistY = fs.value; ch.custom.fistVel = fs.velocity;
+        }
+        if (def.animal === "chameleon") {
+          ch.custom.tongueT *= 0.78;
+          if (ch.custom.tongueT < 0.02) ch.custom.tongueT = 0;
+          ch.custom.hueShift *= 0.92;
+        }
+        if (def.animal === "frog") {
+          ch.custom.throat *= 0.88;
+        }
+        if (def.animal === "toucan") {
+          ch.custom.shimmy *= 0.84;
+        }
+        if (def.animal === "quetzal") {
+          ch.custom.waves = ch.custom.waves.filter(w => {
+            w.r += dt * 95; w.alpha -= dt * 1.6;
+            return w.alpha > 0.02;
+          });
+        }
+      });
+    }
+
+    // ─── Per-character draw functions ───
+    function tintAlpha(oklchStr, a) { return oklchStr.replace(/\)$/, " / " + a + ")"); }
+
+    function drawZzz(cx, cy, t) {
       ctx.save();
-      ctx.scale(sX, sY);
-      // Body gradient
-      const bodyGrad = ctx.createRadialGradient(2, -5, 5, 0, 5, 28);
-      bodyGrad.addColorStop(0, "oklch(0.48 0.11 60)");
-      bodyGrad.addColorStop(1, "oklch(0.38 0.10 55)");
-      ctx.fillStyle = bodyGrad;
+      ctx.fillStyle = "oklch(0.85 0.02 230 / 0.6)";
+      ctx.font = "bold 9px ui-monospace, monospace";
+      const wob = Math.sin(t * 2) * 1.5;
+      ctx.fillText("z", cx - 4 + wob, cy);
+      ctx.fillText("Z", cx + wob * 0.5, cy - 5);
+      ctx.fillText("z", cx + 5 - wob, cy - 10);
+      ctx.restore();
+    }
+
+    function drawEyes(hx, hy, lookX, lookY, asleep, blinking) {
+      if (asleep || blinking) {
+        ctx.strokeStyle = "#000"; ctx.lineWidth = 1; ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(hx - 3, hy); ctx.lineTo(hx - 1, hy);
+        ctx.moveTo(hx + 1, hy); ctx.lineTo(hx + 3, hy);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(hx - 2.5, hy, 1.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hx + 2.5, hy, 1.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#000";
+        ctx.beginPath(); ctx.arc(hx - 2.5 + lookX * 0.6, hy + lookY * 0.6, 0.9, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hx + 2.5 + lookX * 0.6, hy + lookY * 0.6, 0.9, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    function drawGorilla(ch, t) {
+      const bx = ch.x, by = ch.y + ch.bodyOffY + ch.floorShake;
+      const sq = ch.bodySquash, scl = ch.scale;
+      const muted = trackMute[ch.idx];
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(scl, scl);
+
+      // Log drum (behind body, sits on platform)
+      ctx.fillStyle = "oklch(0.30 0.07 50)";
       ctx.beginPath();
-      ctx.ellipse(0, 5, 20, 26, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 22, 26, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "oklch(0.38 0.08 55)";
+      ctx.beginPath();
+      ctx.ellipse(0, 19, 26, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Wood grain rings
+      ctx.strokeStyle = "oklch(0.22 0.05 50)"; ctx.lineWidth = 0.6;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.ellipse(0, 19 + i * 1.5, 23, 5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Body
+      ctx.fillStyle = muted ? "oklch(0.26 0.04 30)" : "oklch(0.30 0.07 30)";
+      ctx.beginPath();
+      ctx.ellipse(0, -2, 18 * sq, 17 / sq, 0, 0, Math.PI * 2);
       ctx.fill();
       // Belly
-      ctx.fillStyle = "oklch(0.62 0.07 70)";
+      ctx.fillStyle = muted ? "oklch(0.40 0.05 35)" : "oklch(0.50 0.09 35)";
       ctx.beginPath();
-      ctx.ellipse(2, 10, 13, 17, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 4, 11, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Arms (with fistY drop)
+      const fy = ch.custom.fistY;
+      ctx.strokeStyle = muted ? "oklch(0.26 0.04 30)" : "oklch(0.30 0.07 30)";
+      ctx.lineWidth = 7; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-13, -8); ctx.bezierCurveTo(-22, -2, -22, 8 + fy, -16, 16 + fy);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(13, -8); ctx.bezierCurveTo(22, -2, 22, 8 + fy, 16, 16 + fy);
+      ctx.stroke();
+      // Fists
+      ctx.fillStyle = muted ? "oklch(0.32 0.04 30)" : "oklch(0.40 0.06 30)";
+      ctx.beginPath(); ctx.arc(-16, 16 + fy, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(16, 16 + fy, 4.5, 0, Math.PI * 2); ctx.fill();
+
+      // Head
+      const hy = -19 + ch.headBob;
+      ctx.fillStyle = muted ? "oklch(0.28 0.04 30)" : "oklch(0.32 0.07 30)";
+      ctx.beginPath(); ctx.ellipse(0, hy, 12, 11, 0, 0, Math.PI * 2); ctx.fill();
+      // Brow ridge
+      ctx.fillStyle = muted ? "oklch(0.18 0.03 30)" : "oklch(0.22 0.05 30)";
+      ctx.beginPath();
+      ctx.ellipse(0, hy - 3, 11, 2.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Face inner
+      ctx.fillStyle = muted ? "oklch(0.45 0.05 30)" : "oklch(0.55 0.09 35)";
+      ctx.beginPath();
+      ctx.ellipse(0, hy + 2, 8, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Eyes
+      drawEyes(0, hy + 0.5, 0, 0, muted, ch.blinkDur > 0);
+      // Mouth (wider on hit)
+      const mw = 2 + ch.energyPulse * 1.5;
+      ctx.strokeStyle = "#000"; ctx.lineWidth = 0.9; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(0, hy + 5, mw, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+
+      if (muted) drawZzz(0, hy - 14, t);
+      ctx.restore();
+    }
+
+    function drawCapuchin(ch, t) {
+      const bx = ch.x, by = ch.y + ch.bodyOffY + ch.floorShake;
+      const sq = ch.bodySquash, scl = ch.scale;
+      const muted = trackMute[ch.idx];
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(scl, scl);
+
+      // Tripod stand
+      ctx.strokeStyle = "oklch(0.35 0.04 60)"; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(-7, 22); ctx.lineTo(0, 12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(7, 22); ctx.lineTo(0, 12); ctx.stroke();
+      // Snare drum
+      ctx.fillStyle = "oklch(0.85 0.03 80)";
+      ctx.beginPath(); ctx.ellipse(0, 9, 11, 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "oklch(0.75 0.05 70)";
+      ctx.fillRect(-11, 9, 22, 5);
+      ctx.strokeStyle = "oklch(0.45 0.05 70)"; ctx.lineWidth = 0.5;
+      for (let i = 0; i < 5; i++) {
+        const sx = -10 + i * 5;
+        ctx.beginPath(); ctx.moveTo(sx, 9); ctx.lineTo(sx + 1, 14); ctx.stroke();
+      }
+
+      // Tail (verlet, drawn before body)
+      if (ch.tail.length) {
+        ctx.strokeStyle = muted ? "oklch(0.28 0.06 65)" : "oklch(0.42 0.10 65)";
+        ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(ch.tail[0].x - bx, ch.tail[0].y - by);
+        for (let j = 1; j < ch.tail.length; j++) {
+          ctx.lineTo(ch.tail[j].x - bx, ch.tail[j].y - by);
+        }
+        ctx.stroke();
+      }
+
+      // Body
+      ctx.fillStyle = muted ? "oklch(0.32 0.05 65)" : "oklch(0.45 0.10 65)";
+      ctx.beginPath(); ctx.ellipse(0, -1, 8 * sq, 11 / sq, 0, 0, Math.PI * 2); ctx.fill();
+      // Belly
+      ctx.fillStyle = muted ? "oklch(0.55 0.04 70)" : "oklch(0.78 0.08 75)";
+      ctx.beginPath(); ctx.ellipse(0, 1, 4.5, 7, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Arms holding sticks (alternating L/R)
+      const swing = ch.armSwing;
+      const lDown = ch.armSide === 0 ? swing : 0;
+      const rDown = ch.armSide === 1 ? swing : 0;
+      ctx.strokeStyle = muted ? "oklch(0.32 0.05 65)" : "oklch(0.45 0.10 65)";
+      ctx.lineWidth = 2; ctx.lineCap = "round";
+      // Left arm + stick
+      ctx.beginPath();
+      ctx.moveTo(-5, -2); ctx.lineTo(-7 - lDown * 0.5, 2 + lDown);
+      ctx.stroke();
+      ctx.strokeStyle = "oklch(0.55 0.06 60)"; ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-7 - lDown * 0.5, 2 + lDown); ctx.lineTo(-3, 7 + lDown * 0.7);
+      ctx.stroke();
+      ctx.fillStyle = "oklch(0.85 0.05 80)";
+      ctx.beginPath(); ctx.arc(-3, 7 + lDown * 0.7, 1.2, 0, Math.PI * 2); ctx.fill();
+      // Right arm + stick
+      ctx.strokeStyle = muted ? "oklch(0.32 0.05 65)" : "oklch(0.45 0.10 65)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(5, -2); ctx.lineTo(7 + rDown * 0.5, 2 + rDown);
+      ctx.stroke();
+      ctx.strokeStyle = "oklch(0.55 0.06 60)"; ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(7 + rDown * 0.5, 2 + rDown); ctx.lineTo(3, 7 + rDown * 0.7);
+      ctx.stroke();
+      ctx.fillStyle = "oklch(0.85 0.05 80)";
+      ctx.beginPath(); ctx.arc(3, 7 + rDown * 0.7, 1.2, 0, Math.PI * 2); ctx.fill();
+
+      // Head
+      const hy = -12 + ch.headBob;
+      ctx.fillStyle = muted ? "oklch(0.32 0.05 65)" : "oklch(0.45 0.10 65)";
+      ctx.beginPath(); ctx.arc(0, hy, 8, 0, Math.PI * 2); ctx.fill();
+      // Face
+      ctx.fillStyle = muted ? "oklch(0.62 0.04 75)" : "oklch(0.85 0.08 75)";
+      ctx.beginPath(); ctx.ellipse(0, hy + 1, 5.5, 6, 0, 0, Math.PI * 2); ctx.fill();
+      // Ears
+      ctx.fillStyle = muted ? "oklch(0.32 0.05 65)" : "oklch(0.45 0.10 65)";
+      ctx.beginPath(); ctx.arc(-7.5, hy - 2, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(7.5, hy - 2, 2.2, 0, Math.PI * 2); ctx.fill();
+      // Eyes (big)
+      drawEyes(0, hy + 0.5, 0, 0, muted, ch.blinkDur > 0);
+      // Mouth
+      ctx.strokeStyle = "#000"; ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.arc(0, hy + 4, 1.4, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+
+      if (muted) drawZzz(0, hy - 11, t);
+      ctx.restore();
+    }
+
+    function drawFrog(ch, t) {
+      const bx = ch.x, by = ch.y + ch.bodyOffY + ch.floorShake;
+      const sq = ch.bodySquash, scl = ch.scale;
+      const muted = trackMute[ch.idx];
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(scl, scl);
+
+      // Hi-hat cymbals (frog perches on)
+      ctx.fillStyle = "oklch(0.65 0.10 80)";
+      ctx.beginPath(); ctx.ellipse(0, 14, 13, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "oklch(0.40 0.06 60)"; ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(0, 22); ctx.stroke();
+      ctx.fillStyle = "oklch(0.55 0.08 75)";
+      ctx.beginPath(); ctx.ellipse(0, 16, 13, 2, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Body (dome)
+      ctx.fillStyle = muted ? "oklch(0.30 0.06 145)" : "oklch(0.55 0.18 140)";
+      ctx.beginPath(); ctx.ellipse(0, 4, 11 * sq, 8 / sq, 0, 0, Math.PI * 2); ctx.fill();
+      // Belly (cream)
+      ctx.fillStyle = muted ? "oklch(0.55 0.04 95)" : "oklch(0.85 0.10 95)";
+      ctx.beginPath(); ctx.ellipse(0, 7, 7, 4, 0, 0, Math.PI * 2); ctx.fill();
+      // Spots
+      if (!muted) {
+        ctx.fillStyle = "oklch(0.35 0.10 145)";
+        ch.custom.spots.forEach(s => {
+          const sx = Math.cos(s.ang) * 8 * s.r;
+          const sy = 2 + Math.sin(s.ang) * 5 * s.r;
+          ctx.beginPath();
+          ctx.arc(sx, sy, s.sz, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      // Throat pouch (pulses)
+      const throatScale = 1 + ch.custom.throat * 0.6;
+      ctx.fillStyle = muted ? "oklch(0.50 0.04 95)" : "oklch(0.78 0.14 95)";
+      ctx.beginPath();
+      ctx.ellipse(0, 9, 4 * throatScale, 2.5 * throatScale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Legs (folded)
+      ctx.strokeStyle = muted ? "oklch(0.30 0.06 145)" : "oklch(0.50 0.16 142)";
+      ctx.lineWidth = 1.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-9, 5); ctx.lineTo(-12, 9); ctx.lineTo(-7, 11); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(9, 5); ctx.lineTo(12, 9); ctx.lineTo(7, 11); ctx.stroke();
+
+      // Eyes (bulging)
+      const eyeSize = 3.5 + ch.energyPulse * 1.2;
+      ctx.fillStyle = muted ? "oklch(0.42 0.06 145)" : "oklch(0.68 0.16 142)";
+      ctx.beginPath(); ctx.arc(-5, -3, eyeSize, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(5, -3, eyeSize, 0, Math.PI * 2); ctx.fill();
+      if (!muted && ch.blinkDur <= 0) {
+        ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(-5, -3, eyeSize * 0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -3, eyeSize * 0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#000";
+        ctx.beginPath(); ctx.arc(-5, -3, eyeSize * 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -3, eyeSize * 0.3, 0, Math.PI * 2); ctx.fill();
+      } else {
+        // Blink/asleep — membrane covers
+        ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(-5, -3, eyeSize, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(5, -3, eyeSize, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+      }
+      // Mouth
+      ctx.strokeStyle = "#000"; ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(-3, 1); ctx.quadraticCurveTo(0, 2 + ch.energyPulse, 3, 1);
+      ctx.stroke();
+
+      if (muted) drawZzz(0, -10, t);
+      ctx.restore();
+    }
+
+    function drawChameleon(ch, t) {
+      const bx = ch.x, by = ch.y + ch.bodyOffY + ch.floorShake;
+      const sq = ch.bodySquash, scl = ch.scale;
+      const muted = trackMute[ch.idx];
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(scl, scl);
+
+      // Open hi-hat / cymbal stand
+      ctx.strokeStyle = "oklch(0.40 0.05 65)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(13, 12); ctx.lineTo(13, 22); ctx.stroke();
+      ctx.fillStyle = "oklch(0.65 0.10 80)";
+      ctx.beginPath(); ctx.ellipse(13, 11, 8, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Tail (curled spiral)
+      if (ch.tail.length) {
+        const hueShift = ch.def.hue + ch.custom.hueShift * 30;
+        ctx.strokeStyle = muted ? "oklch(0.32 0.05 185)" : "oklch(0.55 0.14 " + hueShift + ")";
+        ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(ch.tail[0].x - bx, ch.tail[0].y - by);
+        for (let j = 1; j < ch.tail.length; j++) {
+          ctx.lineTo(ch.tail[j].x - bx, ch.tail[j].y - by);
+        }
+        ctx.stroke();
+      }
+
+      // Body
+      const hueShift = ch.def.hue + ch.custom.hueShift * 30;
+      ctx.fillStyle = muted ? "oklch(0.36 0.06 185)" : "oklch(0.58 0.16 " + hueShift + ")";
+      ctx.beginPath();
+      ctx.ellipse(-2, 2, 11 * sq, 7 / sq, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Stripes
+      if (!muted) {
+        ctx.strokeStyle = "oklch(0.42 0.10 " + hueShift + ")";
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-9 + i * 4, -3); ctx.lineTo(-8 + i * 4, 6);
+          ctx.stroke();
+        }
+      }
+      // Legs
+      ctx.strokeStyle = muted ? "oklch(0.30 0.05 185)" : "oklch(0.45 0.14 " + hueShift + ")";
+      ctx.lineWidth = 1.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-7, 5); ctx.lineTo(-9, 9); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(5, 5); ctx.lineTo(7, 9); ctx.stroke();
+      // Head with helmet casque
+      const hy = -2 + ch.headBob;
+      ctx.fillStyle = muted ? "oklch(0.36 0.06 185)" : "oklch(0.58 0.16 " + hueShift + ")";
+      ctx.beginPath();
+      ctx.moveTo(-8, hy);
+      ctx.bezierCurveTo(-12, hy - 4, -9, hy - 8, -3, hy - 5);
+      ctx.bezierCurveTo(2, hy - 7, 6, hy - 3, 6, hy);
+      ctx.lineTo(-8, hy);
+      ctx.fill();
+      // Turret eyes (independently-tracking)
+      const elx = Math.sin(t * 1.7) * 1.5;
+      const erx = Math.cos(t * 1.3) * 1.5;
+      ctx.fillStyle = muted ? "oklch(0.30 0.04 185)" : "oklch(0.40 0.10 " + hueShift + ")";
+      ctx.beginPath(); ctx.arc(-5, hy - 1, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(2, hy - 2, 2.5, 0, Math.PI * 2); ctx.fill();
+      if (!muted && ch.blinkDur <= 0) {
+        ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(-5 + elx * 0.5, hy - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(2 + erx * 0.5, hy - 2, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#000";
+        ctx.beginPath(); ctx.arc(-5 + elx, hy - 1, 0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(2 + erx, hy - 2, 0.7, 0, Math.PI * 2); ctx.fill();
+      }
+      // Tongue (extends to cymbal on hit)
+      if (ch.custom.tongueT > 0.03) {
+        const tEnd = 13;
+        const tProgress = ch.custom.tongueT;
+        const startX = 5, startY = hy + 1;
+        ctx.strokeStyle = "oklch(0.65 0.20 25)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.bezierCurveTo(
+          startX + (tEnd - startX) * 0.5 * tProgress, startY,
+          tEnd - 2, 8 + 2 * (1 - tProgress),
+          tEnd - 1 + tProgress * 1, 11
+        );
+        ctx.stroke();
+        // Tongue tip
+        ctx.fillStyle = "oklch(0.78 0.20 25)";
+        ctx.beginPath();
+        ctx.arc(tEnd - 1 + tProgress, 11, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (muted) drawZzz(-2, hy - 10, t);
+      ctx.restore();
+    }
+
+    function drawSpiderMonkey(ch, t) {
+      const bx = ch.x, by = ch.y + ch.bodyOffY + ch.floorShake;
+      const sq = ch.bodySquash, scl = ch.scale;
+      const muted = trackMute[ch.idx];
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(scl, scl);
+
+      // Bongos (between knees)
+      ctx.fillStyle = "oklch(0.36 0.08 50)";
+      ctx.beginPath(); ctx.ellipse(-6, 13, 5, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(6, 13, 4, 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "oklch(0.78 0.06 75)";
+      ctx.beginPath(); ctx.ellipse(-6, 11, 5, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(6, 11, 4, 1.8, 0, 0, Math.PI * 2); ctx.fill();
+      // Bongo lacing
+      ctx.strokeStyle = "oklch(0.40 0.06 60)"; ctx.lineWidth = 0.5;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(-6 + Math.cos(a) * 5, 11 + Math.sin(a) * 1.6);
+        ctx.lineTo(-6 + Math.cos(a) * 5.4, 14 + Math.sin(a) * 1.6);
+        ctx.stroke();
+      }
+
+      // Tail (long verlet — most expressive)
+      if (ch.tail.length) {
+        ctx.strokeStyle = muted ? "oklch(0.28 0.06 305)" : "oklch(0.40 0.16 305)";
+        ctx.lineWidth = 2.8; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(ch.tail[0].x - bx, ch.tail[0].y - by);
+        for (let j = 1; j < ch.tail.length; j++) {
+          ctx.lineTo(ch.tail[j].x - bx, ch.tail[j].y - by);
+        }
+        ctx.stroke();
+      }
+
+      // Body
+      ctx.fillStyle = muted ? "oklch(0.30 0.06 305)" : "oklch(0.42 0.16 305)";
+      ctx.beginPath(); ctx.ellipse(0, -1, 9 * sq, 12 / sq, 0, 0, Math.PI * 2); ctx.fill();
+      // Fur tufts
+      if (!muted) {
+        ctx.strokeStyle = "oklch(0.32 0.10 305)";
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-7 + i * 6, -8);
+          ctx.lineTo(-6 + i * 6 + Math.sin(t * 2 + i) * 0.5, -11);
+          ctx.stroke();
+        }
+      }
+
+      // Legs (crossed)
+      ctx.strokeStyle = muted ? "oklch(0.30 0.06 305)" : "oklch(0.42 0.16 305)";
+      ctx.lineWidth = 2.2; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-4, 6); ctx.bezierCurveTo(-6, 10, 4, 12, 6, 16); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(4, 6); ctx.bezierCurveTo(6, 10, -4, 12, -6, 16); ctx.stroke();
+
+      // Long arms (4-segment bezier each, alternating slap)
+      const swing = ch.armSwing;
+      const lDown = ch.armSide === 0 ? swing : 0;
+      const rDown = ch.armSide === 1 ? swing : 0;
+      ctx.strokeStyle = muted ? "oklch(0.30 0.06 305)" : "oklch(0.42 0.16 305)";
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(-7, -3);
+      ctx.bezierCurveTo(-12, 0, -10, 6 + lDown, -7, 11 + lDown);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(7, -3);
+      ctx.bezierCurveTo(12, 0, 10, 6 + rDown, 7, 11 + rDown);
+      ctx.stroke();
+      // Palms (open)
+      ctx.fillStyle = muted ? "oklch(0.42 0.04 305)" : "oklch(0.55 0.10 305)";
+      ctx.beginPath(); ctx.arc(-7, 11 + lDown, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(7, 11 + rDown, 2.2, 0, Math.PI * 2); ctx.fill();
+
+      // Head
+      const hy = -13 + ch.headBob;
+      ctx.fillStyle = muted ? "oklch(0.30 0.06 305)" : "oklch(0.42 0.16 305)";
+      ctx.beginPath(); ctx.arc(0, hy, 7.5, 0, Math.PI * 2); ctx.fill();
+      // Face
+      ctx.fillStyle = muted ? "oklch(0.55 0.04 75)" : "oklch(0.78 0.10 75)";
+      ctx.beginPath(); ctx.ellipse(0, hy + 1, 5, 5.5, 0, 0, Math.PI * 2); ctx.fill();
+      // Eyes
+      drawEyes(0, hy, 0, 0, muted, ch.blinkDur > 0);
+      // Mouth
+      ctx.strokeStyle = "#000"; ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.arc(0, hy + 4, 1.4, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+
+      if (muted) drawZzz(0, hy - 10, t);
+      ctx.restore();
+    }
+
+    function drawToucan(ch, t) {
+      const bx = ch.x, by = ch.y + ch.bodyOffY + ch.floorShake;
+      const sq = ch.bodySquash, scl = ch.scale;
+      const muted = trackMute[ch.idx];
+      const shimmy = ch.custom.shimmy;
+      ctx.save();
+      ctx.translate(bx + Math.sin(t * 18) * shimmy * 1.5, by);
+      ctx.scale(scl, scl);
+
+      // Branch perch
+      ctx.strokeStyle = "oklch(0.35 0.08 60)"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-14, 11); ctx.lineTo(14, 13);
+      ctx.stroke();
+
+      // Body (compact, black)
+      ctx.fillStyle = muted ? "oklch(0.20 0.02 240)" : "oklch(0.18 0.03 240)";
+      ctx.beginPath(); ctx.ellipse(0, 0, 8 * sq, 9 / sq, 0, 0, Math.PI * 2); ctx.fill();
+      // Yellow breast
+      ctx.fillStyle = muted ? "oklch(0.55 0.06 90)" : "oklch(0.85 0.18 90)";
+      ctx.beginPath(); ctx.ellipse(0, 4, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Legs
+      ctx.strokeStyle = "oklch(0.55 0.10 35)"; ctx.lineWidth = 1.3; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-2, 7); ctx.lineTo(-3, 12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(2, 7); ctx.lineTo(3, 12); ctx.stroke();
+      // Foot holds maraca
+      ctx.fillStyle = muted ? "oklch(0.50 0.05 90)" : "oklch(0.72 0.16 80)";
+      ctx.beginPath(); ctx.ellipse(3, 14, 2.5, 3, 0, 0, Math.PI * 2); ctx.fill();
+      // Maraca stick
+      ctx.strokeStyle = "oklch(0.42 0.06 60)"; ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(3, 13); ctx.lineTo(3 + Math.sin(t * 30) * shimmy * 1, 8);
+      ctx.stroke();
+
+      // Wing
+      const wingFlap = Math.sin(t * 4) * 1 + ch.energyPulse * 2;
+      ctx.fillStyle = muted ? "oklch(0.20 0.02 240)" : "oklch(0.18 0.03 240)";
+      ctx.beginPath();
+      ctx.ellipse(-3, 1, 5, 3 + wingFlap, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = muted ? "oklch(0.32 0.04 230)" : "oklch(0.45 0.10 230)";
+      ctx.beginPath();
+      ctx.ellipse(-3, 1, 3, 1.5 + wingFlap * 0.5, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Head
+      const hy = -8 + ch.headBob;
+      ctx.fillStyle = muted ? "oklch(0.20 0.02 240)" : "oklch(0.18 0.03 240)";
+      ctx.beginPath(); ctx.arc(0, hy, 5.5, 0, Math.PI * 2); ctx.fill();
+
+      // Giant beak (compound bezier with gradient stops)
+      const beakOpen = ch.energyPulse * 1.5;
+      const beakGrad = ctx.createLinearGradient(4, hy, 22, hy + 2);
+      beakGrad.addColorStop(0, "oklch(0.55 0.18 150)");
+      beakGrad.addColorStop(0.4, "oklch(0.78 0.22 95)");
+      beakGrad.addColorStop(0.75, "oklch(0.72 0.22 55)");
+      beakGrad.addColorStop(1, "oklch(0.62 0.20 25)");
+      ctx.fillStyle = muted ? "oklch(0.45 0.08 60)" : beakGrad;
+      // Upper beak
+      ctx.beginPath();
+      ctx.moveTo(4, hy - 1);
+      ctx.bezierCurveTo(12, hy - 5, 22, hy - 2, 22, hy + 1 - beakOpen * 0.5);
+      ctx.bezierCurveTo(20, hy + 2 - beakOpen * 0.5, 12, hy + 1 - beakOpen * 0.5, 4, hy);
+      ctx.fill();
+      // Lower beak
+      ctx.beginPath();
+      ctx.moveTo(4, hy + 1);
+      ctx.bezierCurveTo(12, hy + 4 + beakOpen, 20, hy + 2 + beakOpen, 22, hy + 1 + beakOpen * 0.5);
+      ctx.lineTo(4, hy + 1);
+      ctx.fill();
+
+      // Eye (large)
+      if (!muted && ch.blinkDur <= 0) {
+        ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(-1, hy - 1, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#000";
+        ctx.beginPath(); ctx.arc(-1, hy - 1, 1.1, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.strokeStyle = "#000"; ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(-3, hy - 1); ctx.lineTo(1, hy - 1);
+        ctx.stroke();
+      }
+
+      if (muted) drawZzz(0, hy - 10, t);
+      ctx.restore();
+    }
+
+    function drawElephant(ch, t) {
+      const bx = ch.x, by = ch.y + ch.bodyOffY + ch.floorShake;
+      const sq = ch.bodySquash, scl = ch.scale;
+      const muted = trackMute[ch.idx];
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(scl, scl);
+
+      // Bass log (in front of feet)
+      ctx.fillStyle = "oklch(0.32 0.07 50)";
+      ctx.beginPath();
+      ctx.ellipse(-12, 22, 14, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "oklch(0.42 0.08 55)";
+      ctx.beginPath();
+      ctx.ellipse(-12, 19, 14, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Resonance hole
+      ctx.fillStyle = "oklch(0.18 0.04 50)";
+      ctx.beginPath();
+      ctx.arc(-12, 19, 2, 0, Math.PI * 2);
+      ctx.fill();
+      // Wood rings on top
+      ctx.strokeStyle = "oklch(0.22 0.05 50)"; ctx.lineWidth = 0.5;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.ellipse(-12, 19, 12 - i * 3, 3 - i * 0.6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Body (massive)
+      ctx.fillStyle = muted ? "oklch(0.42 0.04 145)" : "oklch(0.55 0.10 145)";
+      ctx.beginPath();
+      ctx.ellipse(0, -2, 22 * sq, 18 / sq, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Wrinkle lines
+      if (!muted) {
+        ctx.strokeStyle = "oklch(0.40 0.06 145)"; ctx.lineWidth = 0.7;
+        for (let i = 0; i < 5; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-10 + i * 4, 4);
+          ctx.bezierCurveTo(-8 + i * 4, 6, -8 + i * 4, 8, -10 + i * 4, 10);
+          ctx.stroke();
+        }
+      }
+
+      // Front legs
+      ctx.fillStyle = muted ? "oklch(0.42 0.04 145)" : "oklch(0.55 0.10 145)";
+      // Stomp leg (left, animated)
+      const stompY = ch.energyPulse > 0.3 ? -ch.energyPulse * 4 : 0;
+      ctx.fillRect(-12, 12 + stompY, 6, 9 - stompY);
+      ctx.fillRect(4, 13, 6, 8);
+      ctx.fillRect(10, 13, 5, 8);
+      // Toes
+      ctx.fillStyle = muted ? "oklch(0.55 0.04 145)" : "oklch(0.70 0.10 145)";
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(-11 + i * 2, 21 + stompY, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Ears (huge, fan-shaped, spring-driven)
+      const earFlap = Math.sin(t * 1.5) * 0.6 + ch.energyPulse * 2;
+      ctx.fillStyle = muted ? "oklch(0.40 0.04 145)" : "oklch(0.50 0.10 145)";
+      ctx.save();
+      ctx.translate(-18, -10);
+      ctx.rotate(-0.3 - earFlap * 0.05);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 9, 12 + earFlap, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Ear veins
+      if (!muted) {
+        ctx.strokeStyle = "oklch(0.38 0.06 145)"; ctx.lineWidth = 0.6;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(0, -8 + i * 5); ctx.bezierCurveTo(-3, -4 + i * 5, -5, 0 + i * 5, -7, 4 + i * 5);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+      ctx.save();
+      ctx.translate(18, -10);
+      ctx.rotate(0.3 + earFlap * 0.05);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 9, 12 + earFlap, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      // --- Front leg ---
-      ctx.strokeStyle = "oklch(0.40 0.10 55)";
-      ctx.lineWidth = 5;
+      // Head (dome on body)
+      const hy = -8 + ch.headBob;
+      ctx.fillStyle = muted ? "oklch(0.45 0.04 145)" : "oklch(0.58 0.10 145)";
       ctx.beginPath();
-      ctx.moveTo(7, 25);
-      ctx.quadraticCurveTo(10, 35, 9 - legTap, 42);
-      ctx.stroke();
-      ctx.fillStyle = "oklch(0.37 0.09 55)";
-      ctx.beginPath();
-      ctx.ellipse(9 - legTap, 43, 5, 2.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, hy, 11, 9, 0, 0, Math.PI * 2);
       ctx.fill();
-
-      // --- Back arm ---
-      ctx.strokeStyle = "oklch(0.38 0.09 55)";
-      ctx.lineWidth = 5;
-      ctx.lineCap = "round";
-      const backArmAngle = m.state === "dance" ? Math.sin(t * 3) * 0.5 : m.state === "freakout" ? -1.2 : 0.3;
-      ctx.beginPath();
-      ctx.moveTo(-16, -2);
-      ctx.quadraticCurveTo(-25, -2 + Math.sin(backArmAngle) * 15, -30, 5 + Math.cos(backArmAngle) * 20);
-      ctx.stroke();
-      // Hand
-      ctx.fillStyle = "oklch(0.52 0.06 70)";
-      ctx.beginPath();
-      ctx.arc(-30, 5 + Math.cos(backArmAngle) * 20, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // --- Head ---
-      const headY = -28 + m.headBobY;
-      ctx.save();
-      ctx.translate(2, headY);
-      ctx.rotate(m.headTilt * 0.01);
-
-      // Head shape
-      const headGrad = ctx.createRadialGradient(-2, -4, 5, 0, 0, 18);
-      headGrad.addColorStop(0, "oklch(0.48 0.11 60)");
-      headGrad.addColorStop(1, "oklch(0.38 0.10 55)");
-      ctx.fillStyle = headGrad;
-      ctx.beginPath();
-      ctx.arc(0, 0, 18, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Face area
-      ctx.fillStyle = "oklch(0.58 0.06 70)";
-      ctx.beginPath();
-      ctx.ellipse(2, 3, 12, 10, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // --- Ears ---
-      // Left ear
-      ctx.fillStyle = "oklch(0.42 0.10 55)";
-      ctx.beginPath();
-      ctx.ellipse(-16 + m.earLJ, -8, 6, 7, -0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "oklch(0.58 0.06 70)";
-      ctx.beginPath();
-      ctx.ellipse(-16 + m.earLJ, -8, 3.5, 4.5, -0.2, 0, Math.PI * 2);
-      ctx.fill();
-      // Right ear
-      ctx.fillStyle = "oklch(0.42 0.10 55)";
-      ctx.beginPath();
-      ctx.ellipse(18 + m.earRJ, -8, 6, 7, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "oklch(0.58 0.06 70)";
-      ctx.beginPath();
-      ctx.ellipse(18 + m.earRJ, -8, 3.5, 4.5, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // --- Fur tufts ---
-      ctx.strokeStyle = "oklch(0.45 0.10 60)";
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      for (let i = 0; i < 3; i++) {
-        const fx = -4 + i * 4;
-        const fSway = Math.sin(t * 1.5 + i * 2) * 2;
+      // Trunk (verlet, drawn from base outward)
+      if (ch.trunk.length) {
+        ctx.strokeStyle = muted ? "oklch(0.45 0.04 145)" : "oklch(0.58 0.10 145)";
+        ctx.lineWidth = 4.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
         ctx.beginPath();
-        ctx.moveTo(fx, -17);
-        ctx.quadraticCurveTo(fx + fSway, -23, fx + fSway * 1.5, -25);
+        ctx.moveTo(ch.trunk[0].x - bx, ch.trunk[0].y - by);
+        for (let j = 1; j < ch.trunk.length; j++) {
+          ctx.lineTo(ch.trunk[j].x - bx, ch.trunk[j].y - by);
+        }
         ctx.stroke();
       }
+      // Eyes
+      drawEyes(0, hy, 0, 0, muted, ch.blinkDur > 0);
+      // Tusks (small)
+      if (!muted) {
+        ctx.fillStyle = "oklch(0.92 0.04 90)";
+        ctx.beginPath();
+        ctx.moveTo(-5, hy + 4); ctx.lineTo(-7, hy + 8); ctx.lineTo(-4, hy + 6);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(5, hy + 4); ctx.lineTo(7, hy + 8); ctx.lineTo(4, hy + 6);
+        ctx.fill();
+      }
 
-      // --- Eyes ---
-      const eyeL = { x: -6, y: -5 };
-      const eyeR = { x: 8, y: -5 };
-      const eyeR_rad = 5;
+      if (muted) drawZzz(0, hy - 12, t);
+      ctx.restore();
+    }
 
-      [eyeL, eyeR].forEach(eye => {
-        // Sclera
-        ctx.fillStyle = "#fff";
+    function drawQuetzal(ch, t) {
+      const bx = ch.x, by = ch.y + ch.bodyOffY + ch.floorShake;
+      const sq = ch.bodySquash, scl = ch.scale;
+      const muted = trackMute[ch.idx];
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(scl, scl);
+
+      // Iridescent body color shifts
+      const shift = Math.sin(t * 1.5) * 30;
+      const bodyColor = muted ? "oklch(0.36 0.06 145)" : "oklch(0.55 0.18 " + (140 + shift) + ")";
+
+      // Tail plume verlet (8 points, ~50px) — drawn first behind body
+      if (ch.tail.length) {
+        ctx.strokeStyle = bodyColor;
+        ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.lineJoin = "round";
         ctx.beginPath();
-        ctx.arc(eye.x, eye.y, eyeR_rad, 0, Math.PI * 2);
-        ctx.fill();
-        // Iris
-        ctx.fillStyle = "oklch(0.40 0.12 55)";
-        const ir = eyeR_rad * 0.55;
-        ctx.beginPath();
-        ctx.arc(eye.x + m.pupilOX, eye.y + m.pupilOY, ir, 0, Math.PI * 2);
-        ctx.fill();
-        // Pupil
-        ctx.fillStyle = "#111";
-        ctx.beginPath();
-        ctx.arc(eye.x + m.pupilOX * 1.2, eye.y + m.pupilOY * 1.2, ir * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-        // Highlight
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.beginPath();
-        ctx.arc(eye.x + m.pupilOX * 0.3 - 1.5, eye.y + m.pupilOY * 0.3 - 1.5, ir * 0.25, 0, Math.PI * 2);
-        ctx.fill();
-        // Blink eyelid
-        if (m.isBlinking) {
-          ctx.fillStyle = "oklch(0.42 0.10 55)";
-          ctx.beginPath();
-          ctx.arc(eye.x, eye.y, eyeR_rad + 1, 0, Math.PI * 2);
-          ctx.fill();
+        ctx.moveTo(ch.tail[0].x - bx, ch.tail[0].y - by);
+        for (let j = 1; j < ch.tail.length; j++) {
+          ctx.lineTo(ch.tail[j].x - bx, ch.tail[j].y - by);
         }
+        ctx.stroke();
+        // Feather barbs (perpendicular strokes along chain)
+        if (!muted) {
+          ctx.strokeStyle = "oklch(0.65 0.20 " + (130 + shift) + ")";
+          ctx.lineWidth = 1.4;
+          for (let j = 1; j < ch.tail.length; j++) {
+            const a = ch.tail[j-1], b = ch.tail[j];
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            const nx = -dy / len, ny = dx / len;
+            const barbLen = 4 + j * 1.2;
+            ctx.beginPath();
+            ctx.moveTo(b.x - bx + nx * barbLen, b.y - by + ny * barbLen);
+            ctx.lineTo(b.x - bx - nx * barbLen, b.y - by - ny * barbLen);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Body
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath(); ctx.ellipse(0, 0, 8 * sq, 10 / sq, 0, 0, Math.PI * 2); ctx.fill();
+      // Red belly
+      ctx.fillStyle = muted ? "oklch(0.45 0.06 25)" : "oklch(0.60 0.20 25)";
+      ctx.beginPath(); ctx.ellipse(0, 4, 4.5, 5, 0, 0, Math.PI * 2); ctx.fill();
+      // Wing
+      ctx.fillStyle = muted ? "oklch(0.30 0.06 145)" : "oklch(0.45 0.16 " + (135 + shift) + ")";
+      ctx.beginPath();
+      ctx.ellipse(-2, 0, 6, 4, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Branch
+      ctx.strokeStyle = "oklch(0.35 0.08 60)"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-13, 12); ctx.lineTo(13, 13);
+      ctx.stroke();
+      // Legs
+      ctx.strokeStyle = "oklch(0.55 0.10 35)"; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.moveTo(-2, 7); ctx.lineTo(-2, 12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(2, 7); ctx.lineTo(2, 12); ctx.stroke();
+
+      // Head
+      const hy = -10 + ch.headBob;
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath(); ctx.arc(0, hy, 5.5, 0, Math.PI * 2); ctx.fill();
+      // 3 crest feathers
+      if (!muted) {
+        ctx.strokeStyle = "oklch(0.72 0.20 " + (140 + shift) + ")";
+        ctx.lineWidth = 1.6; ctx.lineCap = "round";
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-1 + i * 1, hy - 3);
+          ctx.lineTo(-2 + i * 1.5, hy - 7 - i * 1.5);
+          ctx.stroke();
+        }
+      }
+      // Beak
+      const beakOpen = ch.energyPulse * 1.2;
+      ctx.fillStyle = "oklch(0.62 0.20 25)";
+      ctx.beginPath();
+      ctx.moveTo(4, hy - 1); ctx.lineTo(9, hy + 1 - beakOpen * 0.4);
+      ctx.lineTo(4, hy + 2 + beakOpen * 0.4);
+      ctx.fill();
+      // Eye
+      drawEyes(0, hy - 1, 0, 0, muted, ch.blinkDur > 0);
+
+      // Sound wave arcs (emit on hit)
+      ch.custom.waves.forEach(w => {
+        ctx.strokeStyle = "oklch(0.85 0.20 80 / " + w.alpha.toFixed(3) + ")";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(8, hy + 1, w.r, -0.6, 0.6);
+        ctx.stroke();
       });
 
-      // --- Eyebrows ---
-      ctx.strokeStyle = "oklch(0.32 0.08 55)";
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      const browLift = m.eyebrowRaise;
-      // Left brow
-      ctx.beginPath();
-      ctx.moveTo(-10, -11 - browLift);
-      ctx.quadraticCurveTo(-6, -13 - browLift * 1.2, -2, -11 - browLift);
-      ctx.stroke();
-      // Right brow
-      ctx.beginPath();
-      ctx.moveTo(4, -11 - browLift);
-      ctx.quadraticCurveTo(8, -13 - browLift * 1.2, 12, -11 - browLift);
-      ctx.stroke();
-
-      // --- Mouth ---
-      if (m.mouthOpen > 0.3) {
-        // Open mouth
-        ctx.fillStyle = "oklch(0.30 0.08 20)";
-        ctx.beginPath();
-        ctx.ellipse(3, 8, 4, 3 + m.mouthOpen * 4, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Tongue hint
-        ctx.fillStyle = "oklch(0.55 0.15 15)";
-        ctx.beginPath();
-        ctx.ellipse(3, 9 + m.mouthOpen * 2, 2.5, 1.5, 0, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        // Smile
-        ctx.strokeStyle = "oklch(0.32 0.06 55)";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        const smileW = 5 + m.mouthSmile * 2;
-        ctx.arc(3, 5, smileW, 0.15, Math.PI - 0.15);
-        ctx.stroke();
-      }
-
-      // Cheek blush (freakout)
-      if (m.state === "freakout") {
-        ctx.fillStyle = "oklch(0.65 0.15 15 / 0.3)";
-        ctx.beginPath();
-        ctx.ellipse(-8, 3, 4, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(14, 3, 4, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.restore(); // end head
-
-      // --- Front arm + banana ---
-      ctx.strokeStyle = "oklch(0.40 0.10 55)";
-      ctx.lineWidth = 5;
-      ctx.lineCap = "round";
-      const frontArmEnd = m.bananaHeld
-        ? { x: 25, y: 10 }
-        : { x: 22, y: 15 + Math.sin(t * 1.5) * 3 };
-      ctx.beginPath();
-      ctx.moveTo(16, -2);
-      ctx.quadraticCurveTo(22, 0, frontArmEnd.x, frontArmEnd.y);
-      ctx.stroke();
-      // Hand
-      ctx.fillStyle = "oklch(0.52 0.06 70)";
-      ctx.beginPath();
-      ctx.arc(frontArmEnd.x, frontArmEnd.y, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Banana in hand
-      if (m.bananaHeld) {
-        ctx.save();
-        ctx.translate(frontArmEnd.x + 3, frontArmEnd.y - 2);
-        ctx.rotate(-0.3);
-        drawBananaShape(ctx, 0, 0, 1);
-        ctx.restore();
-      }
-
-      ctx.restore(); // end monkey body translate
+      if (muted) drawZzz(0, hy - 12, t);
+      ctx.restore();
     }
 
-    function drawBananaShape(c, x, y, scale) {
-      c.save();
-      c.translate(x, y);
-      c.scale(scale, scale);
-      // Body
-      c.fillStyle = "oklch(0.88 0.19 92)";
-      c.beginPath();
-      c.ellipse(0, 0, 4, 10, 0, 0, Math.PI * 2);
-      c.fill();
-      // Brown tip
-      c.fillStyle = "oklch(0.40 0.10 55)";
-      c.beginPath();
-      c.ellipse(0, 9, 2, 2, 0, 0, Math.PI * 2);
-      c.fill();
-      // Green stem
-      c.fillStyle = "oklch(0.45 0.12 145)";
-      c.beginPath();
-      c.ellipse(0, -10, 1.5, 2, 0, 0, Math.PI * 2);
-      c.fill();
-      c.restore();
+    function drawCharacter(ch, t, alpha) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const a = ch.def.animal;
+      if (a === "gorilla") drawGorilla(ch, t);
+      else if (a === "capuchin") drawCapuchin(ch, t);
+      else if (a === "frog") drawFrog(ch, t);
+      else if (a === "chameleon") drawChameleon(ch, t);
+      else if (a === "spiderMonkey") drawSpiderMonkey(ch, t);
+      else if (a === "toucan") drawToucan(ch, t);
+      else if (a === "elephant") drawElephant(ch, t);
+      else if (a === "quetzal") drawQuetzal(ch, t);
+      ctx.globalAlpha = 1;
+      ctx.restore();
     }
 
-    // ─── Flying banana ───
-    function tickFlyingBanana(dt) {
-      if (mk.bananaHeld) return;
-      mk.bananaX += mk.bananaVX;
-      mk.bananaVY += 15 * dt; // gravity
-      mk.bananaY += mk.bananaVY;
-      mk.bananaAng += mk.bananaAngV;
-      mk.bananaTimer -= dt;
-      if (mk.bananaTimer <= 0) {
-        mk.bananaHeld = true;
-      }
-      // Draw flying banana
-      if (!mk.bananaHeld) {
-        ctx.save();
-        ctx.translate(mk.bananaX, mk.bananaY);
-        ctx.rotate(mk.bananaAng);
-        drawBananaShape(ctx, 0, 0, 1.2);
-        ctx.restore();
+    // ─── Hit reactions ───
+    function applyHit(idx, step) {
+      const ch = chars[idx];
+      // Consecutive hits buildup
+      if (ch.lastHitStep >= 0 && (step - ch.lastHitStep + 16) % 16 <= 2) ch.consecutiveHits++;
+      else ch.consecutiveHits = 1;
+      ch.lastHitStep = step;
+      const buildup = 1 + Math.min(0.6, (ch.consecutiveHits - 1) * 0.15);
+      const energyMul = 0.7 + trackEnergy[idx] * 0.6;
+      const k = buildup * energyMul;
+      ch.energyPulse = Math.min(1, ch.energyPulse + 0.4 * k);
+      spotlightFlash[idx] = Math.min(1, spotlightFlash[idx] + 0.7);
+
+      const trackColor = TRACK_COLORS_RAW[idx];
+      const cx = ch.x, cy = ch.y;
+
+      if (idx === 0) {
+        // Gorilla kick
+        addTrauma(0.32 * k);
+        ch.custom.fistVel += 22 * k;
+        ch.bodyOffYVel += 5 * k;
+        ch.bodySquashVel -= 3;
+        spawn(cx, cy + 16, 6, "oklch(0.50 0.08 55)", "dust", { spread: 4.5, lift: 2.5, life: 0.6, sizeRange: 2.5 });
+        // Floor shake to all
+        chars.forEach((c, i) => { if (i !== 0) c.floorShake = -1.2 * k; });
+      } else if (idx === 1) {
+        // Capuchin snare
+        addTrauma(0.12 * k);
+        ch.armSwingVel += 14 * k;
+        ch.armSide = (ch.armSide + 1) % 2;
+        ch.headBobVel -= 2;
+        spawn(cx, cy - 14, 4, trackColor, "spark", { spread: 3, lift: 3, life: 0.35 });
+      } else if (idx === 2) {
+        // Frog hat
+        ch.bodyOffYVel += 5.5 * k;
+        ch.custom.throat = 1;
+        spawn(cx, cy - 8, 2, "oklch(0.85 0.05 230)", "spark", { spread: 2, lift: 2.5, life: 0.3 });
+      } else if (idx === 3) {
+        // Chameleon o-hat (tongue)
+        ch.custom.tongueT = 1;
+        ch.custom.hueShift = 1;
+        spawn(cx + 12, cy - 4, 3, trackColor, "spark", { spread: 2, lift: 2, life: 0.4 });
+      } else if (idx === 4) {
+        // Spider monkey bongo
+        addTrauma(0.08 * k);
+        ch.armSwingVel += 16 * k;
+        ch.armSide = (ch.armSide + 1) % 2;
+        ch.bodyOffYVel += 2.5;
+        spawn(cx, cy + 8, 3, trackColor, "spark", { spread: 3, lift: 2, life: 0.4 });
+      } else if (idx === 5) {
+        // Toucan shaker
+        ch.custom.shimmy = 1;
+        ch.headBobVel -= 1.5;
+        spawn(cx + 10, cy + 12, 2, trackColor, "banana", { spread: 2.5, lift: 2, life: 0.5, sizeRange: 1 });
+      } else if (idx === 6) {
+        // Elephant bass
+        addTrauma(0.18 * k);
+        ch.bodyOffYVel += 3.5 * k;
+        ch.bodySquashVel -= 6;
+        spawn(cx - 8, cy + 18, 4, "oklch(0.50 0.08 55)", "dust", { spread: 4, lift: 2, life: 0.7, sizeRange: 3 });
+        // Neighbors get low-freq wobble
+        [5, 7].forEach(n => { chars[n].bodyOffYVel += 1.4; });
+      } else if (idx === 7) {
+        // Quetzal lead
+        ch.custom.waves.push({ r: 4, alpha: 0.85 });
+        ch.headBobVel -= 4 * k;
+        spawn(cx + 8, cy - 12, 3, trackColor, "spark", { spread: 2, lift: 3, life: 0.5 });
       }
     }
 
-    // ─── Update monkey physics ───
-    function updateMonkey(t, dt) {
-      const m = mk;
-
-      // Breathing
-      const breathTarget = 1 + Math.sin(t * 2.5) * 0.018;
-      const bs = springStep(m.bodyStretchY, breathTarget, m.bodyStretchVel, 12, 4, dt);
-      m.bodyStretchY = Math.max(0.8, Math.min(1.25, bs.value));
-      m.bodyStretchVel = bs.velocity;
-
-      // Body sway
-      m.bodyOffY = Math.sin(t * 1.5) * 1.5;
-
-      // Head bob spring
-      const hb = springStep(m.headBobY, 0, m.headBobVel, 15, 5, dt);
-      m.headBobY = hb.value; m.headBobVel = hb.velocity;
-
-      // Head tilt
-      const tiltTarget = m.state === "dance" ? Math.sin(t * 2) * 6 : 0;
-      const ht = springStep(m.headTilt, tiltTarget, m.headTiltVel, 8, 4, dt);
-      m.headTilt = ht.value; m.headTiltVel = ht.velocity;
-
-      // Eyebrow spring
-      const eb = springStep(m.eyebrowRaise, 0, m.eyebrowVel, 20, 6, dt);
-      m.eyebrowRaise = Math.max(0, eb.value); m.eyebrowVel = eb.velocity;
-
-      // Ear springs
-      const el = springStep(m.earLJ, 0, m.earLV, 25, 5, dt);
-      m.earLJ = el.value; m.earLV = el.velocity;
-      const er = springStep(m.earRJ, 0, m.earRV, 25, 5, dt);
-      m.earRJ = er.value; m.earRV = er.velocity;
-
-      // Mouth decay
-      m.mouthOpen *= 0.92;
-      if (m.mouthOpen < 0.05) m.mouthOpen = 0;
-
-      // Pupil decay
-      m.pupilOX *= 0.95;
-      m.pupilOY *= 0.95;
-
-      // Blink
-      m.blinkTimer -= dt;
-      if (m.blinkTimer <= 0 && !m.isBlinking) {
-        m.isBlinking = true;
-        m.blinkDur = 0.1;
-      }
-      if (m.isBlinking) {
-        m.blinkDur -= dt;
-        if (m.blinkDur <= 0) {
-          m.isBlinking = false;
-          m.blinkTimer = 3 + Math.random() * 4;
-        }
-      }
-
-      // Leg phase
-      if (m.state === "dance" || m.state === "nod") {
-        m.legPhase += dt * 8;
-      } else {
-        m.legPhase *= 0.95;
-      }
-
-      // Tail verlet
-      m.tail[0].x = m.baseX - 18;
-      m.tail[0].y = m.baseY + 12 + m.bodyOffY;
-      for (let i = 1; i < m.tail.length; i++) {
-        const wind = Math.sin(t * 1.2 + i * 0.8) * 0.12;
-        const wagBoost = m.state === "dance" ? Math.sin(t * 4 + i) * 0.3 : 0;
-        updateVerletPoint(m.tail[i], wind + wagBoost, 0.25, 0.97);
-      }
-      for (let iter = 0; iter < 3; iter++) {
-        for (let i = 1; i < m.tail.length; i++) {
-          constrainDist(m.tail[i - 1], m.tail[i], 12);
-        }
-      }
-
-      // Fur tuft phase
-      m.tuftPhase = t;
-
-      // Character FSM
-      const now = Date.now();
-      const idle = now - m.lastInput;
-      if (m.state === "idle" && idle > 25000) m.state = "yawn";
-      if (m.state === "yawn" && idle > 28000) m.state = "idle";
-      if (m.state === "idle" && idle < 500 && trauma > 0.05) m.state = "nod";
-      if (trauma >= 0.6 && m.state !== "yawn") m.state = "freakout";
-      if (m.barsPlayed >= 4 && m.state === "nod") m.state = "dance";
-      if (m.state === "freakout" && trauma < 0.15) m.state = m.barsPlayed >= 4 ? "dance" : "nod";
-
-      // Yawn mouth
-      if (m.state === "yawn") {
-        m.mouthOpen = 0.4 + Math.sin(t * 2) * 0.2;
-      }
+    function applyAccent() {
+      // Synchronized mini-jump
+      chars.forEach(c => {
+        if (!trackMute[c.idx]) c.bodyOffYVel += 4.5;
+      });
+      flashAlpha = Math.max(flashAlpha, 0.18);
     }
 
-    // ─── Particle update + draw ───
+    function applyLoopWrap() { flashAlpha = Math.max(flashAlpha, 0.25); }
+
+    // ─── Bus listeners ───
+    bus.on("trackHit", (d) => { applyHit(d.track, d.step); });
+    bus.on("accent", applyAccent);
+    bus.on("loopWrap", applyLoopWrap);
+    bus.on("step", (d) => { beatPhase = d.step / STEPS; });
+
+    // ─── Particle tick + draw ───
     function tickParticles(dt) {
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.life -= dt;
         if (p.life <= 0) { particles.splice(i, 1); continue; }
-        p.vy += 180 * dt; // gravity
+        p.vy += p.gravity * dt;
         p.x += p.vx;
         p.y += p.vy * dt;
         p.ang += p.angV;
-
         const alpha = Math.max(0, p.life / p.maxLife);
         ctx.globalAlpha = alpha;
         ctx.save();
@@ -1282,9 +1983,7 @@
           ctx.ellipse(0, 0, p.size * 0.4, p.size, 0, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = "oklch(0.40 0.10 55)";
-          ctx.beginPath();
-          ctx.arc(0, p.size * 0.8, p.size * 0.15, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.beginPath(); ctx.arc(0, p.size * 0.8, p.size * 0.15, 0, Math.PI * 2); ctx.fill();
         } else {
           ctx.fillStyle = p.color;
           ctx.beginPath();
@@ -1296,9 +1995,24 @@
       ctx.globalAlpha = 1;
     }
 
+    // ─── Public API setters ───
+    function setTrackStates(tracks) {
+      tracks.forEach((t, i) => {
+        trackMute[i] = !!t.mute;
+        trackSolo[i] = !!t.solo;
+      });
+    }
+    function setEnergies(tracks) {
+      tracks.forEach((t, i) => {
+        const hits = t.pattern.filter(Boolean).length;
+        trackEnergy[i] = hits / t.pattern.length;
+      });
+    }
+    function setBPM(b) { currentBPM = b; }
+    function setPlaying(p) { isPlayingFlag = p; }
+
     // ─── Main render loop ───
-    let lastTime = 0;
-    let raf;
+    let lastTime = 0, raf;
     function frame(now) {
       raf = requestAnimationFrame(frame);
       const dt = Math.min((now - lastTime) / 1000, 0.05);
@@ -1307,9 +2021,9 @@
 
       ctx.clearRect(0, 0, W, H);
 
-      // Shake
       trauma = Math.max(0, trauma - 1.5 * dt);
-      if (!reducedMotion && trauma > 0.01) {
+      const shaking = !reducedMotion && trauma > 0.01;
+      if (shaking) {
         const s = getShake();
         ctx.save();
         ctx.translate(s.x, s.y);
@@ -1318,13 +2032,51 @@
       drawBackground(t);
       if (!reducedMotion) tickLeaves(t);
 
-      updateMonkey(t, dt);
-      drawMonkey(t, dt);
-      tickFlyingBanana(dt);
+      // Stage platform
+      drawBambooStage();
+
+      // Behind-character decorations
+      drawBananaBunch(120, 88, 0.95);
+      drawBananaBunch(W - 130, 102, 0.85);
+      drawBananaBunch(W * 0.5, 76, 0.7);
+      drawHibiscus(46, 246, 1.1, 320);
+      drawHibiscus(W - 46, 252, 0.95, 90);
+      drawHibiscus(W * 0.32, 256, 0.7, 25);
+      drawHibiscus(W * 0.68, 254, 0.7, 200);
+      drawPalmFrond(8, 256, -0.35, t);
+      drawPalmFrond(W - 8, 250, Math.PI + 0.35, t + 1.4);
+
+      // Spotlights (behind chars)
+      chars.forEach((ch, i) => {
+        const baseIntensity = (trackMute[i] ? 0.04 : 0.18) + spotlightFlash[i] * 0.7;
+        drawSpotlight(ch.x, TRACK_COLORS_RAW[i], baseIntensity);
+      });
+
+      // Update + draw chars (depth-sorted by Y)
+      updateChars(t, dt);
+      const order = chars.map((_, i) => i).sort((a, b) => chars[a].y - chars[b].y);
+      const hasSolo = trackSolo.some(s => s);
+      order.forEach(i => {
+        const ch = chars[i];
+        let alpha = 1;
+        if (hasSolo && !trackSolo[i]) alpha = 0.5;
+        // Solo glow halo
+        if (hasSolo && trackSolo[i]) {
+          const g = ctx.createRadialGradient(ch.x, ch.y, 0, ch.x, ch.y, 50);
+          g.addColorStop(0, TRACK_COLORS_RAW[i].replace(")", " / 0.35)"));
+          g.addColorStop(1, "transparent");
+          ctx.fillStyle = g;
+          ctx.fillRect(ch.x - 50, ch.y - 50, 100, 100);
+        }
+        drawCharacter(ch, t, alpha);
+      });
+
+      // Front-of-stage decorations: tiki torches
+      drawTikiTorch(28, 224, t, currentBPM);
+      drawTikiTorch(W - 28, 224, t + 1.7, currentBPM);
 
       if (!reducedMotion) tickParticles(dt);
-
-      if (!reducedMotion && trauma > 0.01) ctx.restore();
+      if (shaking) ctx.restore();
 
       // Flash overlay
       if (flashAlpha > 0 && !reducedMotion) {
@@ -1338,10 +2090,7 @@
 
     return {
       destroy() { cancelAnimationFrame(raf); },
-      setPlaying(p) {
-        if (p) { mk.state = "nod"; mk.barsPlayed = 0; mk.lastInput = Date.now(); }
-        else { mk.state = "idle"; mk.barsPlayed = 0; }
-      }
+      setPlaying, setBPM, setTrackStates, setEnergies,
     };
   }
 
@@ -1509,6 +2258,10 @@
     useEffect(() => {
       if (canvasRef.current && !stageRef.current) {
         stageRef.current = createStage(canvasRef.current);
+        // Initial sync
+        stageRef.current.setBPM(state.bpm);
+        stageRef.current.setTrackStates(state.tracks);
+        stageRef.current.setEnergies(state.tracks);
       }
       return () => { if (stageRef.current) { stageRef.current.destroy(); stageRef.current = null; } };
     }, []);
@@ -1517,9 +2270,20 @@
       if (stageRef.current) stageRef.current.setPlaying(state.isPlaying);
     }, [state.isPlaying]);
 
+    useEffect(() => {
+      if (stageRef.current) stageRef.current.setBPM(state.bpm);
+    }, [state.bpm]);
+
+    useEffect(() => {
+      if (stageRef.current) {
+        stageRef.current.setTrackStates(state.tracks);
+        stageRef.current.setEnergies(state.tracks);
+      }
+    }, [state.tracks]);
+
     return h("div", { className: "display" },
       h("canvas", { ref: canvasRef, tabIndex: 0, role: "application",
-        "aria-label": "Monkey character animation stage" })
+        "aria-label": "Jungle band stage with 8 animal characters" })
     );
   }
 
