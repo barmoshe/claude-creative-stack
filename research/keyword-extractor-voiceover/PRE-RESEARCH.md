@@ -23,6 +23,13 @@ Concrete example the user gave:
 - Input audio: *"the weather will be rainy today"*
 - Expected keywords: `rain` (or `rainy`, `umbrella`, `wet street`), with timestamps and a visual concept the chooser can search.
 
+**Output format constraint: 9:16 vertical (1080 × 1920 default).** The deliverable is a social-cut for Instagram Reels / TikTok / YouTube Shorts — not the broadcast horizontal master. This single constraint propagates through the pipeline:
+
+- **Sourcing (R4)** must prefer natively-vertical stock; horizontal clips are a fallback that requires a centre-crop with a face/subject screen.
+- **Matching (R5)** scoring must penalise clips whose key action sits at the horizontal edges (it gets cropped out).
+- **Renderer (R6)** canvas defaults to 1080×1920; horizontal clips are scaled to fill height then centre-cropped (FFmpeg `scale=…:1920:force_original_aspect_ratio=increase,crop=1080:1920`).
+- **AI generation fallback** — Luma Ray2 and Runway Gen-3 Alpha Turbo both accept `9:16` as an aspect ratio; the asset-router routing rule must pass it through.
+
 This sits squarely inside the `claude-creative-stack` mission (art / animation / asset pipelines). It also extends the existing **asset-router MCP** pattern from `knowledge/13-asset-pipelines.md` and the agentic-asset-pipeline recipe — but oriented around *audio-in → video-out* rather than *prompt-in → image-out*.
 
 We need research before design because several decisions are not yet obvious:
@@ -119,8 +126,9 @@ All reports land under `research/keyword-extractor-voiceover/`. Each report foll
 ### R4 — Background-Video Sourcing
 - **Must answer:** for each of Pexels, Pixabay, Storyblocks, Artgrid, Envato, Luma Ray2, Runway Gen-3:
   - API surface (`search`, `download`, rate limits)
+  - **Vertical-orientation filter** — does the API support `orientation=portrait`/`vertical` (Pexels and Pixabay both do); does the generative API accept `aspect_ratio=9:16` (Ray2, Gen-3 both do).
   - License (commercial use? newsroom-permitted? attribution required?)
-  - Quality and topical coverage for "weather" (rain, snow, sun, wind, storm, fog)
+  - Quality and topical coverage for "weather" *in vertical form* (rain, snow, sun, wind, storm, fog) — vertical libraries are typically thinner than horizontal; expect more fallbacks to crop.
   - $/clip or $/month
   - Whether assets can be cached and re-used across daily runs
 - **Must answer:** stock-vs-generate trade-off — when is it cheaper / faster / more on-brand to generate a 5s Ray2 clip vs query Pexels.
@@ -134,7 +142,8 @@ All reports land under `research/keyword-extractor-voiceover/`. Each report foll
   3. **LLM-judge loop** — Claude scores 3 candidate clips and picks one with reasoning (highest cost; best quality on ambiguous concepts).
 - **Must answer:** cost per minute of voiceover assuming 1 keyword every 4 seconds → ~15 keywords/min × N candidates.
 - **Implications section:** a default matching pipeline (e.g. "tag match → top 3 → CLIP rerank → LLM-judge only on low-confidence"), with a clear cost ceiling.
-- **Search seeds:** "CLIP video retrieval 2026", "sentence-transformers tag matching", "LLM-as-judge image selection".
+- **Vertical-aware scoring.** Add a `crop_safety` term to the score: natively-vertical clips score 1.0; horizontal clips that pass a centre-crop safety check (subject within the centre 56 % of width = the 1080-of-1920 column) score 0.6; horizontal clips with edge-anchored action score 0.0 and are dropped. Cheap implementation: run a saliency or face-detection pass on a thumbnail and reject if any salient bbox extends past the crop window.
+- **Search seeds:** "CLIP video retrieval 2026", "sentence-transformers tag matching", "LLM-as-judge image selection", "saliency-aware video crop 9:16".
 
 ### R6 — Output EDL and Renderer
 - **Must answer:** the EDL JSON shape (timeline of `{clip_url, in, out, place_at}` segments) plus how the voiceover audio is laid over it. Four render-target options:
@@ -143,8 +152,9 @@ All reports land under `research/keyword-extractor-voiceover/`. Each report foll
   3. **Remotion** (React-based programmatic video) — gives a web-previewable composition that matches our artifact-first ethos.
   4. **FCPXML / Premiere XML / OTIO** — hand off to the human editor instead of rendering.
 - **Must answer:** a thin FFmpeg reference command that takes the EDL + voiceover and produces an MP4, so the pipeline is end-to-end demonstrable.
-- **Implications section:** default EDL shape + default renderer = FFmpeg; Remotion as the artifact-side preview; OTIO/FCPXML deferred until newsroom asks.
-- **Search seeds:** "FFmpeg concat demuxer", "Remotion 2026 docs", "OpenTimelineIO JSON".
+- **Vertical canvas.** Default output is **1080 × 1920, 30 fps, H.264 high, AAC 192 kbps stereo, yuv420p, faststart**. The reference FFmpeg command must include the per-clip normaliser: `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1` so mixed-orientation source clips always land on the same canvas. Remotion equivalent: `<Composition width={1080} height={1920} fps={30} />`. MoviePy equivalent: `CompositeVideoClip(..., size=(1080,1920))`.
+- **Implications section:** default EDL shape + default renderer = FFmpeg; Remotion as the artifact-side preview; OTIO/FCPXML deferred until newsroom asks. EDL items must carry a `source_orientation` field so the renderer knows whether to crop or pass through.
+- **Search seeds:** "FFmpeg concat demuxer", "Remotion 2026 docs", "OpenTimelineIO JSON", "FFmpeg horizontal to vertical 9:16 crop".
 
 ### R7 — Repo Architecture Fit
 - **Must answer:** how this maps onto the existing three-layer pattern:
@@ -197,6 +207,7 @@ If the user is unavailable, **default assumptions** for the research phase are:
 - Free-tier stock first; paid is an opt-in later.
 - Render to MP4 by default; emit FCPXML on a flag.
 - ~5 voiceovers/day, ≤2 min each.
+- **Output canvas: 1080 × 1920 (9:16 vertical), 30 fps.** Social-cut for Reels / TikTok / Shorts, not the broadcast horizontal master.
 
 ---
 
