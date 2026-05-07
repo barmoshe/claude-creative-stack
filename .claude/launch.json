@@ -6,6 +6,15 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8765"],
       "port": 8765
+    },
+    {
+      "name": "storybook",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-lc",
+        "cd /Users/barmoshe/claude-creative-stack/joomsy-app/apps/web-app; export NVM_DIR=\"$HOME/.nvm\"; source \"$NVM_DIR/nvm.sh\"; nvm use 22; exec pnpm storybook --no-open"
+      ],
+      "port": 6006
     }
   ]
 }

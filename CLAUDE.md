@@ -25,6 +25,19 @@ You are assisting inside a Claude Project whose knowledge base is the `claude-cr
 - **Claude Code hooks & retrieval** (SessionStart briefings, Stop follow-ups, UserPromptSubmit RAG-lite, `additionalContext` mechanics) → `knowledge/16-hooks-and-retrieval.md`.
 - Anything where you're about to hardcode a version or model ID → consult `knowledge/99-caveats.md` first.
 
+## Child repos (this repo is a host)
+
+This repo is designed to **host child repos** as top-level subdirectories so their content can be worked on with the full creative stack (skills, artifacts, MCP servers, knowledge files) close at hand. Children are **not** git submodules — there is no `.gitmodules`. Each child is an independent ad-hoc clone, typically gitignored from the host, with its own `.git` and its own remote.
+
+When you encounter one:
+
+- **Identify it** by `<dir>/.git` existing and the dir living at the host repo root. That subfolder is a child repo — a separate project, not part of the host.
+- **Pick the active scope from the request.** If the user names a child, the cwd is inside it, or the task is clearly about it, operate **inside the child** — its files, its git history. Otherwise stay in the host and treat the child as read-only reference.
+- **Never blend git histories.** Don't `git add` child files from the host root; don't let child changes land in a host commit, and vice versa. `cd` into the child before any git command that affects it.
+- **Commits stay opt-in** in both the host and any child — don't auto-commit, don't auto-push.
+- **Don't promote a child to a submodule** unless the user asks.
+- **If a child folder isn't gitignored yet,** flag it before any host commit so it doesn't get accidentally tracked.
+
 ## Defaults
 
 - When the user asks to "build a \_\_\_", first check `artifacts/` for a matching starter and offer to base new work on it.
@@ -34,6 +47,7 @@ You are assisting inside a Claude Project whose knowledge base is the `claude-cr
 - For anything running in a Claude artifact: import hooks explicitly (`import { useState } from "react"`), stay inside the library whitelist, use `window.storage` not `localStorage`, and fetch only from `api.anthropic.com/v1/messages`.
 - For Three.js inside artifacts: **r128 only**. No `CapsuleGeometry`. No `OrbitControls` from the addons path (use the CDN alternative documented in `artifacts/html/three-r128-scene.html`).
 - The repo's `.claude/hooks/` (SessionStart briefing + Stop issue capture) is **active**. If you change retrieval/briefing behavior, update both the hook script and `knowledge/16-hooks-and-retrieval.md` so they stay aligned.
+- If the working directory is inside a top-level subfolder that has its own `.git`, treat that subfolder as a **child repo** (see "Child repos") — its git history is separate from this host's.
 
 ## Working style
 
