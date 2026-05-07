@@ -211,7 +211,47 @@ If the user is unavailable, **default assumptions** for the research phase are:
 
 ---
 
-## 7. Done When
+## 7. Initial Web Findings (seed pass)
+
+> Quick web research run during pre-research scoping (May 2026) so the next agent doesn't start cold. **High-signal findings only**; full analysis is the job of the per-report deep dives. **Re-verify before locking** — pricing and licence terms rotate fast (per `knowledge/99-caveats.md` §"Licensing & cost rotations").
+
+### 7.1 Stock-video sources (feeds R4)
+
+| Source          | API  | Newsroom-safe?  | Cost                                            | Gotchas                                                                                                                                                                                  |
+| --------------- | ---- | --------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pexels**      | Free | Yes             | $0; unlimited API per key                       | Attribution not legally required but appreciated. Sensible default first try.                                                                                                            |
+| **Pixabay**     | Free | Yes (with care) | $0                                              | Cannot resell content standalone. **Identifiable people, logos, brands, buildings may require additional consent** — a real risk for newsroom B-roll. Plan a face/logo screen on results. |
+| **Storyblocks** | Paid | Yes             | API pricing not public; enterprise ~$6k–12k+/yr | Broadcast/TV requires Business+ (Individual/Small Business explicitly prohibited). **$20k indemnification** — uniquely relevant for newsroom legal. Contact-sales-only. Phase 2 upgrade.   |
+
+Sources: [Pexels licence](https://www.pexels.com/license/), [Pexels API docs](https://www.pexels.com/api/documentation/), [Pixabay licence](https://pixabay.com/service/license-summary/), [Pixabay API docs](https://pixabay.com/api/docs/), [Storyblocks API](https://www.storyblocks.com/resources/business-solutions/api), [Storyblocks pricing](https://www.storyblocks.com/pricing).
+
+### 7.2 ASR pricing snapshot (feeds R1)
+
+- **OpenAI `gpt-4o-transcribe`** — $0.006 / minute (≈ $0.36 / hour). Per-token billing alternative: $2.50 / 1M in, $10.00 / 1M out.
+- **OpenAI `gpt-4o-mini-transcribe`** — $0.003 / minute. Cost-sensitive English default if accuracy holds.
+- **Diarize variant** — 2.5× base price. Single weather presenter = not worth it.
+- **`ivrit-ai/whisper-large-v3-turbo-ct2`** — $0 marginal after model download; CPU-OK via `faster-whisper` (`compute_type="int8"`). Hebrew default.
+- **Implication:** at ~5 voiceovers × ≤2 min/day, cloud Whisper ≈ $0.06/day on `gpt-4o-transcribe`. The HE pick is therefore an *accuracy* decision, not a cost one — fold into R1.
+
+Sources: [OpenAI transcription pricing (May 2026)](https://costgoat.com/pricing/openai-transcription), [OpenAI API pricing](https://developers.openai.com/api/docs/pricing), [`gpt-4o-transcribe` model card](https://developers.openai.com/api/docs/models/gpt-4o-transcribe).
+
+### 7.3 Renderer landscape (feeds R6)
+
+- **MoviePy** — v2.2.1 (Feb 2026); Python 3.9+. **v1 is unmaintained — pin v2 explicitly.** v2 dropped ImageMagick / PyGame / OpenCV / scipy and unified on Pillow → smaller install footprint. Maintainers openly seeking help; flag single-maintainer risk in R6.
+- **Remotion** — actively developed; needs Node 18+ and local FFmpeg. Ships an official "agent skill" pattern (28 rule files) for Claude Code / Codex / Cursor — so Remotion + this skill could become the artifact-preview surface for free in phase 2.
+- **FFmpeg `concat` + `filter_complex`** — still the no-deps MVP cheapest path.
+- **Implication:** default = FFmpeg CLI for the MVP renderer; MoviePy v2.x for Python-native pipelines (same machine as Whisper + Claude); Remotion deferred to the artifact phase per R7.
+
+Sources: [MoviePy on PyPI](https://pypi.org/project/moviepy/), [MoviePy v1→v2 migration guide](https://zulko.github.io/moviepy/getting_started/updating_to_v2.html), [MoviePy GitHub](https://github.com/Zulko/moviepy), [Remotion homepage](https://www.remotion.dev/), [Remotion docs](https://www.remotion.dev/docs/).
+
+### 7.4 Carry-overs into R8 (newsroom guardrails)
+
+- Pixabay's licence flags identifiable-person and brand-logo risk explicitly. Skill must run a "before-cut" gate that screens returned clips, especially on hard-news segments — extends the existing guardrails list in R8.
+- Storyblocks' $20k indemnification is the only indemnified path among the three near-term options. Surface this to the user if their newsroom legal asks "what happens if a clip turns out to be unlicensed?"
+
+---
+
+## 8. Done When
 
 The research phase is done when:
 
@@ -220,7 +260,7 @@ The research phase is done when:
 - The user has signed off on R9's 2-week implementation plan.
 - The next doc in the folder is `IMPLEMENTATION-PLAN.md` (or equivalent), which this pre-research doc explicitly does *not* try to write.
 
-## 8. See Also
+## 9. See Also
 
 - `knowledge/13-asset-pipelines.md` — provider matrix; this tool extends the same pattern audio-side.
 - `knowledge/07-audio.md` — audio primitives we may need on the artifact preview side.
