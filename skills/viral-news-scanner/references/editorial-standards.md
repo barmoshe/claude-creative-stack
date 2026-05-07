@@ -172,19 +172,19 @@ Known recurring fakes and misinformation patterns. **Auto-skip if you see these:
 
 1. **No direct URL** — claim came from screenshot/retweet, no original link
    - Action: Skip or find original source
-   
+
 2. **Date mismatch** — "happened today" but image metadata says 2023
    - Action: Verify date with reverse image search
-   
+
 3. **Reframing of old news** — story from 2024 re-posted as "just happened"
    - Action: Cross-check against T1 sources for original date
-   
+
 4. **Emotional language on factual claim** — "HORRIFYING" + "police say" (contradictory frame)
    - Action: Read original source, remove emotional overlay
-   
+
 5. **"Sources say" with no named source** — claim attribution without specifics
    - Action: Skip unless you can find named official source
-   
+
 6. **Celebrity/famous person claim** — "Elon Musk bought X", "Dwayne Johnson rescued Y"
    - Action: Check official accounts + reputable news. Impersonators are common.
 
@@ -208,11 +208,11 @@ Known recurring fakes and misinformation patterns. **Auto-skip if you see these:
 1. **Named Israeli person** + **Negative claim** about them (crime, unethical act, fraud, etc.)
    - Even if the claim seems TRUE, it needs 2+ independent sources to be V1
    - When in doubt: DROP
-   
+
 2. **Identifiable Israeli person** (name + recognizable context) + **Claim of fact** that *could* harm reputation
    - Example: "David Cohen from Ramat Gan was caught speeding" — DROP
    - Example: "Resident of Ramat Gan caught in viral speeding video" — OK (anonymized)
-   
+
 3. **Private individual in viral content** — frame around event, not identity
    - ❌ "This is Miriam, age 31, and she fell off a ladder"
    - ✅ "Someone fell off a ladder in a viral TikTok and survived"
