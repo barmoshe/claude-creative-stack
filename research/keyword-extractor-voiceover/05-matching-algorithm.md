@@ -15,11 +15,11 @@ B-roll scenes only — graphic scenes are template-driven (R-graphics). Per `PRE
 
 ### Three matching approaches
 
-**1. Tag string match.** Pexels and Pixabay expose `?query=` over uploader-authored tag vocabularies ([Pexels](https://www.pexels.com/api/documentation/), [Pixabay](https://pixabay.com/api/docs/)). Cost $0, latency ~50–300 ms. High recall on common nouns ("rain"), brittle on compound concepts ("rain on car windshield, vertical") — the failure mode is rigid vocab ([Plainly review](https://www.plainlyvideos.com/blog/stock-video-api)). **Use as candidate generator only**, not as final ranker.
+**1. Tag string match.** Pexels and Pixabay expose `?query=` over uploader-authored tag vocabularies ([Pexels](https://www.pexels.com/api/documentation/), [Pixabay](https://pixabay.com/api/docs/)). Cost $0, latency ~50–300 ms. High recall on common nouns, brittle on compound concepts — failure mode is rigid vocab ([Plainly review](https://www.plainlyvideos.com/blog/stock-video-api)). **Use as candidate generator only.**
 
 **2. CLIP / SigLIP-2 similarity.** Encode `visual_concept` and a sampled thumbnail; rank by cosine. **Open-CLIP ViT-L/14**: ~300 samples/s on a 3080 (~3.3 ms/embed) ([open_clip](https://github.com/mlfoundations/open_clip), [LAION](https://laion.ai/blog/large-openclip/)); CPU INT8 via OpenVINO is 50–200 ms with <1% accuracy drop ([2026 CPU embeddings](https://www.huuphan.com/2026/02/cpu-optimized-embeddings-cut-rag-costs.html)). **SigLIP-2** (Feb 2025; multilingual incl. Hebrew on the Gemma 256k tokenizer; sigmoid loss) beats SigLIP and even surpasses larger OpenCLIP-G/14 at L/16 ([paper](https://arxiv.org/abs/2502.14786), [HF](https://huggingface.co/blog/siglip2)); ViT-L emb=1024, ViT-B=768 ([docs](https://huggingface.co/docs/transformers/main/model_doc/siglip2)). **CLIPRerank** shows a thin tag→CLIP rerank lifts ad-hoc-video-search precision as a plug-in ([paper](https://www.emergentmind.com/papers/2401.08449)). **Use as the default reranker.**
 
-**3. LLM-as-judge.** Send 3 thumbnails as `image` blocks to Claude Haiku 4.5 / Sonnet 4.6 with `visual_concept` + scene context; model returns chosen index + 1-sentence reason. Multimodal-judge research finds pair- and small-triple comparison aligns with humans; large-batch scoring drifts ([MLLM-as-a-Judge](https://mllm-judge.github.io/), [2026 guide](https://labelyourdata.com/articles/llm-as-a-judge)). Cost: at Anthropic's `w×h/750` token rule, three 256×256 thumbs ≈ 260 vision tokens + ~300 prompt tokens ≈ **$0.0006 (Haiku)** / **$0.0018 (Sonnet)** per call ([Vision docs](https://platform.claude.com/docs/en/build-with-claude/vision), [pricing](https://platform.claude.com/docs/en/about-claude/pricing)). Latency 1–3 s. **Use only on low-confidence residuals.**
+**3. LLM-as-judge.** Pass 3 thumbnails as `image` blocks to Claude Haiku 4.5 / Sonnet 4.6 with `visual_concept` + scene context; model returns chosen index + 1-sentence reason. Multimodal-judge research finds pair / small-triple ranking aligns with humans; large-batch scoring drifts ([MLLM-as-a-Judge](https://mllm-judge.github.io/), [2026 guide](https://labelyourdata.com/articles/llm-as-a-judge)). Cost (Anthropic `w×h/750` rule): three 256×256 thumbs ≈ 260 vision tokens + 300 prompt tokens ≈ **$0.0006 Haiku / $0.0018 Sonnet** per call ([Vision](https://platform.claude.com/docs/en/build-with-claude/vision), [pricing](https://platform.claude.com/docs/en/about-claude/pricing)). Latency 1–3 s. **Use only on low-confidence residuals.**
 
 ### Default pipeline (tag → CLIP rerank → LLM-judge fallback)
 
@@ -56,7 +56,7 @@ The 56% comes from canvas math: a 1920 px-wide source centre-cropped to 1080 px 
 
 ### Hebrew handling — visual_concept only, never term/lemma
 
-R4 confirmed **no stock source supports `he-IL`**: Pexels lists 28 locales, none Hebrew ([help](https://help.pexels.com/hc/en-us/articles/47678194141337)); Pixabay's `lang` enum excludes Hebrew ([docs](https://pixabay.com/api/docs/)). R2 enforces `visual_concept` always-English; `term`/`lemma` stay Hebrew (`02-scene-and-keyword-schema.md` Bilingual rule). **Matcher rule: feed `visual_concept` to tag-query and CLIP text encoder; never `term`/`lemma`.** SigLIP-2 *can* encode Hebrew natively ([paper](https://arxiv.org/abs/2502.14786)) — that bypass is logged in Open questions.
+R4 confirms **no stock source supports `he-IL`** ([Pexels help](https://help.pexels.com/hc/en-us/articles/47678194141337); [Pixabay docs](https://pixabay.com/api/docs/)). R2 enforces `visual_concept` always-English; `term`/`lemma` stay Hebrew. **Matcher rule: feed `visual_concept` to both tag-query and CLIP text encoder; never `term`/`lemma`.** SigLIP-2 *can* encode HE natively ([paper](https://arxiv.org/abs/2502.14786)) — bypass logged below.
 
 ### Cost-per-minute estimate
 
@@ -74,19 +74,17 @@ At 5 voiceovers/day × ≤2 min, the worst case is ≤ **$0.50/day** — negligi
 
 ### Embedding cache strategy
 
-R4 confirmed Pexels and Pixabay licences allow local persistence (Pixabay mandates a 24-hr cache; `04-background-video-sourcing.md`). Key `(source, clip_id)` → embedding + bbox metadata.
-
-**Size**: 2,000 clips × 768 f × 4 B = **~6 MB** (ViT-B); ~8 MB at 1024 f for ViT-L ([SigLIP-2 dims](https://huggingface.co/docs/transformers/main/model_doc/siglip2)). At 20,000 clips (1 yr) still <100 MB — flat-file ndarray + SQLite suffices; FAISS-IVF only past ~50k ([clip-retrieval](https://github.com/rom1504/clip-retrieval)). Store the model SHA alongside the vector so model upgrades trigger re-embed.
+R4 confirms Pexels/Pixabay licences allow local persistence (Pixabay mandates a 24-hr cache; `04-background-video-sourcing.md`). Key `(source, clip_id)` → embedding + bbox + model SHA. **Size**: 2,000 × 768 f × 4 B ≈ **6 MB** (ViT-B); ~8 MB at 1024 f for ViT-L ([SigLIP-2 dims](https://huggingface.co/docs/transformers/main/model_doc/siglip2)). 20,000 clips still <100 MB — flat ndarray + SQLite suffices; FAISS-IVF only past ~50k ([clip-retrieval](https://github.com/rom1504/clip-retrieval)).
 
 ## Implications for keyword-extractor-voiceover
 
-Options for R9 to lock:
+Options for R9:
 
-1. **Pipeline shape** — tag-only (cheapest, lowest quality) vs tag+CLIP rerank (CLIPRerank-style) vs tag+CLIP+LLM-judge fallback (best quality, still <$0.05/min).
-2. **Embedding model** — OpenCLIP ViT-L/14 (mature, EN-first) vs SigLIP-2 ViT-L (multilingual incl. HE, retrieval-stronger).
-3. **Saliency backend** — MediaPipe face-only (fastest), U²-Net/rembg (full salient-object), AutoFlip (legacy but purpose-built).
-4. **LLM-judge model** — Haiku 4.5 default; Sonnet 4.6 escalation; 3× cost gap is dwarfed by Whisper + stock.
-5. **Cache layout** — flat ndarray + SQLite (MVP) vs FAISS-IVF (only past 50k clips).
+1. **Pipeline** — tag-only / tag+CLIP rerank / tag+CLIP+LLM-judge fallback (all <$0.05/min).
+2. **Embedding model** — OpenCLIP ViT-L/14 (mature, EN-first) or SigLIP-2 ViT-L (multilingual incl. HE, retrieval-stronger).
+3. **Saliency backend** — MediaPipe face-only / U²-Net via rembg / AutoFlip (legacy).
+4. **LLM-judge model** — Haiku 4.5 default, Sonnet 4.6 escalation.
+5. **Cache layout** — flat ndarray + SQLite (MVP) or FAISS-IVF (past 50k).
 
 R5 takes no recommendation per `HANDOFF.md` §2.
 
