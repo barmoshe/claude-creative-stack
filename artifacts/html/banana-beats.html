@@ -1006,10 +1006,10 @@
     const trackEnergy = new Array(8).fill(0.25);
     const spotlightFlash = new Array(8).fill(0);
 
-    function addTrauma(amt) { trauma = Math.min(1, trauma + amt); }
+    function addTrauma(amt) { trauma = Math.min(0.7, trauma + amt * 0.5); }
     function getShake() {
       const s = trauma * trauma;
-      return { x: (Math.random() * 2 - 1) * 12 * s, y: (Math.random() * 2 - 1) * 12 * s };
+      return { x: (Math.random() * 2 - 1) * 5 * s, y: (Math.random() * 2 - 1) * 5 * s };
     }
 
     // ─── Particle pool (capped at 200) ───
@@ -2593,6 +2593,547 @@
     busOn("loopWrap", applyLoopWrap);
     busOn("step", _stepBP);
 
+    // ─── v4: Phase 13 — Projectile system (7 element styles, parabolic arcs) ───
+    // Element table: midi note class % 12 → element
+    // 0/C: earth, 2/D: wind, 3/D♯: shadow, 5/F: water, 7/G: fire, 9/A: holy, 10/A♯: poison
+    const ELEMENTS = {
+      earth:  { hue: 30,  trail: "oklch(0.45 0.18 30)",  core: "oklch(0.78 0.18 60)",  particle: "dust",   verb: "rocks" },
+      wind:   { hue: 200, trail: "oklch(0.78 0.16 200)", core: "oklch(0.92 0.18 200)", particle: "spark",  verb: "slash" },
+      shadow: { hue: 280, trail: "oklch(0.30 0.16 280)", core: "oklch(0.55 0.20 280)", particle: "spark",  verb: "ribbon" },
+      water:  { hue: 220, trail: "oklch(0.55 0.18 220)", core: "oklch(0.85 0.18 220)", particle: "spark",  verb: "drop" },
+      fire:   { hue: 25,  trail: "oklch(0.65 0.22 25)",  core: "oklch(0.95 0.22 60)",  particle: "spark",  verb: "flame" },
+      holy:   { hue: 60,  trail: "oklch(0.85 0.20 80)",  core: "oklch(0.98 0.18 90)",  particle: "spark",  verb: "pillar" },
+      poison: { hue: 130, trail: "oklch(0.55 0.18 130)", core: "oklch(0.82 0.20 130)", particle: "spark",  verb: "mist" },
+    };
+    const ELEMENT_BY_NOTE_CLASS = {
+      0: "earth", 1: "earth", 2: "wind", 3: "shadow", 4: "shadow", 5: "water",
+      6: "water", 7: "fire", 8: "fire", 9: "holy", 10: "poison", 11: "poison",
+    };
+    function noteToElement(midi) {
+      if (midi == null || midi === 0) return "fire";
+      return ELEMENT_BY_NOTE_CLASS[midi % 12] || "fire";
+    }
+
+    // ─── v4: Phase 12 — Enemy system (16 procedural enemies, CA-driven formation) ───
+    const ENEMY_TYPES = ["swarmlet", "grunt", "elite", "miniboss"];
+    const ENEMY_BASE = {
+      swarmlet: { hp: 1, size: 14, speed: 32 },
+      grunt:    { hp: 3, size: 22, speed: 18 },
+      elite:    { hp: 6, size: 28, speed: 12 },
+      miniboss: { hp: 14, size: 42, speed: 7 },
+    };
+    // 16 enemy drawers — [biomeIdx][typeIdx]
+    const ENEMY_DRAWERS = [
+      // ─── 0: JUNGLE ───
+      [
+        // 0/0 Peelet (swarmlet) — banana peel monster
+        function(ctx, t, e) {
+          const bob = Math.sin(t * 8 + e.age * 3) * 1;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y + bob); ctx.scale(e.facing, 1);
+          // peel arms (4)
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.10 95)" : "oklch(0.85 0.20 95)";
+          for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2 + e.age * 1.5;
+            const px = Math.cos(a) * 4, py = Math.sin(a) * 4 - 2;
+            ctx.save(); ctx.translate(px, py); ctx.rotate(a);
+            ctx.beginPath(); ctx.ellipse(0, 0, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          }
+          // body (peel core)
+          ctx.fillStyle = flash > 0 ? "oklch(0.92 0.10 95)" : "oklch(0.62 0.16 95)";
+          ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+          // angry eyes
+          ctx.fillStyle = "#000";
+          ctx.beginPath(); ctx.arc(-1.5, -0.5, 1, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(1.5, -0.5, 1, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "oklch(0.62 0.20 25)";
+          ctx.fillRect(-2.5, -2, 5, 0.6);
+          ctx.restore();
+        },
+        // 0/1 Vinemoss (grunt) — mossy creature with vine arms
+        function(ctx, t, e) {
+          const wob = Math.sin(t * 4 + e.age * 1.5) * 1.5;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1);
+          // vine arms swaying
+          ctx.strokeStyle = flash > 0 ? "oklch(0.85 0.10 145)" : "oklch(0.45 0.16 145)";
+          ctx.lineWidth = 2.4; ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(-7, -2); ctx.bezierCurveTo(-12, 2, -14, 6, -10 + wob, 10);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(7, -2); ctx.bezierCurveTo(12, 2, 14, 6, 10 - wob, 10);
+          ctx.stroke();
+          // body
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.10 145)" : "oklch(0.40 0.18 145)";
+          ctx.beginPath(); ctx.ellipse(0, 0, 9, 11, 0, 0, Math.PI * 2); ctx.fill();
+          // moss tufts
+          ctx.strokeStyle = "oklch(0.55 0.18 130)"; ctx.lineWidth = 0.8;
+          for (let i = 0; i < 5; i++) {
+            const sx = -6 + i * 3;
+            ctx.beginPath(); ctx.moveTo(sx, -8); ctx.lineTo(sx + Math.sin(i + t) * 1, -11); ctx.stroke();
+          }
+          // eye + mouth
+          ctx.fillStyle = "oklch(0.85 0.20 60)";
+          ctx.beginPath(); ctx.arc(0, -1, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#000";
+          ctx.beginPath(); ctx.arc(0, -1, 0.8, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "#000"; ctx.lineWidth = 0.7;
+          ctx.beginPath(); ctx.moveTo(-3, 5); ctx.lineTo(-1, 4); ctx.lineTo(1, 5); ctx.lineTo(3, 4); ctx.stroke();
+          ctx.restore();
+        },
+        // 0/2 Banana Zombie (elite)
+        function(ctx, t, e) {
+          const sway = Math.sin(t * 2 + e.age) * 1;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x + sway, e.y); ctx.scale(e.facing, 1);
+          // legs
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.10 95)" : "oklch(0.55 0.16 95)";
+          ctx.fillRect(-5, 8, 4, 8); ctx.fillRect(1, 8, 4, 8);
+          // body — banana shape
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.14 90)" : "oklch(0.78 0.22 90)";
+          ctx.beginPath();
+          ctx.moveTo(-7, -10); ctx.bezierCurveTo(-9, 0, -7, 9, -3, 9);
+          ctx.lineTo(3, 9); ctx.bezierCurveTo(7, 9, 9, 0, 7, -10);
+          ctx.bezierCurveTo(5, -12, -5, -12, -7, -10);
+          ctx.fill();
+          // stitches across mouth
+          ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.moveTo(-3, 2); ctx.lineTo(3, 2); ctx.stroke();
+          for (let i = 0; i < 5; i++) {
+            ctx.beginPath(); ctx.moveTo(-3 + i * 1.5, 1); ctx.lineTo(-3 + i * 1.5, 3); ctx.stroke();
+          }
+          // hollow eyes
+          ctx.fillStyle = "oklch(0.20 0.05 25)";
+          ctx.beginPath(); ctx.arc(-2.5, -3, 1.6, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(2.5, -3, 1.6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "oklch(0.65 0.20 30)";
+          ctx.beginPath(); ctx.arc(-2.5, -3, 0.6, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(2.5, -3, 0.6, 0, Math.PI * 2); ctx.fill();
+          // claw arms
+          ctx.strokeStyle = flash > 0 ? "oklch(0.95 0.10 95)" : "oklch(0.55 0.16 95)";
+          ctx.lineWidth = 2.5; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(-12, 4); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(12, 4); ctx.stroke();
+          ctx.restore();
+        },
+        // 0/3 Dark Ape (miniboss)
+        function(ctx, t, e) {
+          const breath = Math.sin(t * 3) * 0.05 + 1;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1); ctx.scale(breath, 1 / breath);
+          // body
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.10 25)" : "oklch(0.18 0.04 30)";
+          ctx.beginPath(); ctx.ellipse(0, 0, 18, 22, 0, 0, Math.PI * 2); ctx.fill();
+          // chest highlight
+          ctx.fillStyle = flash > 0 ? "oklch(0.92 0.14 25)" : "oklch(0.30 0.06 35)";
+          ctx.beginPath(); ctx.ellipse(0, 4, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+          // arms
+          ctx.lineWidth = 9; ctx.lineCap = "round";
+          ctx.strokeStyle = flash > 0 ? "oklch(0.85 0.10 25)" : "oklch(0.18 0.04 30)";
+          ctx.beginPath(); ctx.moveTo(-15, -6); ctx.bezierCurveTo(-25, 4, -25, 16, -16, 22); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(15, -6); ctx.bezierCurveTo(25, 4, 25, 16, 16, 22); ctx.stroke();
+          // fists (clawed)
+          ctx.fillStyle = "oklch(0.30 0.06 35)";
+          ctx.beginPath(); ctx.arc(-16, 22, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(16, 22, 5, 0, Math.PI * 2); ctx.fill();
+          // head
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.10 25)" : "oklch(0.20 0.05 30)";
+          ctx.beginPath(); ctx.ellipse(0, -22, 13, 12, 0, 0, Math.PI * 2); ctx.fill();
+          // brow ridge
+          ctx.fillStyle = "oklch(0.10 0.04 30)";
+          ctx.beginPath(); ctx.ellipse(0, -25, 12, 3, 0, 0, Math.PI * 2); ctx.fill();
+          // glowing red eyes
+          const eyeP = 0.7 + Math.sin(t * 5) * 0.3;
+          ctx.fillStyle = `oklch(0.78 0.24 25 / ${eyeP})`;
+          ctx.beginPath(); ctx.arc(-4, -22, 1.8, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(4, -22, 1.8, 0, Math.PI * 2); ctx.fill();
+          // bared teeth
+          ctx.fillStyle = "oklch(0.95 0.04 90)";
+          for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(-5 + i * 2.5, -16);
+            ctx.lineTo(-4 + i * 2.5, -13);
+            ctx.lineTo(-3 + i * 2.5, -16);
+            ctx.fill();
+          }
+          ctx.restore();
+        },
+      ],
+      // ─── 1: CAVE ───
+      [
+        // 1/0 Bat-Imp (swarmlet)
+        function(ctx, t, e) {
+          const flap = Math.sin(t * 18 + e.age * 2) * 0.6 + 0.4;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1);
+          // body
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.04 280)" : "oklch(0.20 0.04 280)";
+          ctx.beginPath(); ctx.ellipse(0, 0, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+          // wings
+          ctx.beginPath();
+          ctx.moveTo(-3, -1);
+          ctx.bezierCurveTo(-9, -3 - flap * 3, -13, 1, -10, 5 + flap * 3);
+          ctx.bezierCurveTo(-7, 3, -5, 1, -3, 0); ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(3, -1);
+          ctx.bezierCurveTo(9, -3 - flap * 3, 13, 1, 10, 5 + flap * 3);
+          ctx.bezierCurveTo(7, 3, 5, 1, 3, 0); ctx.fill();
+          // glowing eyes
+          ctx.fillStyle = `oklch(0.85 0.22 30 / ${0.7 + Math.sin(t * 8) * 0.3})`;
+          ctx.beginPath(); ctx.arc(-1.2, -2.5, 0.7, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(1.2, -2.5, 0.7, 0, Math.PI * 2); ctx.fill();
+          // fangs
+          ctx.fillStyle = "oklch(0.95 0.04 90)";
+          ctx.beginPath(); ctx.moveTo(-1, -0.5); ctx.lineTo(-0.3, 1); ctx.lineTo(0, -0.5); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(0.3, 1); ctx.lineTo(1, -0.5); ctx.fill();
+          ctx.restore();
+        },
+        // 1/1 Slime (grunt) — gelatinous blob
+        function(ctx, t, e) {
+          const wob = Math.sin(t * 5 + e.age) * 1.2;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1);
+          // squash body
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.10 200)" : "oklch(0.55 0.18 200 / 0.85)";
+          ctx.beginPath();
+          ctx.ellipse(0, 4, 11 + wob * 0.5, 10 - wob * 0.3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // inner highlight
+          ctx.fillStyle = "oklch(0.78 0.18 200 / 0.6)";
+          ctx.beginPath(); ctx.ellipse(-2, 2, 3, 4, 0, 0, Math.PI * 2); ctx.fill();
+          // big single eye
+          ctx.fillStyle = "oklch(0.95 0.06 95)";
+          ctx.beginPath(); ctx.arc(0, 1, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#000";
+          ctx.beginPath(); ctx.arc(0.5, 1, 1.6, 0, Math.PI * 2); ctx.fill();
+          // tendrils dripping
+          ctx.strokeStyle = flash > 0 ? "oklch(0.85 0.10 200)" : "oklch(0.45 0.18 200 / 0.7)";
+          ctx.lineWidth = 1.5; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(-7, 12); ctx.lineTo(-7 + wob, 16); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(0 - wob, 18); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(7, 12); ctx.lineTo(7 + wob * 0.5, 16); ctx.stroke();
+          ctx.restore();
+        },
+        // 1/2 Crystal Golem (elite)
+        function(ctx, t, e) {
+          const pulse = Math.sin(t * 2) * 0.2 + 0.8;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1);
+          // body — angular
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.10 200)" : "oklch(0.30 0.06 280)";
+          ctx.beginPath();
+          ctx.moveTo(0, -16); ctx.lineTo(-12, -2); ctx.lineTo(-10, 14);
+          ctx.lineTo(10, 14); ctx.lineTo(12, -2);
+          ctx.closePath(); ctx.fill();
+          // crystal shards on shoulders
+          ctx.fillStyle = `oklch(0.78 0.20 200 / ${pulse})`;
+          [{x:-9, y:-8, s:5}, {x:9, y:-8, s:5}, {x:0, y:-12, s:6}].forEach(c => {
+            ctx.beginPath();
+            ctx.moveTo(c.x, c.y - c.s);
+            ctx.lineTo(c.x - c.s * 0.6, c.y);
+            ctx.lineTo(c.x, c.y + c.s);
+            ctx.lineTo(c.x + c.s * 0.6, c.y);
+            ctx.closePath(); ctx.fill();
+          });
+          // glowing core
+          ctx.fillStyle = `oklch(0.85 0.20 200 / ${pulse})`;
+          ctx.beginPath(); ctx.arc(0, 4, 4, 0, Math.PI * 2); ctx.fill();
+          // arms
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.10 200)" : "oklch(0.30 0.06 280)";
+          ctx.fillRect(-15, -2, 5, 12); ctx.fillRect(10, -2, 5, 12);
+          ctx.restore();
+        },
+        // 1/3 Stone Titan (miniboss)
+        function(ctx, t, e) {
+          const stomp = Math.sin(t * 1.5) * 1.5;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y + stomp); ctx.scale(e.facing, 1);
+          // legs
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.06 280)" : "oklch(0.22 0.04 280)";
+          ctx.fillRect(-13, 12, 8, 16); ctx.fillRect(5, 12, 8, 16);
+          // body
+          ctx.beginPath(); ctx.ellipse(0, -2, 18, 18, 0, 0, Math.PI * 2); ctx.fill();
+          // crack lines
+          ctx.strokeStyle = `oklch(0.78 0.18 200 / 0.8)`; ctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.moveTo(-12, -10); ctx.lineTo(-4, -2); ctx.lineTo(-8, 6); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(10, -8); ctx.lineTo(4, 0); ctx.lineTo(12, 8); ctx.stroke();
+          // arms — massive
+          ctx.lineWidth = 11; ctx.lineCap = "round";
+          ctx.strokeStyle = flash > 0 ? "oklch(0.85 0.06 280)" : "oklch(0.22 0.04 280)";
+          ctx.beginPath(); ctx.moveTo(-15, -6); ctx.bezierCurveTo(-25, 0, -25, 14, -18, 22); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(15, -6); ctx.bezierCurveTo(25, 0, 25, 14, 18, 22); ctx.stroke();
+          // head — small relative to body
+          ctx.fillStyle = "oklch(0.20 0.04 280)";
+          ctx.beginPath(); ctx.arc(0, -22, 9, 0, Math.PI * 2); ctx.fill();
+          // glowing eyes
+          ctx.fillStyle = `oklch(0.85 0.20 200 / ${0.7 + Math.sin(t * 3) * 0.3})`;
+          ctx.fillRect(-5, -23, 3, 1.5); ctx.fillRect(2, -23, 3, 1.5);
+          ctx.restore();
+        },
+      ],
+      // ─── 2: TEMPLE ───
+      [
+        // 2/0 Ankh Wisp (swarmlet)
+        function(ctx, t, e) {
+          const float = Math.sin(t * 3 + e.age * 2) * 1.5;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y + float);
+          // glow
+          const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
+          grad.addColorStop(0, `oklch(0.85 0.18 60 / ${flash > 0 ? 1 : 0.5})`);
+          grad.addColorStop(1, "transparent");
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+          // ankh symbol
+          ctx.strokeStyle = flash > 0 ? "oklch(0.95 0.10 95)" : "oklch(0.85 0.20 80)";
+          ctx.lineWidth = 1.6;
+          ctx.beginPath(); ctx.arc(0, -2, 3, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, 1); ctx.lineTo(0, 6); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-2.5, 3); ctx.lineTo(2.5, 3); ctx.stroke();
+          ctx.restore();
+        },
+        // 2/1 Mummy (grunt)
+        function(ctx, t, e) {
+          const flash = e.hitFlash;
+          const sway = Math.sin(t * 1.5 + e.age) * 1.2;
+          ctx.save(); ctx.translate(e.x + sway, e.y); ctx.scale(e.facing, 1);
+          // legs
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.04 60)" : "oklch(0.78 0.06 70)";
+          ctx.fillRect(-5, 8, 4, 9); ctx.fillRect(1, 8, 4, 9);
+          // body
+          ctx.beginPath(); ctx.ellipse(0, -2, 8, 11, 0, 0, Math.PI * 2); ctx.fill();
+          // bandage stripes
+          ctx.strokeStyle = "oklch(0.55 0.06 60)"; ctx.lineWidth = 0.8;
+          for (let i = 0; i < 5; i++) {
+            const y = -10 + i * 4;
+            ctx.beginPath(); ctx.moveTo(-7, y); ctx.lineTo(7, y + 1); ctx.stroke();
+          }
+          // arms outstretched
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.04 60)" : "oklch(0.78 0.06 70)";
+          ctx.lineWidth = 4; ctx.lineCap = "round";
+          ctx.strokeStyle = "oklch(0.78 0.06 70)";
+          ctx.beginPath(); ctx.moveTo(-6, -2); ctx.lineTo(-12, -8); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(6, -2); ctx.lineTo(12, -8); ctx.stroke();
+          // head
+          ctx.fillStyle = "oklch(0.78 0.06 70)";
+          ctx.beginPath(); ctx.arc(0, -14, 7, 0, Math.PI * 2); ctx.fill();
+          // bandage on head
+          ctx.strokeStyle = "oklch(0.55 0.06 60)"; ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.moveTo(-6, -14); ctx.lineTo(6, -13); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-5, -16); ctx.lineTo(6, -17); ctx.stroke();
+          // glowing eyes
+          ctx.fillStyle = `oklch(0.85 0.20 60 / ${0.7 + Math.sin(t * 4) * 0.3})`;
+          ctx.beginPath(); ctx.arc(-2, -14, 1.2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(2, -14, 1.2, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        },
+        // 2/2 Scarab Knight (elite)
+        function(ctx, t, e) {
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1);
+          // shell
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.10 145)" : "oklch(0.40 0.18 145)";
+          ctx.beginPath(); ctx.ellipse(0, 0, 14, 16, 0, 0, Math.PI * 2); ctx.fill();
+          // shell gold trim
+          ctx.fillStyle = "oklch(0.78 0.20 80)";
+          ctx.beginPath(); ctx.ellipse(0, -2, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+          // shell sheen
+          ctx.fillStyle = `oklch(0.62 0.20 145 / 0.7)`;
+          ctx.beginPath(); ctx.ellipse(-3, -4, 4, 6, 0, 0, Math.PI * 2); ctx.fill();
+          // hooked legs (3 each side)
+          ctx.strokeStyle = flash > 0 ? "oklch(0.85 0.10 145)" : "oklch(0.25 0.10 80)";
+          ctx.lineWidth = 1.6; ctx.lineCap = "round";
+          for (let i = -1; i <= 1; i++) {
+            const ly = i * 5;
+            ctx.beginPath(); ctx.moveTo(-12, ly); ctx.lineTo(-18, ly + 4); ctx.lineTo(-20, ly + 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(12, ly); ctx.lineTo(18, ly + 4); ctx.lineTo(20, ly + 8); ctx.stroke();
+          }
+          // mandibles
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(-4, 8); ctx.lineTo(-7, 13); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(4, 8); ctx.lineTo(7, 13); ctx.stroke();
+          // glow eyes
+          ctx.fillStyle = `oklch(0.85 0.22 60 / ${0.7 + Math.sin(t * 4) * 0.3})`;
+          ctx.beginPath(); ctx.arc(-3, 4, 1.3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(3, 4, 1.3, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        },
+        // 2/3 Sphinx (miniboss) — lion body + pharaoh head
+        function(ctx, t, e) {
+          const breath = Math.sin(t * 2) * 0.04 + 1;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing * breath, 1 / breath);
+          // body — lion crouched
+          ctx.fillStyle = flash > 0 ? "oklch(0.85 0.10 70)" : "oklch(0.55 0.12 70)";
+          ctx.beginPath(); ctx.ellipse(2, 6, 22, 14, 0, 0, Math.PI * 2); ctx.fill();
+          // tail
+          ctx.lineWidth = 4; ctx.lineCap = "round";
+          ctx.strokeStyle = flash > 0 ? "oklch(0.85 0.10 70)" : "oklch(0.55 0.12 70)";
+          ctx.beginPath(); ctx.moveTo(20, 0); ctx.bezierCurveTo(28, -4, 32, 4, 30, 12); ctx.stroke();
+          // tail tuft
+          ctx.fillStyle = "oklch(0.40 0.10 70)";
+          ctx.beginPath(); ctx.arc(30, 12, 3, 0, Math.PI * 2); ctx.fill();
+          // legs (paws)
+          ctx.fillStyle = "oklch(0.40 0.10 70)";
+          for (let i = 0; i < 2; i++) {
+            ctx.fillRect(-12 + i * 6, 16, 4, 8);
+            ctx.fillRect(8 + i * 6, 16, 4, 8);
+          }
+          // pharaoh head/headdress
+          ctx.fillStyle = "oklch(0.92 0.16 80)";
+          // headdress (gold + black stripes)
+          ctx.beginPath();
+          ctx.moveTo(-22, -18); ctx.lineTo(-26, -2); ctx.lineTo(-12, -2);
+          ctx.lineTo(-12, -10); ctx.lineTo(-15, -18); ctx.fill();
+          ctx.fillStyle = "oklch(0.20 0.05 280)";
+          ctx.fillRect(-25, -8, 14, 1.5);
+          ctx.fillRect(-25, -5, 14, 1.5);
+          // face
+          ctx.fillStyle = "oklch(0.65 0.10 60)";
+          ctx.beginPath(); ctx.ellipse(-18, -10, 7, 9, 0, 0, Math.PI * 2); ctx.fill();
+          // eye
+          ctx.fillStyle = "oklch(0.20 0.05 30)";
+          ctx.fillRect(-21, -13, 4, 1.4);
+          // gold beard
+          ctx.fillStyle = "oklch(0.75 0.18 80)";
+          ctx.beginPath();
+          ctx.moveTo(-22, -2); ctx.lineTo(-18, 4); ctx.lineTo(-14, -2);
+          ctx.fill();
+          ctx.restore();
+        },
+      ],
+      // ─── 3: VOLCANO ───
+      [
+        // 3/0 Ember Imp (swarmlet)
+        function(ctx, t, e) {
+          const flicker = Math.sin(t * 16 + e.age * 5) * 0.4 + 0.6;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1);
+          // glow halo
+          const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 14);
+          grad.addColorStop(0, `oklch(0.85 0.22 35 / ${flicker * 0.6})`);
+          grad.addColorStop(1, "transparent");
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+          // body
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.20 80)" : "oklch(0.55 0.22 30)";
+          ctx.beginPath(); ctx.ellipse(0, 0, 5, 6, 0, 0, Math.PI * 2); ctx.fill();
+          // glowing core
+          ctx.fillStyle = `oklch(0.95 0.22 60 / ${flicker})`;
+          ctx.beginPath(); ctx.arc(0, 1, 2, 0, Math.PI * 2); ctx.fill();
+          // horns
+          ctx.fillStyle = "oklch(0.30 0.08 25)";
+          ctx.beginPath(); ctx.moveTo(-3, -5); ctx.lineTo(-4, -9); ctx.lineTo(-2, -6); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(3, -5); ctx.lineTo(4, -9); ctx.lineTo(2, -6); ctx.fill();
+          // eyes
+          ctx.fillStyle = "oklch(0.20 0.04 60)";
+          ctx.beginPath(); ctx.arc(-1.5, -1.5, 0.7, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(1.5, -1.5, 0.7, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        },
+        // 3/1 Lava Blob (grunt)
+        function(ctx, t, e) {
+          const wob = Math.sin(t * 4 + e.age) * 1.5;
+          const pulse = Math.sin(t * 3) * 0.2 + 0.8;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1);
+          // body
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.20 80)" : "oklch(0.30 0.10 25)";
+          ctx.beginPath();
+          ctx.ellipse(0, 4, 11 + wob * 0.4, 10 - wob * 0.3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // lava cracks (glowing)
+          ctx.strokeStyle = `oklch(0.88 0.22 50 / ${pulse})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.moveTo(-7, 0); ctx.lineTo(-3, 5); ctx.lineTo(-5, 10); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(5, 1); ctx.lineTo(2, 6); ctx.lineTo(7, 12); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-2, -2); ctx.lineTo(3, 0); ctx.stroke();
+          // glowing core eye
+          ctx.fillStyle = `oklch(0.95 0.22 50 / ${pulse})`;
+          ctx.beginPath(); ctx.arc(0, 2, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "oklch(0.20 0.05 25)";
+          ctx.beginPath(); ctx.arc(0, 2, 1.2, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        },
+        // 3/2 Magma Warrior (elite)
+        function(ctx, t, e) {
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing, 1);
+          // body — armored
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.20 80)" : "oklch(0.22 0.06 25)";
+          ctx.beginPath(); ctx.ellipse(0, 2, 12, 14, 0, 0, Math.PI * 2); ctx.fill();
+          // armor plates with lava cracks
+          ctx.fillStyle = "oklch(0.32 0.08 25)";
+          ctx.fillRect(-11, -4, 22, 4);
+          ctx.fillRect(-11, 4, 22, 3);
+          ctx.fillRect(-11, 10, 22, 3);
+          ctx.strokeStyle = `oklch(0.85 0.22 50 / ${0.7 + Math.sin(t * 3) * 0.2})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-11, -2); ctx.lineTo(11, -2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-11, 7); ctx.lineTo(11, 7); ctx.stroke();
+          // arms holding flaming sword
+          ctx.lineWidth = 5; ctx.lineCap = "round";
+          ctx.strokeStyle = flash > 0 ? "oklch(0.95 0.20 80)" : "oklch(0.22 0.06 25)";
+          ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-16, 6); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(16, -8); ctx.stroke();
+          // sword
+          ctx.fillStyle = "oklch(0.55 0.10 60)";
+          ctx.fillRect(15, -16, 2, 10);
+          ctx.fillStyle = `oklch(0.85 0.22 50 / ${0.7 + Math.sin(t * 4) * 0.3})`;
+          ctx.fillRect(15.3, -16, 1.4, 10);
+          // helmet head
+          ctx.fillStyle = "oklch(0.20 0.05 25)";
+          ctx.beginPath(); ctx.arc(0, -16, 9, 0, Math.PI * 2); ctx.fill();
+          // visor slit (glowing)
+          ctx.fillStyle = `oklch(0.95 0.22 50 / ${0.85 + Math.sin(t * 5) * 0.15})`;
+          ctx.fillRect(-5, -16, 10, 1.6);
+          // crest
+          ctx.fillStyle = "oklch(0.45 0.10 25)";
+          ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(-3, -22); ctx.lineTo(3, -22); ctx.fill();
+          ctx.restore();
+        },
+        // 3/3 Magma Titan (miniboss)
+        function(ctx, t, e) {
+          const breath = Math.sin(t * 1.8) * 0.05 + 1;
+          const pulse = Math.sin(t * 2.5) * 0.2 + 0.8;
+          const flash = e.hitFlash;
+          ctx.save(); ctx.translate(e.x, e.y); ctx.scale(e.facing * breath, 1 / breath);
+          // body
+          ctx.fillStyle = flash > 0 ? "oklch(0.95 0.20 80)" : "oklch(0.20 0.06 25)";
+          ctx.beginPath(); ctx.ellipse(0, 0, 20, 22, 0, 0, Math.PI * 2); ctx.fill();
+          // chest crack vein (massive)
+          ctx.strokeStyle = `oklch(0.88 0.22 50 / ${pulse})`;
+          ctx.lineWidth = 2.5; ctx.shadowColor = "oklch(0.85 0.22 50)"; ctx.shadowBlur = 8;
+          ctx.beginPath(); ctx.moveTo(-12, -14); ctx.lineTo(-3, -4); ctx.lineTo(-8, 8); ctx.lineTo(-2, 18); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(10, -10); ctx.lineTo(4, 0); ctx.lineTo(12, 10); ctx.stroke();
+          ctx.shadowBlur = 0;
+          // arms — molten
+          ctx.lineWidth = 11; ctx.lineCap = "round";
+          ctx.strokeStyle = flash > 0 ? "oklch(0.95 0.20 80)" : "oklch(0.20 0.06 25)";
+          ctx.beginPath(); ctx.moveTo(-16, -8); ctx.bezierCurveTo(-26, 4, -28, 16, -20, 24); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(16, -8); ctx.bezierCurveTo(26, 4, 28, 16, 20, 24); ctx.stroke();
+          // glowing fists
+          ctx.fillStyle = `oklch(0.92 0.22 50 / ${pulse})`;
+          ctx.beginPath(); ctx.arc(-20, 24, 6, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(20, 24, 6, 0, Math.PI * 2); ctx.fill();
+          // head — small w/ horns
+          ctx.fillStyle = "oklch(0.20 0.06 25)";
+          ctx.beginPath(); ctx.arc(0, -22, 11, 0, Math.PI * 2); ctx.fill();
+          // horns
+          ctx.beginPath(); ctx.moveTo(-6, -28); ctx.lineTo(-9, -34); ctx.lineTo(-5, -29); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(6, -28); ctx.lineTo(9, -34); ctx.lineTo(5, -29); ctx.fill();
+          // glowing mouth + eyes
+          ctx.fillStyle = `oklch(0.95 0.22 50 / ${pulse})`;
+          ctx.beginPath(); ctx.arc(-4, -22, 1.6, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(4, -22, 1.6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillRect(-4, -18, 8, 1.2);
+          ctx.restore();
+        },
+      ],
+    ];
+
     // ─── v4: World Engine — phase machine, enemies, projectiles, biome BG ───
     const BIOME_NAMES = ["jungle", "cave", "temple", "volcano"];
     const PHASE_NAMES = ["travel", "encounter", "battle", "battle", "battle", "climax", "boss", "victory"];
@@ -2872,7 +3413,9 @@
       };
       const _wHit = () => { lastInputAt = performance.now(); sleepProgress = 0; };
       const _wStep = () => { lastInputAt = performance.now(); };
+      const _wRegenForm = () => regenerateFormation();
       busOn("loopWrap", _wLoop);
+      busOn("loopWrap", _wRegenForm);
       busOn("trackHit", _wHit);
       busOn("step", _wStep);
 
@@ -2885,6 +3428,289 @@
       function getPhaseTime() { return phaseTime; }
       function getSleep() { return sleepProgress; }
       function getDayNight() { return dayNightPhase; }
+
+      // ─── Phase 12: enemy spawn + CA formation ───
+      function caStep(grid) {
+        const rows = grid.length, cols = grid[0].length;
+        const next = grid.map(r => r.slice());
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+          let n = 0;
+          for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const rr = r + dr, cc = c + dc;
+            if (rr >= 0 && rr < rows && cc >= 0 && cc < cols && grid[rr][cc]) n++;
+          }
+          next[r][c] = grid[r][c] ? (n >= 3 && n <= 8 ? 1 : 0) : (n >= 5 && n <= 8 ? 1 : 0);
+        }
+        return next;
+      }
+      let formation = []; // {row, col} cells from CA grid
+      function regenerateFormation() {
+        const seed = (loopBar + 1) * 9973 + (Math.floor(loopBar / 8)) * 31;
+        const rng = mulberry32(seed);
+        let grid = [];
+        for (let r = 0; r < 4; r++) {
+          grid.push([]);
+          for (let c = 0; c < 16; c++) grid[r].push(rng() < 0.45 ? 1 : 0);
+        }
+        for (let i = 0; i < 3; i++) grid = caStep(grid);
+        formation = [];
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 16; c++) {
+          if (grid[r][c]) formation.push({ row: r, col: c });
+        }
+      }
+      regenerateFormation(); // initial fill
+
+      function spawnEnemyFromFormation() {
+        if (!formation.length || enemies.length >= 24) return;
+        // Pick a random formation cell
+        const idx = Math.floor(Math.random() * formation.length);
+        const cell = formation[idx];
+        // Pick a type weighted by stage phase
+        const phase = getPhase();
+        const typeWeights = (phase === "boss") ? [0.1, 0.2, 0.4, 0.3] :
+                            (phase === "climax") ? [0.2, 0.4, 0.3, 0.1] :
+                            (phase === "battle") ? [0.5, 0.3, 0.15, 0.05] :
+                                                   [0.7, 0.2, 0.08, 0.02];
+        let r = Math.random(), tIdx = 0;
+        for (let i = 0; i < 4; i++) { if ((r -= typeWeights[i]) <= 0) { tIdx = i; break; } }
+        const type = ENEMY_TYPES[tIdx];
+        const base = ENEMY_BASE[type];
+        // Spawn from random side; target Y in lower band
+        const fromLeft = Math.random() < 0.5;
+        const targetY = 195 + cell.row * 6; // 195-219, just above platform
+        const spawnX = fromLeft ? -base.size : W + base.size;
+        const targetX = 60 + cell.col * (W - 120) / 16;
+        enemies.push({
+          biome: getBiomeIdx(), type, typeIdx: tIdx,
+          x: spawnX, y: targetY,
+          targetX, targetY,
+          vx: 0, vy: 0,
+          hp: base.hp, maxHp: base.hp, size: base.size, speed: base.speed,
+          age: 0, hitFlash: 0,
+          facing: fromLeft ? 1 : -1,
+          dyingT: 0,
+        });
+      }
+      let enemySpawnTimer = 1.5;
+
+      function updateEnemies(t, dt) {
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          e.age += dt;
+          e.hitFlash = Math.max(0, e.hitFlash - dt * 4);
+          // Walk toward target
+          const dx = e.targetX - e.x, dy = e.targetY - e.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 2) {
+            e.x += (dx / dist) * e.speed * dt;
+            e.y += (dy / dist) * e.speed * dt;
+          } else {
+            // Wobble in place + slight drift to keep alive feeling
+            e.x += Math.sin(t * 2 + e.age) * 0.3;
+            e.y += Math.cos(t * 1.5 + e.age * 0.7) * 0.2;
+          }
+          // Apply knockback velocity decay
+          e.x += e.vx * dt; e.y += e.vy * dt;
+          e.vx *= 0.9; e.vy *= 0.9;
+          // Death/cleanup
+          if (e.hp <= 0) {
+            e.dyingT += dt;
+            if (e.dyingT > 0.4) enemies.splice(i, 1);
+          }
+          // Despawn after long off-screen wander
+          if (e.age > 30 && (e.x < -50 || e.x > W + 50)) enemies.splice(i, 1);
+        }
+      }
+
+      function drawEnemies(t) {
+        // Sort by Y for depth
+        const order = enemies.map((_, i) => i).sort((a, b) => enemies[a].y - enemies[b].y);
+        order.forEach(i => {
+          const e = enemies[i];
+          ctx.save();
+          // Death squash + fade
+          if (e.dyingT > 0) {
+            ctx.globalAlpha = Math.max(0, 1 - e.dyingT / 0.4);
+            const sq = 1 + e.dyingT * 1.2;
+            ctx.translate(e.x, e.y);
+            ctx.scale(sq, 1 / sq);
+            ctx.translate(-e.x, -e.y);
+          }
+          const drawer = (ENEMY_DRAWERS[e.biome] || [])[e.typeIdx];
+          if (drawer) drawer(ctx, t, e);
+          ctx.restore();
+        });
+      }
+
+      // ─── Phase 13: Projectile pool + 7 element renderers ───
+      function spawnProjectile(originX, originY, targetX, targetY, element, dmg, opts) {
+        if (projectiles.length >= 60) return;
+        opts = opts || {};
+        projectiles.push({
+          ox: originX, oy: originY, tx: targetX, ty: targetY,
+          element: element || "fire",
+          dmg: dmg != null ? dmg : 1,
+          t: 0, duration: opts.duration || 0.5,
+          arcHeight: opts.arcHeight != null ? opts.arcHeight : 28,
+          radius: opts.radius || 14,    // hit radius at target
+          size: opts.size || 4,         // visual size
+          dead: false,
+          trail: [], // last few positions for trail rendering
+        });
+      }
+      function updateProjectiles(t, dt) {
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+          const p = projectiles[i];
+          if (p.dead) { projectiles.splice(i, 1); continue; }
+          p.t += dt / p.duration;
+          if (p.t >= 1) {
+            // Impact
+            const hit = damageNearestEnemy(p.tx, p.ty, p.radius, p.dmg);
+            const el = ELEMENTS[p.element] || ELEMENTS.fire;
+            // Spawn impact particles via parent createStage's spawn()
+            spawn(p.tx, p.ty, 6, el.core, el.particle, { spread: 4, lift: 2.5, life: 0.4 });
+            // Mini-shockwave: a quick growing ring (drawn via projectile residue)
+            projectiles.push({
+              isShock: true, x: p.tx, y: p.ty, t: 0, duration: 0.35,
+              element: p.element, dead: false, size: 4,
+            });
+            p.dead = true;
+            continue;
+          }
+          // Sample position at p.t for trail
+          const u = p.t;
+          const cx = p.ox + (p.tx - p.ox) * u;
+          const baseY = p.oy + (p.ty - p.oy) * u;
+          const arc = Math.sin(u * Math.PI) * p.arcHeight;
+          p.trail.unshift({ x: cx, y: baseY - arc });
+          if (p.trail.length > 8) p.trail.pop();
+        }
+      }
+      function drawProjectiles(t) {
+        projectiles.forEach(p => {
+          if (p.dead) return;
+          const el = ELEMENTS[p.element] || ELEMENTS.fire;
+          if (p.isShock) {
+            // Expanding ring
+            const r = 4 + p.t * 22;
+            const a = Math.max(0, 1 - p.t);
+            ctx.strokeStyle = el.core.replace(")", ` / ${a.toFixed(3)})`);
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke();
+            p.t += 0.05;
+            if (p.t >= 1) p.dead = true;
+            return;
+          }
+          // Trail
+          if (p.trail.length > 1) {
+            ctx.strokeStyle = el.trail.replace(")", " / 0.6)");
+            ctx.lineWidth = p.size * 0.7;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(p.trail[0].x, p.trail[0].y);
+            for (let j = 1; j < p.trail.length; j++) ctx.lineTo(p.trail[j].x, p.trail[j].y);
+            ctx.stroke();
+          }
+          // Element-specific head
+          const head = p.trail[0];
+          if (!head) return;
+          const hx = head.x, hy = head.y;
+          if (p.element === "earth") {
+            // Rock: angular brown shape
+            ctx.fillStyle = el.core;
+            ctx.save(); ctx.translate(hx, hy); ctx.rotate(p.t * 6);
+            ctx.beginPath();
+            for (let k = 0; k < 5; k++) {
+              const a = (k / 5) * Math.PI * 2;
+              const r = p.size + (k % 2 === 0 ? 1 : -1);
+              ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.closePath(); ctx.fill(); ctx.restore();
+          } else if (p.element === "wind") {
+            // Crescent slash
+            ctx.fillStyle = el.core;
+            ctx.save(); ctx.translate(hx, hy);
+            const ang = Math.atan2(p.ty - p.oy, p.tx - p.ox);
+            ctx.rotate(ang);
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 1.4, -1.0, 1.0);
+            ctx.arc(0, 0, p.size * 0.8, 1.0, -1.0, true);
+            ctx.closePath(); ctx.fill(); ctx.restore();
+          } else if (p.element === "shadow") {
+            // Dark ribbon — irregular swirl
+            ctx.fillStyle = el.core;
+            ctx.save(); ctx.translate(hx, hy); ctx.rotate(p.t * 4);
+            ctx.beginPath();
+            ctx.moveTo(-p.size, 0);
+            ctx.bezierCurveTo(-p.size * 0.5, p.size, p.size * 0.5, -p.size, p.size, 0);
+            ctx.bezierCurveTo(p.size * 0.5, p.size, -p.size * 0.5, -p.size, -p.size, 0);
+            ctx.fill(); ctx.restore();
+          } else if (p.element === "water") {
+            // Droplet
+            ctx.fillStyle = el.core;
+            ctx.save(); ctx.translate(hx, hy);
+            const ang = Math.atan2(p.ty - p.oy, p.tx - p.ox);
+            ctx.rotate(ang + Math.PI / 2);
+            ctx.beginPath();
+            ctx.moveTo(0, -p.size * 1.4);
+            ctx.bezierCurveTo(p.size, -p.size * 0.3, p.size, p.size, 0, p.size);
+            ctx.bezierCurveTo(-p.size, p.size, -p.size, -p.size * 0.3, 0, -p.size * 1.4);
+            ctx.fill(); ctx.restore();
+          } else if (p.element === "fire") {
+            // Flame core w/ glow
+            const grad = ctx.createRadialGradient(hx, hy, 0, hx, hy, p.size * 3);
+            grad.addColorStop(0, el.core);
+            grad.addColorStop(0.5, el.trail.replace(")", " / 0.6)"));
+            grad.addColorStop(1, "transparent");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(hx, hy, p.size * 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = el.core;
+            ctx.beginPath(); ctx.arc(hx, hy, p.size * 0.8, 0, Math.PI * 2); ctx.fill();
+          } else if (p.element === "holy") {
+            // Gold star pillar
+            ctx.fillStyle = el.core;
+            ctx.save(); ctx.translate(hx, hy); ctx.rotate(p.t * 2);
+            for (let k = 0; k < 4; k++) {
+              ctx.save(); ctx.rotate((k / 4) * Math.PI * 2);
+              ctx.fillRect(-0.6, -p.size * 1.4, 1.2, p.size * 2.8);
+              ctx.restore();
+            }
+            ctx.beginPath(); ctx.arc(0, 0, p.size * 0.8, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          } else if (p.element === "poison") {
+            // Green mist cluster
+            ctx.fillStyle = el.trail.replace(")", " / 0.55)");
+            for (let k = 0; k < 4; k++) {
+              const a = (k / 4) * Math.PI * 2;
+              const px = hx + Math.cos(a) * p.size * 0.6, py = hy + Math.sin(a) * p.size * 0.6;
+              ctx.beginPath(); ctx.arc(px, py, p.size * 0.8, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.fillStyle = el.core;
+            ctx.beginPath(); ctx.arc(hx, hy, p.size * 0.5, 0, Math.PI * 2); ctx.fill();
+          }
+        });
+      }
+
+      // Public: take damage at world coords (used by class verbs)
+      function damageNearestEnemy(wx, wy, radius, dmg) {
+        let best = null, bestDist = radius;
+        for (let i = 0; i < enemies.length; i++) {
+          const e = enemies[i];
+          if (e.hp <= 0) continue;
+          const d = Math.hypot(e.x - wx, e.y - wy);
+          if (d < bestDist) { bestDist = d; best = e; }
+        }
+        if (best) {
+          best.hp -= dmg;
+          best.hitFlash = 1;
+          // knockback
+          const ang = Math.atan2(best.y - wy, best.x - wx);
+          best.vx += Math.cos(ang) * 60;
+          best.vy += Math.sin(ang) * 30;
+        }
+        return best;
+      }
 
       function tick(t, dt) {
         phaseTime += dt;
@@ -2925,6 +3751,18 @@
           w.life -= dt;
           if (w.life <= 0 || w.y < -10 || w.y > H + 12 || w.x > W + 12 || w.x < -12) weatherParticles.splice(i, 1);
         }
+
+        // Enemy spawn + tick (only during active phases)
+        const phase = getPhase();
+        const battleActive = phase === "battle" || phase === "climax" || phase === "boss" || phase === "encounter";
+        if (battleActive) {
+          enemySpawnTimer -= dt;
+          if (enemySpawnTimer <= 0) {
+            spawnEnemyFromFormation();
+            enemySpawnTimer = 0.8 + Math.random() * 0.6;
+          }
+        }
+        updateEnemies(t, dt);
       }
 
       function drawWeatherBack(t) {
@@ -3026,6 +3864,8 @@
         });
         // Front-running weather (leaves, grains)
         drawWeatherFront(t);
+        // Enemies (drawn between chars and torches)
+        drawEnemies(t);
       }
       function drawFinalOverlay(t) {
         drawDayNightTint();
@@ -3035,6 +3875,7 @@
       return { tick, drawBack, drawMid, drawFinalOverlay,
         getPhase, getBiomeIdx, getBiomeName, getPrevBiomeName,
         getTravelT, getLoopBar, getPhaseTime, getSleep, getDayNight,
+        damageNearestEnemy,
         enemies, projectiles, critters, weatherParticles };
     }
     const worldEngine = createWorldEngine();
@@ -3103,7 +3944,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
 
-      trauma = Math.max(0, trauma - 1.5 * dt);
+      trauma = Math.max(0, trauma - 3.0 * dt);
       const shaking = !reducedMotion && trauma > 0.01;
       if (shaking) {
         const s = getShake();
@@ -3312,11 +4153,37 @@
     return h("div", { className: "playhead-bar", "aria-hidden": "true" }, cells);
   }
 
+  // v4: memoized pad cell — only re-renders when its own props change
+  const PadCell = React.memo(function PadCell({ ti, si, val, vel, prob, isCurrent, color, trackName, onDown, onContext }) {
+    const probDots = prob >= 0.99 ? 0 : (prob >= 0.7 ? 1 : prob >= 0.4 ? 2 : 3);
+    const titleText = trackName + " · step " + (si + 1) +
+      " · vel " + Math.round(vel * 100) + "%" +
+      (prob < 1.0 ? " · " + Math.round(prob * 100) + "% chance" : "");
+    const padChildren = [];
+    if (val && vel < 0.99) {
+      padChildren.push(h("span", { key: "shade", className: "pad-vel-shade",
+        style: { height: ((1 - vel) * 100) + "%" } }));
+    }
+    if (probDots > 0) {
+      const dots = [];
+      for (let d = 0; d < probDots; d++) dots.push(h("span", { key: d }));
+      padChildren.push(h("span", { key: "dots", className: "pad-prob-dots" }, dots));
+    }
+    return h("button", {
+      className: "pad" + (val ? " on" : "") + (isCurrent ? " current" : ""),
+      style: { "--tc": color },
+      "aria-label": trackName + " step " + (si + 1) + (val ? ", active" : ", off"),
+      title: titleText,
+      onPointerDown: onDown,
+      onContextMenu: onContext,
+    }, ...padChildren);
+  });
+
   function PadGrid({ state, dispatch }) {
     const bk = state.activeBank || "a";
     // Drag-vs-click pad pointer handler. If drag delta > 4px, treat as velocity adjust.
-    const handlePadDown = (e, ti, si, isOn, currentVel) => {
-      if (e.button === 2) return; // right-click handled separately
+    const handlePadDown = useCallback((e, ti, si, isOn, currentVel) => {
+      if (e.button === 2) return;
       e.preventDefault();
       const startY = e.clientY;
       const startVel = currentVel != null ? currentVel : 1.0;
@@ -3343,15 +4210,15 @@
       document.addEventListener("pointermove", onMove);
       document.addEventListener("pointerup", onUp);
       document.addEventListener("pointercancel", onUp);
-    };
-    const cycleProb = (ti, si, currentProb) => {
+    }, [dispatch]);
+    const cycleProb = useCallback((ti, si, currentProb) => {
       const seq = [1.0, 0.75, 0.5, 0.25];
       const rounded = Math.round((currentProb != null ? currentProb : 1.0) * 100) / 100;
       let idx = seq.findIndex(v => Math.abs(v - rounded) < 0.01);
       if (idx === -1) idx = 0;
       const next = seq[(idx + 1) % seq.length];
       dispatch({ type: "SET_PROBABILITY", trackId: ti, step: si, value: next });
-    };
+    }, [dispatch]);
     return h("div", { className: "pad-grid" },
       state.tracks.map((track, ti) => {
         const bank = getBank(track, bk);
