@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SessionStart hook — emit a graphify briefing + git log + open-issues tail
-# as `additionalContext` so the model wakes up with structural awareness.
+# SessionStart hook — emit a git log + open-issues tail as `additionalContext`
+# so the model wakes up with structural awareness.
 #
 # Hook contract:
 # - Read JSON from stdin (we don't need any field; just consume it).
@@ -19,31 +19,8 @@ cat >/dev/null 2>&1 || true
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root" || exit 0
 
-report="$repo_root/graphify-out/GRAPH_REPORT.md"
-
-# 1. Build / refresh the graph if graphify is on PATH and the report is
-#    missing or older than the most recent file under the source dirs.
-if command -v graphify >/dev/null 2>&1; then
-  needs_build=1
-  if [ -f "$report" ]; then
-    newest_src="$(find knowledge skills prompts recipes CLAUDE.md README.md \
-      -type f -newer "$report" -print -quit 2>/dev/null)"
-    [ -z "$newest_src" ] && needs_build=0
-  fi
-  if [ "$needs_build" = "1" ]; then
-    timeout 60 graphify . >/dev/null 2>&1 || true
-  fi
-fi
-
-# 2. Compose the briefing. Stay terse — this is paid context.
+# Compose the briefing. Stay terse — this is paid context.
 briefing=""
-
-if [ -f "$report" ]; then
-  briefing+="## graphify briefing"$'\n'
-  briefing+='```'$'\n'
-  briefing+="$(head -n 80 "$report")"$'\n'
-  briefing+='```'$'\n\n'
-fi
 
 if git rev-parse --git-dir >/dev/null 2>&1; then
   briefing+="## recent commits"$'\n'

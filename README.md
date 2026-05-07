@@ -12,7 +12,7 @@ Designed to be mounted into a [Claude Project](https://support.claude.com/en/art
 
 ```
 knowledge/   11 re-chunked reference docs + index (the Project knowledge payload)
-skills/       8 Agent Skills in SKILL.md format
+skills/       7 Agent Skills in SKILL.md format
 artifacts/   12 single-file starters (7 HTML, 5 React/JSX)
 prompts/     10 ready-to-paste prompt scaffolds
 recipes/      4 end-to-end workflow narratives
@@ -37,9 +37,9 @@ CLAUDE.md    routing rules + defaults (loaded into Project custom instructions)
 | [`10-workflows.md`](knowledge/10-workflows.md) | Skills + Artifacts + MCP together, critique loops, Claudeception |
 | [`99-caveats.md`](knowledge/99-caveats.md) | Values Anthropic silently rotates — check before hardcoding |
 
-### skills/ — 8 Agent Skills
+### skills/ — 7 Agent Skills
 
-[`artifact-game-builder`](skills/artifact-game-builder/SKILL.md) · [`animation-composer`](skills/animation-composer/SKILL.md) · [`shader-smith`](skills/shader-smith/SKILL.md) · [`palette-generator`](skills/palette-generator/SKILL.md) · [`sprite-atlas-builder`](skills/sprite-atlas-builder/SKILL.md) · [`ui-design-kit`](skills/ui-design-kit/SKILL.md) · [`procgen-toolkit`](skills/procgen-toolkit/SKILL.md) · [`graphify`](skills/graphify/SKILL.md)
+[`artifact-game-builder`](skills/artifact-game-builder/SKILL.md) · [`animation-composer`](skills/animation-composer/SKILL.md) · [`shader-smith`](skills/shader-smith/SKILL.md) · [`palette-generator`](skills/palette-generator/SKILL.md) · [`sprite-atlas-builder`](skills/sprite-atlas-builder/SKILL.md) · [`ui-design-kit`](skills/ui-design-kit/SKILL.md) · [`procgen-toolkit`](skills/procgen-toolkit/SKILL.md)
 
 ### artifacts/ — sandbox-correct starters
 
@@ -65,7 +65,6 @@ Three concrete flows that exercise the whole stack. Each assumes you've installe
 | **Tell a data story** | [`recipes/data-story.md`](recipes/data-story.md) | Use [`prompts/build-dataviz.md`](prompts/build-dataviz.md); start from [`artifacts/react/dataviz-dashboard.jsx`](artifacts/react/dataviz-dashboard.jsx). |
 | **Run an agentic asset pipeline** | [`recipes/agentic-asset-pipeline.md`](recipes/agentic-asset-pipeline.md) | Uses `asset-generator` + `palette-oklch` + `sprite-packer` MCPs to ship a tile set into Kaplay. |
 | **Critique your own artifact** | [`prompts/critique-and-refine.md`](prompts/critique-and-refine.md) | Use the `critique-loop` skill, or the [`shader-jam.jsx`](artifacts/react/shader-jam.jsx) flagship for vision-grounded feedback. |
-| **Map an existing codebase** | [`recipes/codebase-knowledge-graph.md`](recipes/codebase-knowledge-graph.md) | Use the `graphify` skill; install with `uv tool install graphifyy && graphify install`, then run `/graphify .`. |
 
 See [`docs/diagram.md`](docs/diagram.md) for a one-page visual of how knowledge / prompts / skills / artifacts / MCP fit together.
 

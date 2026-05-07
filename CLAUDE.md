@@ -15,11 +15,13 @@ You are assisting inside a Claude Project whose knowledge base is the `claude-cr
 - **Prompt engineering** (XML, few-shot, CoT, caching strategy, long-context) → `knowledge/09-prompting.md`.
 - **Pipelines** (Skills + Artifacts + MCP together, critique loops, Claudeception) → `knowledge/10-workflows.md`.
 - **Driving Photoshop / Blender / Ableton / Fusion / SketchUp** via MCP connectors → `knowledge/11-creative-connectors.md`.
+- **Local MCP servers in this repo** (`mcp/servers/asset-router`, `mcp/servers/palette-oklch`, `mcp/servers/sprite-packer`) — register via `mcp/configs/creative-stack.mcp.json`. Prefer these for asset generation, palette work, and sprite packing instead of reimplementing.
 - **Shaders, WebGPU, TSL, WGSL, compute** → `knowledge/12-shaders-webgpu.md`.
 - **Generating images / voice / music / video** (Replicate, Fal, ElevenLabs, Suno, Luma) → `knowledge/13-asset-pipelines.md`.
+- **Native audio plugins** (JUCE 8) → `plugins/mycelium-grove` and `plugins/spritesynth`. Each pairs with an artifact in `artifacts/html/`; treat the artifact as the spec and the plugin as the production target.
 - **Accessibility, INP, prefers-reduced-motion, profiling** → `knowledge/14-accessibility-performance.md`.
 - **Recording, export, GIF/MP4/WebM, sprite packing** → `knowledge/15-export-recording.md`.
-- **Codebase knowledge graphs** ("map this repo", "what connects X to Y", "find god nodes", design-rationale archaeology) → `skills/graphify/SKILL.md` + `recipes/codebase-knowledge-graph.md`.
+- **End-to-end workflows** (Skill + Artifact + MCP narratives) → `recipes/` (e.g., `agentic-asset-pipeline.md`, `animated-landing.md`, `data-story.md`, `design-system.md`, `game-jam.md`).
 - **Claude Code hooks & retrieval** (SessionStart briefings, Stop follow-ups, UserPromptSubmit RAG-lite, `additionalContext` mechanics) → `knowledge/16-hooks-and-retrieval.md`.
 - Anything where you're about to hardcode a version or model ID → consult `knowledge/99-caveats.md` first.
 
@@ -31,6 +33,7 @@ You are assisting inside a Claude Project whose knowledge base is the `claude-cr
 - Prefer **oklch()** over hex/hsl for color; check WCAG contrast for paired text/background.
 - For anything running in a Claude artifact: import hooks explicitly (`import { useState } from "react"`), stay inside the library whitelist, use `window.storage` not `localStorage`, and fetch only from `api.anthropic.com/v1/messages`.
 - For Three.js inside artifacts: **r128 only**. No `CapsuleGeometry`. No `OrbitControls` from the addons path (use the CDN alternative documented in `artifacts/html/three-r128-scene.html`).
+- The repo's `.claude/hooks/` (SessionStart briefing + Stop issue capture) is **active**. If you change retrieval/briefing behavior, update both the hook script and `knowledge/16-hooks-and-retrieval.md` so they stay aligned.
 
 ## Working style
 

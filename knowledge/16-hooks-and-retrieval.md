@@ -16,7 +16,7 @@ input/output contract, and the opt-in `UserPromptSubmit` retrieval pattern.
 
 | Event | Fires | Useful for |
 |---|---|---|
-| `SessionStart` | new session, resume, `/clear`, post-compact | one-shot briefing — graphify report, recent commits, open follow-ups |
+| `SessionStart` | new session, resume, `/clear`, post-compact | one-shot briefing — recent commits, open follow-ups |
 | `UserPromptSubmit` | every user turn, before the model sees it | RAG-lite — pull the most relevant knowledge chunk for the prompt |
 | `PreToolUse` | before any tool call | block dangerous ops, redact args |
 | `PostToolUse` | after a tool call returns | lint on Edit/Write, log writes |
@@ -70,14 +70,10 @@ Environment variables available inside hook scripts:
 
 ### SessionStart → `.claude/hooks/session-start.sh`
 
-Builds a one-page briefing from three sources:
+Builds a one-page briefing from two sources:
 
-1. **graphify report** (`graphify-out/GRAPH_REPORT.md`) if graphify is on
-   `PATH` and the report is older than the source files. Refreshed with
-   `graphify .` (60 s timeout). If graphify isn't installed, this section is
-   skipped silently — the hook never fails the session.
-2. **`git log --oneline -5`** — what's been happening recently.
-3. **`.claude/ISSUES.local.md` tail** — open follow-ups from prior sessions.
+1. **`git log --oneline -5`** — what's been happening recently.
+2. **`.claude/ISSUES.local.md` tail** — open follow-ups from prior sessions.
 
 The briefing is JSON-encoded with `jq` (preferred) or `python3` (fallback) so
 multi-line markdown survives intact.
@@ -161,15 +157,13 @@ Claude to check `knowledge/` repeatedly.
 ## Caveats
 
 - Hook scripts must be **fast** — anything over a few seconds delays the user.
-  Use `timeout` aggressively. The 60 s graphify ceiling is already long.
+  Use `timeout` aggressively.
 - Hooks run with the user's permissions and full network/filesystem access.
   Don't pipe arbitrary remote content into the model via `additionalContext`
   — that's a prompt-injection vector.
 - If a hook crashes (non-zero exit, malformed JSON), the runtime logs it and
   moves on. Test locally with the one-liner above before shipping.
-- `additionalContext` is **paid context**. Keep briefings under ~2 KB. The
-  shipped SessionStart hook trims `GRAPH_REPORT.md` to its first 80 lines for
-  this reason.
+- `additionalContext` is **paid context**. Keep briefings under ~2 KB.
 - Async mode (`{"async": true, "asyncTimeout": 300000}`) is available but
   introduces races — the agent may run a tool before the hook finishes. Only
   use it for dependency installs, not context injection.
@@ -178,5 +172,4 @@ Claude to check `knowledge/` repeatedly.
 
 - `knowledge/10-workflows.md` — where hooks sit in the Skill / Artifact / MCP
   layering.
-- `skills/graphify/SKILL.md` — the report this hook surfaces.
 - Anthropic docs: <https://docs.claude.com/en/docs/claude-code/hooks>.

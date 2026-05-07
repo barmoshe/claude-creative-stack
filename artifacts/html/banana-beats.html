@@ -198,6 +198,98 @@
     .kb-hint { padding: 8px 4px 0; text-align: center;
       font-size: 10px; color: var(--text-muted); letter-spacing: .08em; opacity: .6; }
 
+    /* ─── v4: Transport bar ─── */
+    .transport-bar { display: flex; align-items: center; gap: 12px;
+      padding: 10px 4px; margin: 4px 0 10px;
+      border-top: 1px solid var(--border-warm); border-bottom: 1px solid var(--border-warm); }
+    .transport-bar .play-big {
+      font: 700 13px ui-monospace, monospace; letter-spacing: .16em; text-transform: uppercase;
+      padding: 12px 22px; min-width: 100px; border-radius: 8px; cursor: pointer; border: none;
+      background: linear-gradient(180deg, oklch(0.78 0.09 70), oklch(0.65 0.07 65));
+      color: oklch(0.28 0.04 70);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 3px 5px rgba(80,50,20,.25);
+      transition: transform 0.08s, box-shadow 0.12s; }
+    .transport-bar .play-big:active { transform: translateY(1px); box-shadow: inset 0 1px 3px rgba(80,50,20,.3); }
+    .transport-bar .play-big.live {
+      background: linear-gradient(180deg, oklch(0.78 0.16 30), oklch(0.66 0.18 25));
+      color: oklch(0.98 0.02 80);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 0 20px oklch(0.62 0.18 25 / .55); }
+    .transport-bar .bpm-block { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+    .transport-bar .bpm-block > label { font: 700 10px ui-monospace, monospace; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--metal); white-space: nowrap; }
+    .transport-bar .bpm-slider { flex: 1; max-width: 240px; height: 4px;
+      accent-color: oklch(0.62 0.18 145); cursor: pointer; }
+    .transport-bar .bpm-readout { font: 700 14px ui-monospace, monospace; min-width: 36px;
+      text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+    .tap-btn { font: 600 10px ui-monospace, monospace; padding: 7px 12px;
+      letter-spacing: .14em; text-transform: uppercase;
+      border: 1px solid var(--border-warm); background: oklch(0.82 0.04 75);
+      color: var(--text-muted); border-radius: 6px; cursor: pointer;
+      transition: all 0.12s; }
+    .tap-btn:hover { color: var(--text); border-color: oklch(0.55 0.16 90); }
+    .tap-btn.armed { background: oklch(0.85 0.19 90); color: oklch(0.20 0.04 80);
+      border-color: oklch(0.65 0.18 90); box-shadow: 0 0 8px oklch(0.85 0.19 90 / .6); }
+    .transport-bar .phase-chip { font: 700 10px ui-monospace, monospace; letter-spacing: .14em;
+      text-transform: uppercase; padding: 5px 10px; border-radius: 4px;
+      background: oklch(0.32 0.06 145); color: oklch(0.92 0.10 95);
+      border: 1px solid oklch(0.45 0.10 145); }
+
+    /* ─── v4: Playhead bar above pads ─── */
+    .playhead-bar { display: flex; gap: 3px; padding: 4px 36px 6px 64px; height: 8px; align-items: center; }
+    .playhead-bar .phead-cell { flex: 1; min-width: 0; border-radius: 2px; height: 4px;
+      background: oklch(0.78 0.04 75);
+      transition: background .04s ease, transform .04s ease, box-shadow .04s ease; }
+    .playhead-bar .phead-cell.downbeat { background: oklch(0.65 0.05 65); height: 5px; }
+    .playhead-bar .phead-cell.current { background: oklch(0.85 0.19 90); transform: scaleY(1.7);
+      box-shadow: 0 0 6px oklch(0.85 0.19 90 / .7); }
+    .playhead-bar .phead-cell.downbeat.current { background: oklch(0.95 0.20 90);
+      transform: scaleY(2.0); box-shadow: 0 0 9px oklch(0.95 0.20 90 / .8); }
+
+    /* ─── v4: Row backlight (subtle per-track gradient on pad-row) ─── */
+    .pad-row { background: linear-gradient(90deg,
+      color-mix(in oklch, var(--rowtc, transparent) 18%, transparent) 0%,
+      color-mix(in oklch, var(--rowtc, transparent) 4%, transparent) 60%,
+      transparent 100%);
+      border-radius: 6px; padding-left: 2px; }
+
+    /* ─── v4: SeqControls — bank switcher + swing + humanize ─── */
+    .seq-controls { display: flex; align-items: center; gap: 14px; padding: 8px 4px; flex-wrap: wrap; }
+    .bank-switcher { display: flex; gap: 4px; align-items: center; }
+    .bank-switcher > label { font: 700 10px ui-monospace, monospace; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--metal); margin-right: 4px; }
+    .bank-btn { font: 700 11px ui-monospace, monospace; width: 30px; height: 26px;
+      border-radius: 5px; cursor: pointer; border: 1px solid var(--border-warm);
+      background: oklch(0.82 0.04 75); color: var(--text-muted);
+      transition: all 0.12s; display: grid; place-items: center; }
+    .bank-btn:hover { color: var(--text); border-color: oklch(0.55 0.16 90); }
+    .bank-btn.active { background: oklch(0.85 0.19 90); color: oklch(0.18 0.04 80);
+      border-color: oklch(0.65 0.18 90);
+      box-shadow: 0 0 6px oklch(0.85 0.19 90 / .5), inset 0 1px 0 rgba(255,255,255,.4); }
+    .swing-block { display: flex; align-items: center; gap: 6px; }
+    .swing-block > label { font: 700 10px ui-monospace, monospace; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--metal); }
+    .swing-slider { width: 100px; height: 4px; accent-color: oklch(0.62 0.16 230); cursor: pointer; }
+    .swing-val { font: 700 10px ui-monospace, monospace; min-width: 28px; text-align: right;
+      color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .humanize-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
+      font: 700 10px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--metal); }
+    .humanize-toggle input { accent-color: oklch(0.65 0.20 145); cursor: pointer; }
+    .humanize-toggle.on { color: oklch(0.45 0.16 145); }
+
+    /* ─── v4: Pad cell — velocity shade + probability dots ─── */
+    .pad { position: relative; overflow: hidden; user-select: none;
+      touch-action: none; }
+    .pad-vel-shade { position: absolute; left: 0; right: 0; top: 0;
+      pointer-events: none; border-radius: 5px 5px 0 0;
+      background: linear-gradient(180deg, rgba(20,12,4,0.55) 0%, rgba(20,12,4,0.0) 100%); }
+    .pad-prob-dots { position: absolute; top: 2px; left: 0; right: 0;
+      display: flex; justify-content: center; gap: 2px; pointer-events: none; z-index: 1; }
+    .pad-prob-dots span { width: 2.5px; height: 2.5px; border-radius: 50%;
+      background: rgba(255,255,255,0.85); box-shadow: 0 0 1px rgba(0,0,0,0.6); }
+    .pad.on .pad-prob-dots span { background: rgba(255,255,255,0.95); }
+    .pad.dragging { cursor: ns-resize; }
+
     @keyframes breathe { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
 
     @media (max-width: 600px) {
@@ -308,10 +400,67 @@
     return new Array(steps).fill(false);
   }
 
+  // ─── v4: Bank helpers ───
+  function buildEmptyBank(steps, gen) {
+    const isMelodic = gen === "markov";
+    return {
+      pattern: isMelodic ? new Array(steps).fill(0) : new Array(steps).fill(false),
+      velocity: new Array(steps).fill(1.0),
+      probability: new Array(steps).fill(1.0),
+    };
+  }
+  function buildBankFromGen(def, steps, seed) {
+    return {
+      pattern: generatePattern(def, steps, seed),
+      velocity: new Array(steps).fill(1.0),
+      probability: new Array(steps).fill(1.0),
+    };
+  }
+  // Get active bank for a track. Tolerant of old-shape (no banks) for backward compat.
+  function getBank(track, bankKey) {
+    bankKey = bankKey || "a";
+    if (track.banks && track.banks[bankKey]) return track.banks[bankKey];
+    if (track.banks && track.banks.a) return track.banks.a;
+    // Old shape: wrap on the fly
+    const steps = (track.pattern || []).length || 16;
+    return {
+      pattern: track.pattern || new Array(steps).fill(false),
+      velocity: new Array(steps).fill(1.0),
+      probability: new Array(steps).fill(1.0),
+    };
+  }
+  // Migrate an old-shape track (just `pattern`) into new banks shape.
+  function migrateTrack(t) {
+    if (t.banks) return t;
+    const steps = (t.pattern || []).length || 16;
+    const def = TRACK_DEFS[t.id] || {};
+    return {
+      ...t,
+      banks: {
+        a: { pattern: t.pattern || new Array(steps).fill(false), velocity: new Array(steps).fill(1.0), probability: new Array(steps).fill(1.0) },
+        b: buildEmptyBank(steps, def.gen),
+        c: buildEmptyBank(steps, def.gen),
+        d: buildEmptyBank(steps, def.gen),
+      },
+      activeBank: undefined, // global activeBank lives on state, not track
+      variant: t.variant != null ? t.variant : 0,
+      octave: t.octave != null ? t.octave : 0,
+      rootKey: t.rootKey != null ? t.rootKey : 0,
+    };
+  }
+
   function buildTracks(defs, steps, seed) {
     return defs.map((def, i) => ({
       ...def, id: i, steps,
-      pattern: generatePattern(def, steps, seed + i * 1000),
+      banks: {
+        a: buildBankFromGen(def, steps, seed + i * 1000),
+        b: buildEmptyBank(steps, def.gen),
+        c: buildEmptyBank(steps, def.gen),
+        d: buildEmptyBank(steps, def.gen),
+      },
+      variant: 0,
+      octave: 0,
+      rootKey: 0,
       gain: 0.8, pan: 0, mute: false, solo: false,
       sendReverb: i >= 6 ? 0.3 : 0.1,
       sendDelay: i === 7 ? 0.25 : 0.05,
@@ -327,6 +476,10 @@
     return {
       bpm: 96, seed, isPlaying: false, activeTab: "seq", vibe: "chill",
       tracks: buildTracks(TRACK_DEFS, STEPS, seed),
+      // v4: global active bank, swing, humanize
+      activeBank: "a",
+      swing: 0,
+      humanize: false,
       fx: [
         { type: "reverb", enabled: true, params: { decay: 4, wet: 0.3, preDelay: 0.01 } },
         { type: "delay", enabled: true, params: { delayTime: 0.25, feedback: 0.3, wet: 0.2 } },
@@ -348,24 +501,108 @@
       case "SET_STEP": return { ...state, currentStep: action.step };
       case "REROLL_ALL": {
         const seed = Math.floor(Math.random() * 1000000);
-        return { ...state, seed, tracks: state.tracks.map((t, i) => ({ ...t, pattern: generatePattern(TRACK_DEFS[i], t.steps, seed + i * 1000) })) };
+        const bk = state.activeBank || "a";
+        return { ...state, seed, tracks: state.tracks.map((t, i) => {
+          const newBank = buildBankFromGen(TRACK_DEFS[i], t.steps, seed + i * 1000);
+          return { ...t, banks: { ...t.banks, [bk]: newBank } };
+        }) };
       }
       case "REROLL_TRACK": {
         const seed = Math.floor(Math.random() * 1000000);
-        const tracks = state.tracks.map((t, i) => i === action.id ? { ...t, pattern: generatePattern(TRACK_DEFS[i], t.steps, seed) } : t);
+        const bk = state.activeBank || "a";
+        const tracks = state.tracks.map((t, i) => {
+          if (i !== action.id) return t;
+          const newBank = buildBankFromGen(TRACK_DEFS[i], t.steps, seed);
+          return { ...t, banks: { ...t.banks, [bk]: newBank } };
+        });
         return { ...state, tracks };
       }
       case "TOGGLE_STEP": {
+        const bk = state.activeBank || "a";
         const tracks = state.tracks.map((t, i) => {
           if (i !== action.trackId) return t;
-          const pattern = [...t.pattern];
+          const bank = getBank(t, bk);
+          const pattern = [...bank.pattern];
           if (typeof pattern[action.step] === "number") {
             pattern[action.step] = pattern[action.step] ? 0 : 60;
           } else {
             pattern[action.step] = !pattern[action.step];
           }
-          return { ...t, pattern };
+          const updatedBank = { ...bank, pattern };
+          return { ...t, banks: { ...t.banks, [bk]: updatedBank } };
         });
+        return { ...state, tracks };
+      }
+      case "SET_VELOCITY": {
+        const bk = state.activeBank || "a";
+        const tracks = state.tracks.map((t, i) => {
+          if (i !== action.trackId) return t;
+          const bank = getBank(t, bk);
+          const velocity = [...bank.velocity];
+          velocity[action.step] = Math.max(0.1, Math.min(1.0, action.value));
+          return { ...t, banks: { ...t.banks, [bk]: { ...bank, velocity } } };
+        });
+        return { ...state, tracks };
+      }
+      case "SET_PROBABILITY": {
+        const bk = state.activeBank || "a";
+        const tracks = state.tracks.map((t, i) => {
+          if (i !== action.trackId) return t;
+          const bank = getBank(t, bk);
+          const probability = [...bank.probability];
+          probability[action.step] = Math.max(0, Math.min(1.0, action.value));
+          return { ...t, banks: { ...t.banks, [bk]: { ...bank, probability } } };
+        });
+        return { ...state, tracks };
+      }
+      case "SET_BANK": {
+        const bk = (action.bank || "a").toLowerCase();
+        if (!["a","b","c","d"].includes(bk)) return state;
+        return { ...state, activeBank: bk };
+      }
+      case "SET_VARIANT": {
+        const tracks = state.tracks.map((t, i) => i === action.trackId ? { ...t, variant: ((action.value % 3) + 3) % 3 } : t);
+        return { ...state, tracks };
+      }
+      case "SET_OCTAVE": {
+        const tracks = state.tracks.map((t, i) => i === action.trackId ? { ...t, octave: Math.max(-2, Math.min(2, action.value)) } : t);
+        return { ...state, tracks };
+      }
+      case "SET_ROOT_KEY": {
+        const tracks = state.tracks.map((t, i) => i === action.trackId ? { ...t, rootKey: ((action.value % 12) + 12) % 12 } : t);
+        return { ...state, tracks };
+      }
+      case "SET_SWING": return { ...state, swing: Math.max(0, Math.min(0.6, action.value)) };
+      case "SET_HUMANIZE": return { ...state, humanize: !!action.value };
+      case "QUICK_CLEAR": {
+        const bk = state.activeBank || "a";
+        const tracks = state.tracks.map(t => {
+          const empty = buildEmptyBank(t.steps, t.gen);
+          return { ...t, banks: { ...t.banks, [bk]: empty } };
+        });
+        return { ...state, tracks };
+      }
+      case "QUICK_FILL": {
+        const bk = state.activeBank || "a";
+        // Starter kit: kick on 1/5/9/13, snare on 5/13, closed-hat on every 16th, bongo on 3/11
+        const tracks = state.tracks.map((t, i) => {
+          const steps = t.steps;
+          const empty = buildEmptyBank(steps, t.gen);
+          const p = empty.pattern;
+          if (i === 0) { p[0] = true; p[4] = true; p[8] = true; p[12] = true; }
+          else if (i === 1) { p[4] = true; p[12] = true; }
+          else if (i === 2) { for (let j = 0; j < steps; j++) p[j] = true; }
+          else if (i === 4) { p[2] = true; p[10] = true; }
+          else if (i === 5) { for (let j = 0; j < steps; j++) p[j] = (j % 2 === 1); }
+          // melodic tracks left empty in fill
+          return { ...t, banks: { ...t.banks, [bk]: empty } };
+        });
+        return { ...state, tracks };
+      }
+      case "QUICK_RANDOM_MUTE": {
+        const numToMute = 1 + Math.floor(Math.random() * 3); // 1..3
+        const ids = state.tracks.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, numToMute);
+        const tracks = state.tracks.map((t, i) => ({ ...t, mute: ids.includes(i) }));
         return { ...state, tracks };
       }
       case "SET_GAIN": {
@@ -410,7 +647,11 @@
       case "LOAD_PRESET": {
         const p = state.presets.find(x => x.id === action.id);
         if (!p) return state;
-        return { ...state, bpm: p.bpm, seed: p.seed, tracks: p.tracks, fx: p.fx, master: p.master, vibe: p.vibe };
+        const migratedTracks = (p.tracks || []).map((t, i) => migrateTrack({ ...t, id: i }));
+        return { ...state, bpm: p.bpm, seed: p.seed, tracks: migratedTracks, fx: p.fx, master: p.master, vibe: p.vibe,
+                 swing: p.swing != null ? p.swing : state.swing,
+                 humanize: p.humanize != null ? p.humanize : state.humanize,
+                 activeBank: p.activeBank || state.activeBank || "a" };
       }
       case "DELETE_PRESET": return { ...state, presets: state.presets.filter(p => p.id !== action.id) };
       case "LOAD_SAVED": return { ...state, ...action.data };
@@ -424,8 +665,90 @@
   let synths = [];
   let trackGains = [];
   let trackPans = [];
+  let trackFilters = {};
   let reverbSend, delaySend, reverbGain, delayGain, masterGain, limiter;
   let sequences = [];
+
+  // ─── v4: Sound variants per track (3 each = 24 configs) ───
+  // Each entry tweaks synth + filter params on the fly. Applied per-step before triggering.
+  const VARIANT_TABLE = [
+    // 0 Kick (MembraneSynth)
+    [
+      { name: "808",          pitchDecay: 0.05, octaves: 6, decay: 0.3,  volume: -4 },
+      { name: "acoustic",     pitchDecay: 0.02, octaves: 4, decay: 0.2,  volume: -5 },
+      { name: "banana-thump", pitchDecay: 0.08, octaves: 8, decay: 0.55, volume: -2 },
+    ],
+    // 1 Snare (NoiseSynth + bandpass)
+    [
+      { name: "crisp", decay: 0.15, sustain: 0,    volume: -8, filterFreq: 1000, filterQ: 1.5 },
+      { name: "fat",   decay: 0.25, sustain: 0.08, volume: -6, filterFreq:  600, filterQ: 1.0 },
+      { name: "clap",  decay: 0.10, sustain: 0,    volume: -7, filterFreq: 1500, filterQ: 2.5 },
+    ],
+    // 2 C-Hat (NoiseSynth + HP)
+    [
+      { name: "tight",   decay: 0.06, volume: -12, filterFreq: 7000 },
+      { name: "loose",   decay: 0.12, volume: -10, filterFreq: 5000 },
+      { name: "shaker",  decay: 0.04, volume: -14, filterFreq: 8000 },
+    ],
+    // 3 O-Hat (NoiseSynth + HP)
+    [
+      { name: "crashy",  decay: 0.25, sustain: 0.05, volume: -14, filterFreq: 6000 },
+      { name: "sizzle",  decay: 0.4,  sustain: 0.10, volume: -12, filterFreq: 4500 },
+      { name: "wash",    decay: 0.5,  sustain: 0.15, volume: -13, filterFreq: 5500 },
+    ],
+    // 4 Bongo (MembraneSynth)
+    [
+      { name: "low-tom",     pitchDecay: 0.03, octaves: 3, decay: 0.15, volume: -8 },
+      { name: "wood-block",  pitchDecay: 0.01, octaves: 5, decay: 0.08, volume: -10 },
+      { name: "temple-bell", pitchDecay: 0.05, octaves: 4, decay: 0.30, volume: -7 },
+    ],
+    // 5 Shaker (NoiseSynth + HP)
+    [
+      { name: "egg",          decay: 0.04, volume: -16, filterFreq: 3000 },
+      { name: "maraca",       decay: 0.06, volume: -14, filterFreq: 2500 },
+      { name: "leaf-rustle",  decay: 0.08, volume: -15, filterFreq: 4000 },
+    ],
+    // 6 Bass (MonoSynth) — oscType + filter
+    [
+      { name: "square-sub", oscType: "square",    filterQ: 2, filterBase: 120, volume: -6 },
+      { name: "saw-grind",  oscType: "sawtooth",  filterQ: 4, filterBase: 200, volume: -7 },
+      { name: "sine-pluck", oscType: "sine",      filterQ: 1, filterBase: 80,  volume: -5 },
+    ],
+    // 7 Lead (Synth)
+    [
+      { name: "triangle-bell", oscType: "triangle", attack: 0.01,  decay: 0.15, sustain: 0.2, volume: -10 },
+      { name: "square-arp",    oscType: "square",   attack: 0.005, decay: 0.10, sustain: 0.1, volume: -12 },
+      { name: "pluck",         oscType: "sine",     attack: 0.001, decay: 0.05, sustain: 0,   volume: -8  },
+    ],
+  ];
+
+  function applyVariant(trackIdx, variantIdx) {
+    const v = (VARIANT_TABLE[trackIdx] || [])[variantIdx];
+    if (!v) return;
+    const s = synths[trackIdx];
+    if (!s) return;
+    if (v.pitchDecay != null && "pitchDecay" in s) s.pitchDecay = v.pitchDecay;
+    if (v.octaves != null && "octaves" in s) s.octaves = v.octaves;
+    if (s.envelope) {
+      if (v.attack != null) s.envelope.attack = v.attack;
+      if (v.decay != null) s.envelope.decay = v.decay;
+      if (v.sustain != null) s.envelope.sustain = v.sustain;
+    }
+    if (v.volume != null && s.volume) {
+      try { s.volume.value = v.volume; } catch(e){}
+    }
+    if (v.oscType && s.oscillator) {
+      try { s.oscillator.type = v.oscType; } catch(e){}
+    }
+    const f = trackFilters[trackIdx];
+    if (f) {
+      if (v.filterFreq != null) { try { f.frequency.value = v.filterFreq; } catch(e){} }
+      if (v.filterQ != null) { try { f.Q.value = v.filterQ; } catch(e){} }
+    }
+    // MonoSynth has its own filter + filterEnvelope
+    if (s.filter && v.filterQ != null) { try { s.filter.Q.value = v.filterQ; } catch(e){} }
+    if (s.filterEnvelope && v.filterBase != null) { try { s.filterEnvelope.baseFrequency = v.filterBase; } catch(e){} }
+  }
 
   function createAudio() {
     if (audioReady) return;
@@ -442,7 +765,7 @@
       new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.3 }, volume: -10 }),
     ];
 
-    const filters = {
+    trackFilters = {
       1: new Tone.Filter({ frequency: 1000, type: "bandpass", Q: 1.5 }),
       2: new Tone.Filter({ frequency: 6000, type: "highpass" }),
       3: new Tone.Filter({ frequency: 6000, type: "highpass" }),
@@ -460,7 +783,7 @@
     limiter = new Tone.Limiter(-3);
 
     synths.forEach((s, i) => {
-      if (filters[i]) { s.connect(filters[i]); filters[i].connect(trackGains[i]); }
+      if (trackFilters[i]) { s.connect(trackFilters[i]); trackFilters[i].connect(trackGains[i]); }
       else { s.connect(trackGains[i]); }
       trackGains[i].connect(trackPans[i]);
       trackPans[i].connect(masterGain);
@@ -476,36 +799,64 @@
     audioReady = true;
   }
 
-  function triggerTrack(trackIdx, val, time) {
+  function triggerTrack(trackIdx, val, time, velocity, octave, rootKey) {
     if (!val) return;
     const s = synths[trackIdx];
-    if (trackIdx === 0) s.triggerAttackRelease("C1", "8n", time);
-    else if (trackIdx === 4) s.triggerAttackRelease("C3", "16n", time);
-    else if (trackIdx === 6 && typeof val === "number" && val > 0) s.triggerAttackRelease(midiToFreq(val), "8n", time, 0.7);
-    else if (trackIdx === 7 && typeof val === "number" && val > 0) s.triggerAttackRelease(midiToFreq(val), "16n", time, 0.5);
-    else if ([1, 2, 3, 5].includes(trackIdx)) s.triggerAttackRelease("16n", time);
+    const vel = velocity != null ? Math.max(0, Math.min(1, velocity)) : 1.0;
+    if (trackIdx === 0) s.triggerAttackRelease("C1", "8n", time, vel);
+    else if (trackIdx === 4) s.triggerAttackRelease("C3", "16n", time, vel);
+    else if (trackIdx === 6 && typeof val === "number" && val > 0) {
+      const finalMidi = val + (octave || 0) * 12 + (rootKey || 0);
+      s.triggerAttackRelease(midiToFreq(finalMidi), "8n", time, 0.7 * vel);
+    }
+    else if (trackIdx === 7 && typeof val === "number" && val > 0) {
+      const finalMidi = val + (octave || 0) * 12 + (rootKey || 0);
+      s.triggerAttackRelease(midiToFreq(finalMidi), "16n", time, 0.5 * vel);
+    }
+    else if ([1, 2, 3, 5].includes(trackIdx)) s.triggerAttackRelease("16n", time, vel);
   }
 
   function rebuildSequences(getState) {
     disposeSequences();
     const mainSeq = new Tone.Sequence((time, stepIdx) => {
       const st = getState();
+      const bk = st.activeBank || "a";
+      const swing = st.swing || 0;
+      const humanize = !!st.humanize;
+      // Swing: delay odd 16ths by swing × 16th × 0.5 (max ~50% of a 16th note)
+      const sixteenthDur = Tone.Time("16n").toSeconds();
+      const swingOffset = (stepIdx % 2 === 1 && swing > 0) ? swing * sixteenthDur * 0.5 : 0;
       const hasSolo = st.tracks.some(t => t.solo);
+      // Track which tracks actually fired (probability + audible) — used for visual events
+      const firedTracks = [];
       st.tracks.forEach((track, i) => {
         const audible = hasSolo ? track.solo : !track.mute;
         if (!audible) return;
+        const bank = getBank(track, bk);
+        const val = bank.pattern[stepIdx];
+        if (!val) return;
+        const prob = bank.probability ? bank.probability[stepIdx] : 1.0;
+        if (prob < 1.0 && Math.random() >= prob) return; // probability gate
+        // Velocity (with humanize jitter)
+        let vel = bank.velocity ? bank.velocity[stepIdx] : 1.0;
+        let timeJitter = 0;
+        if (humanize) {
+          const rng = mulberry32((st.seed || 0) + stepIdx * 31 + i * 7);
+          rng(); rng(); // warm
+          timeJitter = (rng() - 0.5) * 0.02;       // ±10ms
+          vel = Math.max(0.1, Math.min(1.0, vel * (1 + (rng() - 0.5) * 0.2))); // ±10%
+        }
+        // Apply variant settings + gain/pan
+        applyVariant(i, track.variant || 0);
         trackGains[i].gain.value = track.gain;
         trackPans[i].pan.value = track.pan;
-        triggerTrack(i, track.pattern[stepIdx], time);
+        const finalTime = time + swingOffset + timeJitter;
+        triggerTrack(i, val, finalTime, vel, track.octave || 0, track.rootKey || 0);
+        firedTracks.push({ i, val });
       });
       Tone.Draw.schedule(() => {
         bus.emit("step", { step: stepIdx });
-        const st2 = getState();
-        const hasSolo2 = st2.tracks.some(t => t.solo);
-        st2.tracks.forEach((track, i) => {
-          const audible = hasSolo2 ? track.solo : !track.mute;
-          const val = track.pattern[stepIdx];
-          if (!val || !audible) return;
+        firedTracks.forEach(({ i, val }) => {
           bus.emit("trackHit", { track: i, step: stepIdx, val });
           if (i === 0) bus.emit("kick", { step: stepIdx });
           else if (i === 1) bus.emit("snare", { step: stepIdx });
@@ -2002,10 +2353,12 @@
         trackSolo[i] = !!t.solo;
       });
     }
-    function setEnergies(tracks) {
+    function setEnergies(tracks, bankKey) {
+      const bk = bankKey || "a";
       tracks.forEach((t, i) => {
-        const hits = t.pattern.filter(Boolean).length;
-        trackEnergy[i] = hits / t.pattern.length;
+        const bank = getBank(t, bk);
+        const hits = bank.pattern.filter(Boolean).length;
+        trackEnergy[i] = hits / bank.pattern.length;
       });
     }
     function setBPM(b) { currentBPM = b; }
@@ -2103,29 +2456,6 @@
         h("div", { className: "led" + (state.isPlaying ? " on" : "") })
       ),
       h("div", { className: "hdr-right" },
-        h("div", { className: "bpm-wrap" },
-          h("span", { className: "bpm-label" }, "BPM"),
-          h("input", {
-            type: "number", className: "bpm-input", value: state.bpm, min: 40, max: 180,
-            onChange: e => dispatch({ type: "SET_BPM", value: parseInt(e.target.value) || 96 })
-          })
-        ),
-        h("button", {
-          className: "ctrl-btn" + (state.isPlaying ? " live" : ""),
-          onClick: async () => {
-            if (!state.isPlaying) {
-              createAudio();
-              await Tone.start();
-              Tone.Transport.bpm.value = state.bpm;
-              dispatch({ type: "PLAY" });
-            } else {
-              Tone.Transport.stop();
-              Tone.Transport.position = 0;
-              disposeSequences();
-              dispatch({ type: "STOP" });
-            }
-          }
-        }, state.isPlaying ? "STOP" : "PLAY"),
         h("button", { className: "ctrl-btn", onClick: () => dispatch({ type: "REROLL_ALL" }),
           title: "Reroll all patterns" }, "\uD83C\uDFB2"),
         h("span", { className: "seed-label" }, "#" + state.seed)
@@ -2133,22 +2463,174 @@
     );
   }
 
+  // \u2500\u2500\u2500 v4: TransportBar \u2014 BPM slider + tap-tempo + big play \u2500\u2500\u2500
+  function TransportBar({ state, dispatch }) {
+    const tapsRef = useRef([]);
+    const [tapArmed, setTapArmed] = useState(false);
+    const handleTap = useCallback(() => {
+      const now = performance.now();
+      tapsRef.current = [...tapsRef.current.slice(-3), now]; // keep last 4
+      setTapArmed(true);
+      setTimeout(() => setTapArmed(false), 150);
+      const taps = tapsRef.current;
+      if (taps.length < 2) return;
+      // average interval over recent taps
+      const intervals = [];
+      for (let i = 1; i < taps.length; i++) intervals.push(taps[i] - taps[i - 1]);
+      // Drop intervals > 2s as stale
+      const valid = intervals.filter(d => d < 2000 && d > 200);
+      if (!valid.length) { tapsRef.current = [now]; return; }
+      const avg = valid.reduce((a, b) => a + b, 0) / valid.length;
+      const newBpm = Math.round(60000 / avg);
+      const clamped = Math.max(40, Math.min(200, newBpm));
+      dispatch({ type: "SET_BPM", value: clamped });
+    }, [dispatch]);
+    const onPlay = useCallback(async () => {
+      if (!state.isPlaying) {
+        createAudio();
+        await Tone.start();
+        Tone.Transport.bpm.value = state.bpm;
+        dispatch({ type: "PLAY" });
+      } else {
+        Tone.Transport.stop();
+        Tone.Transport.position = 0;
+        disposeSequences();
+        dispatch({ type: "STOP" });
+      }
+    }, [state.isPlaying, state.bpm, dispatch]);
+    return h("div", { className: "transport-bar" },
+      h("button", { className: "play-big" + (state.isPlaying ? " live" : ""), onClick: onPlay,
+        "aria-label": state.isPlaying ? "Stop" : "Play" }, state.isPlaying ? "\u25A0 STOP" : "\u25B6 PLAY"),
+      h("div", { className: "bpm-block" },
+        h("label", null, "BPM"),
+        h("input", { type: "range", className: "bpm-slider",
+          min: 40, max: 200, step: 1, value: state.bpm,
+          onChange: e => dispatch({ type: "SET_BPM", value: parseInt(e.target.value) }) }),
+        h("span", { className: "bpm-readout" }, state.bpm)
+      ),
+      h("button", { className: "tap-btn" + (tapArmed ? " armed" : ""),
+        onClick: handleTap, title: "Tap 2-4 times in tempo" }, "TAP"),
+      h("span", { className: "phase-chip" }, state.isPlaying ? "\u25B8 Live" : "\u25CF Ready")
+    );
+  }
+
+  // \u2500\u2500\u2500 v4: SeqControls \u2014 pattern banks + swing + humanize \u2500\u2500\u2500
+  function SeqControls({ state, dispatch }) {
+    const bk = state.activeBank || "a";
+    const banks = ["a", "b", "c", "d"];
+    return h("div", { className: "seq-controls" },
+      h("div", { className: "bank-switcher" },
+        h("label", null, "Bank"),
+        banks.map(b => h("button", {
+          key: b,
+          className: "bank-btn" + (bk === b ? " active" : ""),
+          onClick: () => dispatch({ type: "SET_BANK", bank: b }),
+          title: "Bank " + b.toUpperCase() + " (key " + (banks.indexOf(b) + 1) + ")"
+        }, b.toUpperCase()))
+      ),
+      h("div", { className: "swing-block" },
+        h("label", null, "Swing"),
+        h("input", { type: "range", className: "swing-slider",
+          min: 0, max: 0.6, step: 0.01, value: state.swing || 0,
+          onChange: e => dispatch({ type: "SET_SWING", value: parseFloat(e.target.value) }) }),
+        h("span", { className: "swing-val" }, Math.round((state.swing || 0) * 100) + "%")
+      ),
+      h("label", { className: "humanize-toggle" + (state.humanize ? " on" : "") },
+        h("input", { type: "checkbox", checked: !!state.humanize,
+          onChange: e => dispatch({ type: "SET_HUMANIZE", value: e.target.checked }) }),
+        "Humanize"
+      )
+    );
+  }
+
+  // \u2500\u2500\u2500 v4: PlayheadBar \u2014 visual sweep showing current step \u2500\u2500\u2500
+  function PlayheadBar({ currentStep }) {
+    const cells = [];
+    for (let i = 0; i < STEPS; i++) {
+      const isDown = i % 4 === 0;
+      const isCurr = i === currentStep;
+      cells.push(h("div", {
+        key: i,
+        className: "phead-cell" + (isDown ? " downbeat" : "") + (isCurr ? " current" : "")
+      }));
+    }
+    return h("div", { className: "playhead-bar", "aria-hidden": "true" }, cells);
+  }
+
   function PadGrid({ state, dispatch }) {
+    const bk = state.activeBank || "a";
+    // Drag-vs-click pad pointer handler. If drag delta > 4px, treat as velocity adjust.
+    const handlePadDown = (e, ti, si, isOn, currentVel) => {
+      if (e.button === 2) return; // right-click handled separately
+      e.preventDefault();
+      const startY = e.clientY;
+      const startVel = currentVel != null ? currentVel : 1.0;
+      let dragged = false;
+      let lastVel = startVel;
+      const onMove = (ev) => {
+        const dy = startY - ev.clientY;
+        if (!isOn) return;
+        if (Math.abs(dy) > 4) {
+          dragged = true;
+          const newVel = Math.max(0.1, Math.min(1.0, startVel + dy * 0.005));
+          if (Math.abs(newVel - lastVel) > 0.01) {
+            lastVel = newVel;
+            dispatch({ type: "SET_VELOCITY", trackId: ti, step: si, value: newVel });
+          }
+        }
+      };
+      const onUp = () => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onUp);
+        if (!dragged) dispatch({ type: "TOGGLE_STEP", trackId: ti, step: si });
+      };
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
+    };
+    const cycleProb = (ti, si, currentProb) => {
+      const seq = [1.0, 0.75, 0.5, 0.25];
+      const rounded = Math.round((currentProb != null ? currentProb : 1.0) * 100) / 100;
+      let idx = seq.findIndex(v => Math.abs(v - rounded) < 0.01);
+      if (idx === -1) idx = 0;
+      const next = seq[(idx + 1) % seq.length];
+      dispatch({ type: "SET_PROBABILITY", trackId: ti, step: si, value: next });
+    };
     return h("div", { className: "pad-grid" },
-      state.tracks.map((track, ti) =>
-        h("div", { key: ti, className: "pad-row" },
+      state.tracks.map((track, ti) => {
+        const bank = getBank(track, bk);
+        return h("div", { key: ti, className: "pad-row", style: { "--rowtc": TRACK_COLORS_RAW[ti] } },
           h("div", { className: "pad-label", style: { color: TRACK_COLORS_RAW[ti] } }, track.name),
           h("div", { className: "pad-cells" },
-            track.pattern.map((val, si) => {
+            bank.pattern.map((val, si) => {
               const isSpacer = si > 0 && si % 4 === 0;
+              const vel = bank.velocity ? bank.velocity[si] : 1.0;
+              const prob = bank.probability ? bank.probability[si] : 1.0;
+              const probDots = prob >= 0.99 ? 0 : (prob >= 0.7 ? 1 : prob >= 0.4 ? 2 : 3);
+              const titleText = track.name + " \u00B7 step " + (si + 1) +
+                " \u00B7 vel " + Math.round(vel * 100) + "%" +
+                (prob < 1.0 ? " \u00B7 " + Math.round(prob * 100) + "% chance" : "");
+              const padChildren = [];
+              if (val && vel < 0.99) {
+                padChildren.push(h("span", { key: "shade", className: "pad-vel-shade",
+                  style: { height: ((1 - vel) * 100) + "%" } }));
+              }
+              if (probDots > 0) {
+                const dots = [];
+                for (let d = 0; d < probDots; d++) dots.push(h("span", { key: d }));
+                padChildren.push(h("span", { key: "dots", className: "pad-prob-dots" }, dots));
+              }
               return h(React.Fragment, { key: si },
                 isSpacer ? h("div", { className: "spacer" }) : null,
-                h("button", {
+                h("button", Object.assign({
                   className: "pad" + (val ? " on" : "") + (state.currentStep === si ? " current" : ""),
                   style: { "--tc": TRACK_COLORS_RAW[ti] },
                   "aria-label": track.name + " step " + (si + 1) + (val ? ", active" : ", off"),
-                  onClick: () => dispatch({ type: "TOGGLE_STEP", trackId: ti, step: si })
-                })
+                  title: titleText,
+                  onPointerDown: (e) => handlePadDown(e, ti, si, val, vel),
+                  onContextMenu: (e) => { e.preventDefault(); cycleProb(ti, si, prob); }
+                }), ...padChildren)
               );
             })
           ),
@@ -2157,8 +2639,8 @@
             "aria-label": "Reroll " + track.name,
             onClick: () => dispatch({ type: "REROLL_TRACK", id: ti })
           }, "\uD83C\uDFB2")
-        )
-      )
+        );
+      })
     );
   }
 
@@ -2261,7 +2743,7 @@
         // Initial sync
         stageRef.current.setBPM(state.bpm);
         stageRef.current.setTrackStates(state.tracks);
-        stageRef.current.setEnergies(state.tracks);
+        stageRef.current.setEnergies(state.tracks, state.activeBank);
       }
       return () => { if (stageRef.current) { stageRef.current.destroy(); stageRef.current = null; } };
     }, []);
@@ -2277,9 +2759,9 @@
     useEffect(() => {
       if (stageRef.current) {
         stageRef.current.setTrackStates(state.tracks);
-        stageRef.current.setEnergies(state.tracks);
+        stageRef.current.setEnergies(state.tracks, state.activeBank);
       }
-    }, [state.tracks]);
+    }, [state.tracks, state.activeBank]);
 
     return h("div", { className: "display" },
       h("canvas", { ref: canvasRef, tabIndex: 0, role: "application",
@@ -2371,7 +2853,13 @@
           }
         }
         if (e.key === "r" || e.key === "R") dispatch({ type: "REROLL_ALL" });
-        if (e.key >= "1" && e.key <= "8") dispatch({ type: "REROLL_TRACK", id: parseInt(e.key) - 1 });
+        // v4: 1-4 = bank switch (no shift); Shift+1..Shift+8 = reroll track
+        if (e.shiftKey && e.key >= "1" && e.key <= "8" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          dispatch({ type: "REROLL_TRACK", id: parseInt(e.key) - 1 });
+        } else if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && e.key >= "1" && e.key <= "4") {
+          const banks = ["a", "b", "c", "d"];
+          dispatch({ type: "SET_BANK", bank: banks[parseInt(e.key) - 1] });
+        }
       };
       addEventListener("keydown", handler);
       return () => removeEventListener("keydown", handler);
@@ -2387,7 +2875,10 @@
     return h("div", { className: "machine" },
       h(Header, { state, dispatch }),
       h(StageDisplay, { state }),
+      h(TransportBar, { state, dispatch }),
+      h(PlayheadBar, { currentStep: state.currentStep }),
       h(PadGrid, { state, dispatch }),
+      h(SeqControls, { state, dispatch }),
       h("div", { className: "tabs" },
         tabs.map(tab =>
           h("button", {

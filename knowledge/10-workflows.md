@@ -7,8 +7,6 @@ A creative pipeline normally assembles three layers:
 2. **Artifacts** — interactive live preview (React + Tailwind + shadcn).
 3. **MCP** — real-world integration (Drive to save, Slack to publish, GitHub to commit, Asana to track).
 
-**Observe → Plan → Build.** Before any non-trivial creative or refactor task on an existing codebase, run `/graphify .` to materialise a knowledge graph (`graphify-out/graph.html` + `GRAPH_REPORT.md` + `graph.json`). The god-node list and the auto-generated "suggested questions" become the briefing for the Skill → Artifact → MCP pipeline above. See `recipes/codebase-knowledge-graph.md` and `skills/graphify/SKILL.md`.
-
 Example: generate a pitch deck.
 - `skill-creator` or `pptx` skill scaffolds the `.pptx`.
 - `frontend-design` skill applies non-generic layout rules.
