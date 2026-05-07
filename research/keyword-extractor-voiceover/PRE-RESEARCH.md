@@ -105,11 +105,13 @@ All reports land under `research/keyword-extractor-voiceover/`. Each report foll
 ### R2 — Keyword Schema and Fields
 - **Must answer:** the exact JSON shape Claude returns per voiceover. At minimum each keyword item should carry: `term`, `lemma`, `visual_concept` (free-text query for the video search), `start_s`, `end_s`, `weight` (0–100), `category` (e.g. `weather`, `place`, `person`, `event`, `mood`), `confidence` (0–1), `alternatives[]`. Top-level fields: `language`, `transcript`, `duration_s`, `keywords[]`, `notes`.
 - **Must compare:** flat keyword list vs scene-level groupings (a "scene" being a span of consecutive keywords that share a visual). The chooser likely wants scenes; surface that decision.
-- **Implications section:** a frozen JSON schema (paste-ready) + 2 worked examples (1 EN weather, 1 HE weather).
+- **Closed-list `category`.** The category enum must mirror the editor's actual stock-footage folders/tags (e.g. `rain | heavy_rain | snow | sun | clear_sky | clouds | overcast | wind | storm | thunder | fog | hot | cold | humid | city_skyline | map_overlay | temperature_graphic`). Without a closed list Claude invents labels like `drizzle` or `partly cloudy with a chance of rain` and the matcher has nothing to map against. The schema must include the enum inline so the prompt template and the matcher stay in sync.
+- **Implications section:** a frozen JSON schema (paste-ready) + 2 worked examples (1 EN weather, 1 HE weather), plus a placeholder `categories.json` that the user supplies once and the schema then references.
 - **Reference:** `skills/viral-news-scanner/references/output-schema.md` — same frozen-schema discipline.
 
 ### R3 — Prompt Design and Caching
 - **Must answer:** a single prompt template that takes `{transcript, language, duration_s}` and returns the schema from R2. Must include: system message with role + format contract, 3–5 few-shot examples (mix of EN/HE, mix of weather and other news lanes), explicit instruction to favour visual concepts ("rain on window" beats "rain"), explicit instruction *not* to invent timestamps when transcript word-timestamps are absent.
+- **Bilingual rule.** When `language = he`, `term`/`lemma` stay in Hebrew (preserve the original word), but `category` is **always** English and drawn from the R2 enum so it matches the editor's folder names. Few-shots must demonstrate this split.
 - **Caching plan:** what goes in cache breakpoints (system prompt + few-shots stay cached; transcript is the only dynamic chunk). Reference `knowledge/01-claude-ecosystem.md` cache pricing and `knowledge/09-prompting.md` patterns.
 - **Model pick:** Claude Haiku 4.5 vs Sonnet 4.6 vs Opus 4.7 — extraction is structured and short; default Haiku unless quality testing in R9 forces an upgrade.
 - **Implications section:** the prompt as a paste-ready code block + a 1-paragraph evaluation harness sketch (10 voiceovers, manual scoring rubric).
@@ -135,10 +137,11 @@ All reports land under `research/keyword-extractor-voiceover/`. Each report foll
 - **Search seeds:** "CLIP video retrieval 2026", "sentence-transformers tag matching", "LLM-as-judge image selection".
 
 ### R6 — Output EDL and Renderer
-- **Must answer:** the EDL JSON shape (timeline of `{clip_url, in, out, place_at}` segments) plus how the voiceover audio is laid over it. Three render-target options:
+- **Must answer:** the EDL JSON shape (timeline of `{clip_url, in, out, place_at}` segments) plus how the voiceover audio is laid over it. Four render-target options:
   1. **FFmpeg concat + filter_complex** — cheapest, fully scriptable, no UI.
-  2. **Remotion** (React-based programmatic video) — gives a web-previewable composition that matches our artifact-first ethos.
-  3. **FCPXML / Premiere XML / OTIO** — hand off to the human editor instead of rendering.
+  2. **MoviePy** — Python-native wrapper around FFmpeg; ergonomic for a Python pipeline (`CompositeVideoClip(...).set_audio(voiceover)`); slower than raw FFmpeg but trivially batches on the same machine that's running Whisper + Claude.
+  3. **Remotion** (React-based programmatic video) — gives a web-previewable composition that matches our artifact-first ethos.
+  4. **FCPXML / Premiere XML / OTIO** — hand off to the human editor instead of rendering.
 - **Must answer:** a thin FFmpeg reference command that takes the EDL + voiceover and produces an MP4, so the pipeline is end-to-end demonstrable.
 - **Implications section:** default EDL shape + default renderer = FFmpeg; Remotion as the artifact-side preview; OTIO/FCPXML deferred until newsroom asks.
 - **Search seeds:** "FFmpeg concat demuxer", "Remotion 2026 docs", "OpenTimelineIO JSON".
