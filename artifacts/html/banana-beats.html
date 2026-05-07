@@ -1222,30 +1222,27 @@
     }
 
     // ─── Background (kept from v2) ───
-    function drawBackground(t) {
+    // ─── v4: 4 biome BGs (jungle / cave / temple / volcano) + cross-fade ───
+    function drawBiomeJungle(t) {
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, "oklch(0.30 0.08 230)");
       skyGrad.addColorStop(0.4, "oklch(0.22 0.07 175)");
       skyGrad.addColorStop(1, "oklch(0.14 0.05 145)");
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, W, H);
       // Moon glow
       const glowPulse = 0.18 + Math.sin(t * 0.3) * 0.04;
       const sunGrad = ctx.createRadialGradient(W * 0.82, H * 0.12, 0, W * 0.82, H * 0.12, 55);
       sunGrad.addColorStop(0, "oklch(0.92 0.18 90 / " + (glowPulse + 0.25) + ")");
       sunGrad.addColorStop(0.4, "oklch(0.80 0.14 65 / " + glowPulse + ")");
       sunGrad.addColorStop(1, "transparent");
-      ctx.fillStyle = sunGrad;
-      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = sunGrad; ctx.fillRect(0, 0, W, H);
       // Stars
       const rng = mulberry32(42);
       for (let i = 0; i < 22; i++) {
         const sx = rng() * W, sy = rng() * H * 0.45;
         const bright = 0.3 + Math.sin(t * 0.8 + i * 1.3) * 0.2;
         ctx.fillStyle = "oklch(0.95 0.04 90 / " + bright + ")";
-        ctx.beginPath();
-        ctx.arc(sx, sy, 0.8 + rng() * 0.8, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(sx, sy, 0.8 + rng() * 0.8, 0, Math.PI * 2); ctx.fill();
       }
       // Far hills
       ctx.fillStyle = "oklch(0.18 0.07 145)";
@@ -1273,6 +1270,225 @@
       ctx.fillRect(fogShift, H * 0.66, W, H * 0.12);
       // Hanging vines
       drawVines(t);
+    }
+
+    function drawBiomeCave(t) {
+      // Deep cool blue/purple sky
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, "oklch(0.16 0.10 280)");
+      skyGrad.addColorStop(0.5, "oklch(0.12 0.08 270)");
+      skyGrad.addColorStop(1, "oklch(0.10 0.05 260)");
+      ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, W, H);
+      // Bioluminescent crystal glow patches (instead of stars)
+      const rng = mulberry32(101);
+      for (let i = 0; i < 14; i++) {
+        const cx = rng() * W, cy = rng() * H * 0.6;
+        const pulse = 0.4 + Math.sin(t * 1.2 + i * 0.7) * 0.3;
+        const cgrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 22);
+        cgrad.addColorStop(0, `oklch(0.78 0.18 ${200 + rng() * 80} / ${pulse * 0.5})`);
+        cgrad.addColorStop(1, "transparent");
+        ctx.fillStyle = cgrad;
+        ctx.beginPath(); ctx.arc(cx, cy, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `oklch(0.85 0.18 ${200 + rng() * 80} / ${pulse})`;
+        ctx.beginPath(); ctx.arc(cx, cy, 1.2, 0, Math.PI * 2); ctx.fill();
+      }
+      // Stalactites — top
+      ctx.fillStyle = "oklch(0.20 0.04 280)";
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      for (let x = 0; x <= W; x += 12) {
+        const tipY = 14 + Math.sin(x * 0.07) * 8 + (x % 24 === 0 ? 6 : 0);
+        ctx.lineTo(x + 6, tipY);
+        ctx.lineTo(x + 12, 0);
+      }
+      ctx.lineTo(W, 0); ctx.fill();
+      // Far jagged stone hills
+      ctx.fillStyle = "oklch(0.17 0.04 280)";
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 6) {
+        const jag = (x % 18 === 0) ? 18 : 0;
+        ctx.lineTo(x, H * 0.46 + Math.sin(x * 0.018) * 24 - jag);
+      }
+      ctx.lineTo(W, H); ctx.fill();
+      // Mid stone hills with cracks
+      ctx.fillStyle = "oklch(0.13 0.04 280)";
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 5) {
+        const base = H * 0.55 + Math.sin(x * 0.022) * 18;
+        ctx.lineTo(x, base + Math.sin(x * 0.06) * 6);
+      }
+      ctx.lineTo(W, H); ctx.fill();
+      // Bioluminescent moss patches on hills
+      ctx.strokeStyle = "oklch(0.62 0.18 200 / 0.45)";
+      ctx.lineWidth = 1.2;
+      const mossRng = mulberry32(202);
+      for (let i = 0; i < 9; i++) {
+        const mx = mossRng() * W;
+        const my = H * 0.6 + mossRng() * H * 0.15;
+        ctx.beginPath();
+        for (let j = 0; j < 5; j++) {
+          ctx.moveTo(mx + j * 1.5, my);
+          ctx.lineTo(mx + j * 1.5 + Math.sin(j) * 1, my - 3 - mossRng() * 2);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function drawBiomeTemple(t) {
+      // Warm dusky orange/sand sky
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, "oklch(0.55 0.10 50)");
+      skyGrad.addColorStop(0.4, "oklch(0.62 0.14 60)");
+      skyGrad.addColorStop(1, "oklch(0.45 0.10 35)");
+      ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, W, H);
+      // Setting sun
+      const sunPulse = 0.6 + Math.sin(t * 0.4) * 0.05;
+      const sunGrad = ctx.createRadialGradient(W * 0.78, H * 0.20, 0, W * 0.78, H * 0.20, 70);
+      sunGrad.addColorStop(0, `oklch(0.92 0.18 70 / ${sunPulse})`);
+      sunGrad.addColorStop(0.3, "oklch(0.80 0.18 50 / 0.4)");
+      sunGrad.addColorStop(1, "transparent");
+      ctx.fillStyle = sunGrad; ctx.fillRect(0, 0, W, H);
+      // Sun disc
+      ctx.fillStyle = `oklch(0.95 0.20 80 / ${sunPulse * 0.9})`;
+      ctx.beginPath(); ctx.arc(W * 0.78, H * 0.20, 14, 0, Math.PI * 2); ctx.fill();
+      // Far stepped pyramidal hills
+      ctx.fillStyle = "oklch(0.32 0.10 50)";
+      ctx.beginPath(); ctx.moveTo(0, H);
+      const pyramids = [
+        { cx: W * 0.15, w: 120, h: 60 },
+        { cx: W * 0.35, w: 80, h: 45 },
+        { cx: W * 0.55, w: 140, h: 75 },
+        { cx: W * 0.78, w: 90, h: 50 },
+      ];
+      ctx.lineTo(0, H * 0.52);
+      pyramids.forEach(p => {
+        const baseY = H * 0.52;
+        const peakY = baseY - p.h;
+        ctx.lineTo(p.cx - p.w / 2, baseY);
+        // Stepped sides
+        const steps = 5;
+        for (let i = 0; i < steps; i++) {
+          const t1 = i / steps;
+          const xL = p.cx - (p.w / 2) * (1 - t1);
+          const yL = baseY - p.h * t1;
+          ctx.lineTo(xL, yL);
+          ctx.lineTo(xL + (p.w / steps) / 2, yL);
+        }
+        ctx.lineTo(p.cx, peakY);
+        for (let i = steps - 1; i >= 0; i--) {
+          const t1 = i / steps;
+          const xR = p.cx + (p.w / 2) * (1 - t1);
+          const yR = baseY - p.h * t1;
+          ctx.lineTo(xR - (p.w / steps) / 2, yR);
+          ctx.lineTo(xR, yR);
+        }
+        ctx.lineTo(p.cx + p.w / 2, baseY);
+      });
+      ctx.lineTo(W, H * 0.52);
+      ctx.lineTo(W, H); ctx.fill();
+      // Foreground broken pillars
+      ctx.fillStyle = "oklch(0.45 0.08 60)";
+      const pillars = [
+        { x: W * 0.08, h: 60 }, { x: W * 0.92, h: 55 },
+        { x: W * 0.30, h: 35 }, { x: W * 0.65, h: 40 },
+      ];
+      pillars.forEach(p => {
+        ctx.fillRect(p.x - 4, H * 0.66, 8, p.h);
+        // Capital
+        ctx.fillRect(p.x - 6, H * 0.66 - 4, 12, 4);
+        // Crack lines
+        ctx.strokeStyle = "oklch(0.30 0.06 50)"; ctx.lineWidth = 0.6;
+        ctx.beginPath(); ctx.moveTo(p.x - 4, H * 0.66 + 8); ctx.lineTo(p.x + 4, H * 0.66 + 18); ctx.stroke();
+      });
+      // Hieroglyph dust haze near ground
+      ctx.fillStyle = "oklch(0.70 0.10 60 / 0.10)";
+      ctx.fillRect(0, H * 0.7, W, H * 0.15);
+    }
+
+    function drawBiomeVolcano(t) {
+      // Red/orange smoky sky
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, "oklch(0.20 0.06 25)");
+      skyGrad.addColorStop(0.5, "oklch(0.30 0.16 30)");
+      skyGrad.addColorStop(1, "oklch(0.25 0.16 25)");
+      ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, W, H);
+      // Smoke column from a far volcano
+      const smokeY = H * 0.12;
+      const smokeGrad = ctx.createRadialGradient(W * 0.5, H * 0.55, 0, W * 0.5, H * 0.30, 120);
+      smokeGrad.addColorStop(0, "oklch(0.45 0.10 30 / 0.6)");
+      smokeGrad.addColorStop(0.6, "oklch(0.32 0.08 25 / 0.3)");
+      smokeGrad.addColorStop(1, "transparent");
+      ctx.fillStyle = smokeGrad;
+      ctx.fillRect(W * 0.3, 0, W * 0.4, H * 0.6);
+      // Distant red sun/moon
+      const sunPulse = 0.5 + Math.sin(t * 0.6) * 0.1;
+      ctx.fillStyle = `oklch(0.78 0.22 30 / ${sunPulse})`;
+      ctx.beginPath(); ctx.arc(W * 0.18, H * 0.18, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `oklch(0.55 0.20 25 / ${sunPulse * 0.6})`;
+      ctx.beginPath(); ctx.arc(W * 0.18, H * 0.18, 30, 0, Math.PI * 2); ctx.fill();
+      // Jagged angular far hills
+      ctx.fillStyle = "oklch(0.16 0.08 25)";
+      ctx.beginPath(); ctx.moveTo(0, H);
+      ctx.lineTo(0, H * 0.55);
+      const peaks = 12;
+      for (let i = 0; i <= peaks; i++) {
+        const x = (i / peaks) * W;
+        const sharp = (i % 2 === 0) ? -22 : 0;
+        ctx.lineTo(x, H * 0.50 + sharp + Math.sin(i) * 4);
+      }
+      ctx.lineTo(W, H); ctx.fill();
+      // Mid hills with lava crack veins
+      ctx.fillStyle = "oklch(0.12 0.08 25)";
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 6) {
+        ctx.lineTo(x, H * 0.62 + Math.sin(x * 0.022) * 14 + Math.sin(x * 0.06) * 6);
+      }
+      ctx.lineTo(W, H); ctx.fill();
+      // Lava cracks (glowing veins)
+      const crackPulse = 0.55 + Math.sin(t * 2.5) * 0.18;
+      ctx.strokeStyle = `oklch(0.85 0.22 50 / ${crackPulse})`;
+      ctx.lineWidth = 1.4;
+      const crackRng = mulberry32(303);
+      for (let i = 0; i < 7; i++) {
+        const sx = crackRng() * W;
+        const sy = H * 0.65 + crackRng() * H * 0.12;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        for (let j = 0; j < 4; j++) {
+          const dx = (crackRng() - 0.5) * 30;
+          const dy = (crackRng() - 0.5) * 14;
+          ctx.lineTo(sx + dx, sy + dy);
+        }
+        ctx.stroke();
+        // Inner glow
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = "oklch(0.88 0.22 60)";
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+      // Heat haze near ground
+      ctx.fillStyle = `oklch(0.72 0.20 35 / ${0.15 + Math.sin(t * 1.5) * 0.05})`;
+      ctx.fillRect(0, H * 0.74, W, H * 0.10);
+    }
+
+    function drawBiome(t, idx, alpha) {
+      ctx.save();
+      ctx.globalAlpha = alpha != null ? alpha : 1;
+      if (idx === 1) drawBiomeCave(t);
+      else if (idx === 2) drawBiomeTemple(t);
+      else if (idx === 3) drawBiomeVolcano(t);
+      else drawBiomeJungle(t); // default jungle (idx 0)
+      ctx.restore();
+    }
+    // Backwards-compat alias for legacy callers
+    function drawBackground(t) {
+      const idx = worldEngine.getBiomeIdx();
+      const tT = worldEngine.getTravelT();
+      drawBiome(t, idx, 1);
+      if (tT > 0.01) {
+        const prevName = worldEngine.getPrevBiomeName();
+        const prevIdx = ["jungle", "cave", "temple", "volcano"].indexOf(prevName);
+        if (prevIdx >= 0 && prevIdx !== idx) drawBiome(t, prevIdx, tT);
+      }
     }
     function drawVines(t) {
       ctx.strokeStyle = "oklch(0.22 0.09 145)";
@@ -2366,11 +2582,462 @@
 
     function applyLoopWrap() { flashAlpha = Math.max(flashAlpha, 0.25); }
 
-    // ─── Bus listeners ───
-    bus.on("trackHit", (d) => { applyHit(d.track, d.step); });
-    bus.on("accent", applyAccent);
-    bus.on("loopWrap", applyLoopWrap);
-    bus.on("step", (d) => { beatPhase = d.step / STEPS; });
+    // ─── Bus listeners (tracked for cleanup in destroy()) ───
+    const busSubs = [];
+    function busOn(evt, fn) { bus.on(evt, fn); busSubs.push([evt, fn]); }
+    function busOffAll() { busSubs.forEach(([e, f]) => bus.off(e, f)); busSubs.length = 0; }
+    const _trackHit = (d) => { applyHit(d.track, d.step); };
+    const _stepBP = (d) => { beatPhase = d.step / STEPS; };
+    busOn("trackHit", _trackHit);
+    busOn("accent", applyAccent);
+    busOn("loopWrap", applyLoopWrap);
+    busOn("step", _stepBP);
+
+    // ─── v4: World Engine — phase machine, enemies, projectiles, biome BG ───
+    const BIOME_NAMES = ["jungle", "cave", "temple", "volcano"];
+    const PHASE_NAMES = ["travel", "encounter", "battle", "battle", "battle", "climax", "boss", "victory"];
+    function createWorldEngine() {
+      let loopBar = 0;
+      let phaseTime = 0;
+      let prevBiome = 0;
+      let travelT = 0;
+      const enemies = [];     // populated in phase 12
+      const projectiles = []; // populated in phase 13
+      const critters = [];    // pool of active critters
+      const weatherParticles = []; // weather effects
+      let lastInputAt = performance.now();
+      let sleepProgress = 0;  // 0..1 sleep cascade
+      let dayNightPhase = 0;  // 0..1 day-night cycle (slow)
+
+      // ─── Phase 10: critter species (procedural draws, 9 total) ───
+      const CRITTER_SPECIES = {
+        // Universal (any biome)
+        butterfly: {
+          biomes: [0, 1, 2, 3], speed: 35, amp: 14, ySpan: [60, 200],
+          draw: (ctx, t, x, y, age) => {
+            const flap = Math.sin(t * 14 + age * 3) * 0.6 + 0.4;
+            const hue = 320 + Math.sin(age) * 30;
+            ctx.save(); ctx.translate(x, y);
+            ctx.fillStyle = `oklch(0.72 0.20 ${hue})`;
+            // wings
+            ctx.beginPath(); ctx.ellipse(-3, -1, 3.5, 5 * flap, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(3, -1, 3.5, 5 * flap, 0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = `oklch(0.55 0.22 ${hue + 20})`;
+            ctx.beginPath(); ctx.ellipse(-3, 2, 2.5, 3 * flap, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(3, 2, 2.5, 3 * flap, 0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "oklch(0.18 0.04 60)";
+            ctx.fillRect(-0.6, -3, 1.2, 6);
+            // antennae
+            ctx.strokeStyle = "oklch(0.18 0.04 60)"; ctx.lineWidth = 0.6;
+            ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(-2, -6); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(2, -6); ctx.stroke();
+            ctx.restore();
+          },
+        },
+        dragonfly: {
+          biomes: [0, 1], speed: 60, amp: 8, ySpan: [80, 180],
+          draw: (ctx, t, x, y, age) => {
+            const flap = Math.sin(t * 30) * 0.5 + 0.5;
+            ctx.save(); ctx.translate(x, y);
+            // 4 long thin wings
+            ctx.fillStyle = "oklch(0.85 0.04 200 / 0.55)";
+            ctx.beginPath(); ctx.ellipse(-1, -2, 7, 1.6 * flap, -0.4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse( 1, -2, 7, 1.6 * flap, 0.4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(-1,  1, 6, 1.4 * flap, -0.4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse( 1,  1, 6, 1.4 * flap, 0.4, 0, Math.PI * 2); ctx.fill();
+            // body
+            ctx.fillStyle = "oklch(0.55 0.18 165)";
+            ctx.fillRect(-0.7, -4, 1.4, 9);
+            ctx.fillStyle = "oklch(0.42 0.16 165)";
+            for (let i = 0; i < 3; i++) ctx.fillRect(-0.7, -3 + i * 3, 1.4, 1);
+            // eye
+            ctx.fillStyle = "oklch(0.30 0.06 60)";
+            ctx.beginPath(); ctx.arc(0, -4.5, 1.2, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          },
+        },
+        firefly: {
+          biomes: [0, 1, 2, 3], speed: 25, amp: 22, ySpan: [50, 200],
+          draw: (ctx, t, x, y, age) => {
+            const pulse = (Math.sin(t * 4 + age * 7) * 0.5 + 0.5) * 0.9 + 0.1;
+            ctx.save(); ctx.translate(x, y);
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
+            grad.addColorStop(0, `oklch(0.95 0.20 95 / ${pulse})`);
+            grad.addColorStop(0.4, `oklch(0.85 0.20 80 / ${pulse * 0.5})`);
+            grad.addColorStop(1, "transparent");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = `oklch(0.95 0.18 95 / ${pulse})`;
+            ctx.beginPath(); ctx.arc(0, 0, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          },
+        },
+        // Cave-only (biome 1)
+        glowMoth: {
+          biomes: [1], speed: 28, amp: 18, ySpan: [70, 190],
+          draw: (ctx, t, x, y, age) => {
+            const flap = Math.sin(t * 12) * 0.5 + 0.5;
+            ctx.save(); ctx.translate(x, y);
+            // glowing aura
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
+            grad.addColorStop(0, "oklch(0.78 0.18 200 / 0.45)");
+            grad.addColorStop(1, "transparent");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+            // wings
+            ctx.fillStyle = "oklch(0.42 0.10 260)";
+            ctx.beginPath(); ctx.ellipse(-3, 0, 4, 5 * flap, -0.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse( 3, 0, 4, 5 * flap, 0.2, 0, Math.PI * 2); ctx.fill();
+            // glowing body
+            ctx.fillStyle = "oklch(0.85 0.18 200)";
+            ctx.fillRect(-0.7, -3, 1.4, 6);
+            ctx.restore();
+          },
+        },
+        bat: {
+          biomes: [1], speed: 70, amp: 28, ySpan: [50, 150],
+          draw: (ctx, t, x, y, age) => {
+            const flap = Math.sin(t * 8) * 0.6 + 0.4;
+            ctx.save(); ctx.translate(x, y);
+            ctx.fillStyle = "oklch(0.20 0.04 280)";
+            // body
+            ctx.beginPath(); ctx.ellipse(0, 0, 2.5, 4, 0, 0, Math.PI * 2); ctx.fill();
+            // wings (membrane)
+            ctx.beginPath();
+            ctx.moveTo(-2, -1);
+            ctx.bezierCurveTo(-7, -3 - flap * 2, -10, 0, -8, 4 + flap * 2);
+            ctx.bezierCurveTo(-5, 2, -3, 1, -2, 0);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(2, -1);
+            ctx.bezierCurveTo(7, -3 - flap * 2, 10, 0, 8, 4 + flap * 2);
+            ctx.bezierCurveTo(5, 2, 3, 1, 2, 0);
+            ctx.fill();
+            // eyes
+            ctx.fillStyle = "oklch(0.62 0.20 25)";
+            ctx.beginPath(); ctx.arc(-0.8, -2, 0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0.8, -2, 0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          },
+        },
+        // Temple-only (biome 2)
+        scarab: {
+          biomes: [2], speed: 45, amp: 6, ySpan: [180, 220],
+          draw: (ctx, t, x, y, age) => {
+            const flap = Math.sin(t * 18) * 0.5 + 0.5;
+            ctx.save(); ctx.translate(x, y);
+            // shell
+            ctx.fillStyle = "oklch(0.45 0.18 145)";
+            ctx.beginPath(); ctx.ellipse(0, 0, 3.5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+            // shell sheen
+            ctx.fillStyle = "oklch(0.65 0.20 140)";
+            ctx.beginPath(); ctx.ellipse(-0.8, -1, 1.2, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+            // wings (translucent)
+            ctx.fillStyle = "oklch(0.85 0.10 95 / 0.35)";
+            ctx.beginPath(); ctx.ellipse(-2, 0, 3, 4 * flap, -0.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse( 2, 0, 3, 4 * flap, 0.2, 0, Math.PI * 2); ctx.fill();
+            // legs
+            ctx.strokeStyle = "oklch(0.20 0.05 80)"; ctx.lineWidth = 0.6;
+            for (let i = -1; i <= 1; i++) {
+              ctx.beginPath(); ctx.moveTo(-1.5, i * 1.5); ctx.lineTo(-3.5, i * 1.5 + 1); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(1.5, i * 1.5); ctx.lineTo(3.5, i * 1.5 + 1); ctx.stroke();
+            }
+            ctx.restore();
+          },
+        },
+        sigilOrb: {
+          biomes: [2], speed: 18, amp: 10, ySpan: [80, 180],
+          draw: (ctx, t, x, y, age) => {
+            const pulse = Math.sin(t * 1.5 + age * 3) * 0.3 + 0.7;
+            ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.4 + age);
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 6);
+            grad.addColorStop(0, `oklch(0.85 0.18 60 / ${pulse})`);
+            grad.addColorStop(1, "transparent");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+            // sigil triangle
+            ctx.strokeStyle = `oklch(0.95 0.20 80 / ${pulse})`; ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            for (let i = 0; i < 3; i++) {
+              const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+              const px = Math.cos(a) * 3, py = Math.sin(a) * 3;
+              if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath(); ctx.stroke();
+            ctx.restore();
+          },
+        },
+        // Volcano-only (biome 3)
+        ember: {
+          biomes: [3], speed: 12, amp: 4, ySpan: [60, 220],
+          draw: (ctx, t, x, y, age) => {
+            const flicker = Math.sin(t * 18 + age * 5) * 0.4 + 0.6;
+            ctx.save(); ctx.translate(x, y);
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 6);
+            grad.addColorStop(0, `oklch(0.95 0.22 60 / ${flicker})`);
+            grad.addColorStop(0.5, `oklch(0.70 0.22 35 / ${flicker * 0.5})`);
+            grad.addColorStop(1, "transparent");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = `oklch(0.98 0.20 80 / ${flicker})`;
+            ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          },
+        },
+        ashFlake: {
+          biomes: [3], speed: 8, amp: 18, ySpan: [40, 220],
+          draw: (ctx, t, x, y, age) => {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(age * 0.7 + t * 0.5);
+            ctx.fillStyle = "oklch(0.32 0.04 60 / 0.55)";
+            for (let i = 0; i < 6; i++) {
+              ctx.save(); ctx.rotate((i / 6) * Math.PI * 2);
+              ctx.fillRect(-0.4, -2, 0.8, 2);
+              ctx.restore();
+            }
+            ctx.fillStyle = "oklch(0.45 0.06 60 / 0.65)";
+            ctx.beginPath(); ctx.arc(0, 0, 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          },
+        },
+      };
+
+      function spawnCritter() {
+        const biome = getBiomeIdx();
+        const eligible = Object.entries(CRITTER_SPECIES).filter(([k, s]) => s.biomes.includes(biome));
+        if (!eligible.length) return;
+        const [name, spec] = eligible[Math.floor(Math.random() * eligible.length)];
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const yBase = spec.ySpan[0] + Math.random() * (spec.ySpan[1] - spec.ySpan[0]);
+        critters.push({
+          name, spec, dir,
+          x: dir > 0 ? -20 : W + 20,
+          yBase,
+          ySeed: Math.random() * 1000,
+          age: 0,
+          ttl: 25 + Math.random() * 10,
+        });
+      }
+
+      // Maintain ~3 critters constant
+      let critterTimer = 0.8;
+
+      // ─── Phase 10: weather (per biome) ───
+      function spawnWeather() {
+        const biome = getBiomeIdx();
+        if (biome === 0) {
+          // Jungle leaves — tick falls slow, drift sideways
+          weatherParticles.push({
+            kind: "leaf", x: Math.random() * W, y: -10,
+            vx: (Math.random() - 0.5) * 8, vy: 5 + Math.random() * 6,
+            rot: Math.random() * 6.28, rotV: (Math.random() - 0.5) * 0.04,
+            size: 2 + Math.random() * 2, life: 12, hue: 130 + Math.random() * 30,
+          });
+        } else if (biome === 1) {
+          // Cave motes — slow upward drift
+          weatherParticles.push({
+            kind: "mote", x: Math.random() * W, y: H + 4,
+            vx: (Math.random() - 0.5) * 4, vy: -(2 + Math.random() * 3),
+            rot: 0, rotV: 0,
+            size: 0.8 + Math.random() * 1.2, life: 12, hue: 200 + Math.random() * 30,
+          });
+        } else if (biome === 2) {
+          // Temple sand-grains — diagonal drift
+          weatherParticles.push({
+            kind: "grain", x: -4, y: Math.random() * H * 0.7,
+            vx: 14 + Math.random() * 6, vy: 4 + Math.random() * 3,
+            rot: Math.random() * 6.28, rotV: 0.02,
+            size: 1 + Math.random() * 0.8, life: 10, hue: 70 + Math.random() * 20,
+          });
+        } else {
+          // Volcano ember sparks — rise + flicker
+          weatherParticles.push({
+            kind: "spark", x: Math.random() * W, y: H + 6,
+            vx: (Math.random() - 0.5) * 14, vy: -(20 + Math.random() * 16),
+            rot: 0, rotV: 0,
+            size: 1.2 + Math.random() * 1.0, life: 4, hue: 30 + Math.random() * 25,
+          });
+        }
+      }
+      let weatherTimer = 0.2;
+
+      const _wLoop = () => {
+        loopBar += 1;
+        phaseTime = 0;
+        const newBiomeIdx = Math.floor(loopBar / 8) % 4;
+        const oldBiomeIdx = Math.floor((loopBar - 1) / 8) % 4;
+        if (newBiomeIdx !== oldBiomeIdx) {
+          prevBiome = oldBiomeIdx;
+          travelT = 1.0;
+        }
+      };
+      const _wHit = () => { lastInputAt = performance.now(); sleepProgress = 0; };
+      const _wStep = () => { lastInputAt = performance.now(); };
+      busOn("loopWrap", _wLoop);
+      busOn("trackHit", _wHit);
+      busOn("step", _wStep);
+
+      function getPhase() { return PHASE_NAMES[loopBar % 8] || "encounter"; }
+      function getBiomeIdx() { return Math.floor(loopBar / 8) % 4; }
+      function getBiomeName() { return BIOME_NAMES[getBiomeIdx()]; }
+      function getPrevBiomeName() { return BIOME_NAMES[prevBiome]; }
+      function getTravelT() { return travelT; }
+      function getLoopBar() { return loopBar; }
+      function getPhaseTime() { return phaseTime; }
+      function getSleep() { return sleepProgress; }
+      function getDayNight() { return dayNightPhase; }
+
+      function tick(t, dt) {
+        phaseTime += dt;
+        travelT = Math.max(0, travelT - dt * 0.5);
+        // Slow day/night cycle: full loop every 4 minutes
+        dayNightPhase = (dayNightPhase + dt / 240) % 1;
+        // Sleep cascade
+        const idleSec = (performance.now() - lastInputAt) / 1000;
+        const targetSleep = idleSec > 25 ? Math.min(1, (idleSec - 25) / 5) : 0;
+        sleepProgress += (targetSleep - sleepProgress) * dt * 1.5;
+
+        // Critter spawn / tick
+        critterTimer -= dt;
+        if (critterTimer <= 0 && critters.length < 4) {
+          spawnCritter();
+          critterTimer = 1.2 + Math.random() * 1.5;
+        }
+        for (let i = critters.length - 1; i >= 0; i--) {
+          const c = critters[i];
+          c.age += dt;
+          c.x += c.dir * c.spec.speed * dt;
+          c.ttl -= dt;
+          if (c.ttl <= 0 || c.x < -40 || c.x > W + 40) critters.splice(i, 1);
+        }
+
+        // Weather tick
+        weatherTimer -= dt;
+        if (weatherTimer <= 0 && weatherParticles.length < 60 && !reducedMotion) {
+          spawnWeather();
+          weatherTimer = 0.18 + Math.random() * 0.1;
+        }
+        for (let i = weatherParticles.length - 1; i >= 0; i--) {
+          const w = weatherParticles[i];
+          w.x += w.vx * dt;
+          w.y += w.vy * dt;
+          if (w.kind === "leaf") w.vx += Math.sin(t * 1.5 + w.x * 0.01) * 4 * dt;
+          w.rot += w.rotV;
+          w.life -= dt;
+          if (w.life <= 0 || w.y < -10 || w.y > H + 12 || w.x > W + 12 || w.x < -12) weatherParticles.splice(i, 1);
+        }
+      }
+
+      function drawWeatherBack(t) {
+        // Drawn behind characters (back layer)
+        if (reducedMotion) return;
+        const biome = getBiomeIdx();
+        if (biome === 1) {
+          // Cave motes — draw them behind
+          weatherParticles.forEach(w => {
+            if (w.kind !== "mote") return;
+            ctx.save(); ctx.translate(w.x, w.y);
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, w.size * 4);
+            grad.addColorStop(0, `oklch(0.85 0.14 ${w.hue} / 0.7)`);
+            grad.addColorStop(1, "transparent");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, w.size * 4, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          });
+        } else if (biome === 3) {
+          // Volcano embers
+          weatherParticles.forEach(w => {
+            if (w.kind !== "spark") return;
+            ctx.save(); ctx.translate(w.x, w.y);
+            const flicker = Math.sin(t * 24 + w.life * 7) * 0.3 + 0.7;
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, w.size * 3);
+            grad.addColorStop(0, `oklch(0.95 0.24 ${w.hue} / ${flicker})`);
+            grad.addColorStop(1, "transparent");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, w.size * 3, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          });
+        }
+      }
+
+      function drawWeatherFront(t) {
+        if (reducedMotion) return;
+        const biome = getBiomeIdx();
+        weatherParticles.forEach(w => {
+          if (biome === 0 && w.kind === "leaf") {
+            ctx.save(); ctx.translate(w.x, w.y); ctx.rotate(w.rot);
+            ctx.fillStyle = `oklch(0.45 0.16 ${w.hue})`;
+            ctx.beginPath(); ctx.ellipse(0, 0, w.size, w.size * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = `oklch(0.30 0.10 ${w.hue})`; ctx.lineWidth = 0.3;
+            ctx.beginPath(); ctx.moveTo(-w.size, 0); ctx.lineTo(w.size, 0); ctx.stroke();
+            ctx.restore();
+          } else if (biome === 2 && w.kind === "grain") {
+            ctx.fillStyle = `oklch(0.78 0.10 ${w.hue} / 0.7)`;
+            ctx.beginPath(); ctx.arc(w.x, w.y, w.size, 0, Math.PI * 2); ctx.fill();
+          }
+        });
+      }
+
+      function drawCritters(t) {
+        critters.forEach(c => {
+          const yWobble = Math.sin(t * 1.5 + c.ySeed) * c.spec.amp;
+          c.spec.draw(ctx, t, c.x, c.yBase + yWobble, c.age);
+        });
+      }
+
+      function drawDayNightTint() {
+        // Subtle tint overlay synced to dayNightPhase. 4-minute full cycle.
+        // Phase 0: dawn (warm), 0.25: noon (clear), 0.5: dusk (orange), 0.75: night (deep blue)
+        const p = dayNightPhase;
+        let r = 0, g = 0, b = 0, a = 0;
+        if (p < 0.25) { a = (0.25 - p) * 4 * 0.18; r = 250; g = 180; b = 130; }
+        else if (p < 0.5) { a = 0; }
+        else if (p < 0.75) { a = (p - 0.5) * 4 * 0.18; r = 240; g = 130; b = 80; }
+        else { a = 0.18 + (p - 0.75) * 4 * 0.10; r = 30; g = 50; b = 110; }
+        if (a < 0.01) return;
+        ctx.fillStyle = `rgba(${r|0}, ${g|0}, ${b|0}, ${a.toFixed(3)})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      function drawSleepZ(t) {
+        if (sleepProgress < 0.05) return;
+        // Already drawn per-character in their muted state — but we add a global desaturation overlay
+        ctx.fillStyle = `rgba(20, 30, 60, ${(sleepProgress * 0.22).toFixed(3)})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      function drawBack(t) {
+        // Behind chars: cave motes & volcano embers (atmospheric backlight)
+        drawWeatherBack(t);
+        // Draw critters that are positioned far back (small ones)
+        critters.forEach(c => {
+          if (c.yBase < 100) {
+            const yWobble = Math.sin(t * 1.5 + c.ySeed) * c.spec.amp;
+            c.spec.draw(ctx, t, c.x, c.yBase + yWobble, c.age);
+          }
+        });
+      }
+      function drawMid(t) {
+        // Draw remaining critters in front of chars when y is high (closer to viewer)
+        critters.forEach(c => {
+          if (c.yBase >= 100) {
+            const yWobble = Math.sin(t * 1.5 + c.ySeed) * c.spec.amp;
+            c.spec.draw(ctx, t, c.x, c.yBase + yWobble, c.age);
+          }
+        });
+        // Front-running weather (leaves, grains)
+        drawWeatherFront(t);
+      }
+      function drawFinalOverlay(t) {
+        drawDayNightTint();
+        drawSleepZ(t);
+      }
+
+      return { tick, drawBack, drawMid, drawFinalOverlay,
+        getPhase, getBiomeIdx, getBiomeName, getPrevBiomeName,
+        getTravelT, getLoopBar, getPhaseTime, getSleep, getDayNight,
+        enemies, projectiles, critters, weatherParticles };
+    }
+    const worldEngine = createWorldEngine();
 
     // ─── Particle tick + draw ───
     function tickParticles(dt) {
@@ -2431,6 +3098,9 @@
       lastTime = now;
       const t = now / 1000;
 
+      // Reset to base DPR transform every frame (defensive — guards against
+      // any drift from unbalanced ctx.save/translate elsewhere in the pipeline).
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
 
       trauma = Math.max(0, trauma - 1.5 * dt);
@@ -2441,8 +3111,12 @@
         ctx.translate(s.x, s.y);
       }
 
+      worldEngine.tick(t, dt);
       drawBackground(t);
       if (!reducedMotion) tickLeaves(t);
+
+      // World back layer (biome BG plates, weather)
+      worldEngine.drawBack(t);
 
       // Stage platform
       drawBambooStage();
@@ -2483,6 +3157,9 @@
         drawCharacter(ch, t, alpha);
       });
 
+      // World mid layer (enemies, projectiles, boss, class verb FX)
+      worldEngine.drawMid(t);
+
       // Front-of-stage decorations: tiki torches
       drawTikiTorch(28, 224, t, currentBPM);
       drawTikiTorch(W - 28, 224, t + 1.7, currentBPM);
@@ -2497,12 +3174,23 @@
         flashAlpha -= dt * 8;
         if (flashAlpha < 0.01) flashAlpha = 0;
       }
+
+      // World engine final overlay (day/night, sleep cascade)
+      worldEngine.drawFinalOverlay(t);
     }
     raf = requestAnimationFrame(frame);
 
     return {
-      destroy() { cancelAnimationFrame(raf); },
+      destroy() { cancelAnimationFrame(raf); busOffAll(); },
       setPlaying, setBPM, setTrackStates, setEnergies,
+      getWorldState() {
+        return {
+          loopBar: worldEngine.getLoopBar(),
+          phase: worldEngine.getPhase(),
+          biome: worldEngine.getBiomeName(),
+          biomeIdx: worldEngine.getBiomeIdx(),
+        };
+      },
     };
   }
 
