@@ -217,8 +217,9 @@ If the user is unavailable, **default assumptions** for the research phase are:
 - Avatar / lip-synced presenters — different problem.
 - Music selection — could be a sibling tool later, not this one.
 - Automatic translation between EN and HE — the editor controls language.
-- On-air graphics (lower thirds, weather maps) — the news graphics system handles those.
 - Anything that touches the news company's internal CMS — they integrate, we don't.
+
+> **Scope expansion (May 2026):** generated on-air graphics — temperature tables across cities, weather maps, lower thirds — are now **in scope** as a first-class scene treatment alongside B-roll. The pipeline auto-segments the transcript into scenes and picks `broll` *or* `graphic_table` / `graphic_map` / `lower_third` per scene. See `00c-scene-types-and-graphic-templates.md` for the treatment enum and template stack.
 
 ---
 

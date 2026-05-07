@@ -1,0 +1,36 @@
+# Keyword Extractor for Voiceover-Driven Video Auto-Edit — Research Index
+
+> Single front door. Read the status table, then dive into a specific report only when something catches your eye.
+
+**Project goal.** Turn a daily news voiceover (initial use case: an Israeli newsroom weather segment) into a timed **scene** stream — each scene either a B-roll match or a generated on-air graphic (e.g. a temperature table across cities). Output 1080×1920 MP4 for Reels / TikTok / Shorts.
+
+**Status legend.** `pending` = not started · `draft` = first pass written · `reviewed` = read-through complete · `locked` = user-approved.
+
+## Reports
+
+| ID            | File                                                | Status  | Owner | Updated | 30-word abstract |
+|---------------|-----------------------------------------------------|---------|-------|---------|------------------|
+| —             | [`PRE-RESEARCH.md`](PRE-RESEARCH.md)                | locked  | user  | 2026-05-07 | Originating scope doc — research goals, report catalogue, defaults, initial web findings, 9:16 vertical constraint propagated. |
+| —             | [`PLAN.md`](PLAN.md)                                | draft   | claude | 2026-05-07 | Execution plan — agent assignments per report, wave grouping, methodology, acceptance criteria. |
+| —             | [`HANDOFF.md`](HANDOFF.md)                          | draft   | claude | 2026-05-07 | Operational briefing for the next executing agent — defaults locked, pre-flight intelligence, blockers and work-arounds. |
+| R0            | [`00-use-case-discovery.md`](00-use-case-discovery.md) | pending | tbd   | —       | Friend-interview script + assumed-persona job-story so R2's category enum and R8's guardrails don't have to guess. |
+| R-prior-art   | [`00b-prior-art-competitor-scan.md`](00b-prior-art-competitor-scan.md) | pending | tbd | — | Capsule reviews of Pictory / OpusClip / Submagic / Veed / Descript / CapCut auto-broll — Hebrew support, vertical-first, scene-vs-keyword, integrated graphics. |
+| R-graphics    | [`00c-scene-types-and-graphic-templates.md`](00c-scene-types-and-graphic-templates.md) | pending | tbd | — | Scene-treatment enum + template stack (Remotion vs HTML/Playwright vs SVG) + temperature-table worked example end-to-end. |
+| R1            | [`01-whisper-variant-comparison.md`](01-whisper-variant-comparison.md) | pending | tbd | — | OpenAI cloud Whisper vs `faster-whisper` vs `whisper.cpp` vs `whisperX` vs `ivrit-ai` Hebrew variants — accuracy, $/min, latency, word-timing drift. |
+| R2            | [`02-scene-and-keyword-schema.md`](02-scene-and-keyword-schema.md) | pending | tbd | — | Scene-first JSON schema — top-level `scenes[]` carry `visual_treatment`, `start_s`, `end_s`, per-treatment payload, language-aware fields. |
+| R3            | [`03-prompt-design-and-caching.md`](03-prompt-design-and-caching.md) | pending | tbd | — | Single-pass prompt template that segments transcript into scenes, classifies treatment, extracts keywords. Caching plan + few-shots EN/HE. |
+| R4            | [`04-background-video-sourcing.md`](04-background-video-sourcing.md) | pending | tbd | — | Pexels / Pixabay / Storyblocks / Artgrid / Luma Ray2 / Runway Gen-3 — vertical filter, licence, weather coverage, $/clip. Broll scenes only. |
+| R5            | [`05-matching-algorithm.md`](05-matching-algorithm.md) | pending | tbd | — | Tag match → CLIP rerank → LLM-judge fallback. Vertical-aware `crop_safety` term. Cost ceiling per minute. |
+| R6            | [`06-output-edl-and-renderer.md`](06-output-edl-and-renderer.md) | pending | tbd | — | EDL JSON shape + renderer pick (Remotion vs FFmpeg vs MoviePy) — must composite mixed broll + graphic scenes on a 1080×1920 canvas. |
+| R7            | [`07-repo-architecture-fit.md`](07-repo-architecture-fit.md) | pending | tbd | — | Skill + MCP + Artifact + Recipe layout; templates dir for graphic scenes; possibly a `graphics-renderer` MCP. MVP vs phase-2 split. |
+| R8            | [`08-newsroom-guardrails-and-language.md`](08-newsroom-guardrails-and-language.md) | pending | tbd | — | HE+EN guardrails, hoax/sensitive-topic gate, attribution, ±0.25s timing, hallucination control, accuracy of generated data graphics. |
+| R9            | [`09-synthesis-and-recommendations.md`](09-synthesis-and-recommendations.md) | pending | tbd | — | Single recommendation across R0–R8: ASR pick, schema, prompt, sourcing, matching, renderer, architecture, top-5 risks, 2-week plan. |
+
+## See also
+
+- `knowledge/13-asset-pipelines.md` — provider matrix R4 extends.
+- `knowledge/05-graphics-design.md`, `knowledge/08-dataviz.md` — referenced by R-graphics.
+- `knowledge/09-prompting.md`, `knowledge/01-claude-ecosystem.md` — referenced by R3.
+- `skills/viral-news-scanner/SKILL.md` — prior art for newsroom-grade JSON output and editorial guardrails.
+- `mcp/servers/asset-router/` — MCP shape R7 mirrors.
+- `research/biome-beats/` — structural template for this folder.
