@@ -277,6 +277,39 @@
     .humanize-toggle input { accent-color: oklch(0.65 0.20 145); cursor: pointer; }
     .humanize-toggle.on { color: oklch(0.45 0.16 145); }
 
+    .quick-actions { display: flex; gap: 6px; margin-left: auto; }
+    .qa-btn { font: 700 10px ui-monospace, monospace; padding: 6px 10px;
+      letter-spacing: .14em; text-transform: uppercase;
+      border: 1px solid var(--border-warm); background: oklch(0.82 0.04 75);
+      color: var(--text-muted); border-radius: 5px; cursor: pointer;
+      transition: all 0.12s; }
+    .qa-btn:hover { color: var(--text); border-color: oklch(0.55 0.16 90); }
+    .qa-btn.danger:hover { color: var(--hot); border-color: var(--hot); }
+
+    /* ─── v4: Mixer extras — variant pill, octave stepper, key select ─── */
+    .variant-pill { font: 700 9px ui-monospace, monospace; padding: 4px 8px; min-width: 64px;
+      border-radius: 4px; border: 1px solid var(--border-warm); background: oklch(0.78 0.04 75);
+      color: var(--text); cursor: pointer; letter-spacing: .06em; text-transform: uppercase;
+      transition: all .12s; }
+    .variant-pill:hover { border-color: oklch(0.55 0.16 90); }
+    .melodic-controls { display: flex; gap: 4px; align-items: center; margin-left: 4px; }
+    .octave-stepper, .key-select { font: 600 10px ui-monospace, monospace; padding: 3px 6px;
+      border-radius: 4px; border: 1px solid var(--border-warm); background: oklch(0.82 0.03 75);
+      color: var(--text); cursor: pointer; }
+    .octave-stepper { width: 36px; text-align: center; }
+    .key-select { width: 44px; }
+
+    /* ─── v4: Toast (URL-share confirmation) ─── */
+    .bb-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 10px 16px; border-radius: 8px;
+      background: oklch(0.20 0.04 80); color: oklch(0.95 0.04 90);
+      font: 600 11px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase;
+      box-shadow: 0 4px 16px rgba(0,0,0,.3), 0 0 0 1px oklch(0.45 0.16 90);
+      z-index: 9999; pointer-events: none;
+      animation: toastIn .25s ease-out, toastOut .25s ease-in 1.7s forwards; }
+    @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes toastOut { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, 8px); } }
+
     /* ─── v4: Pad cell — velocity shade + probability dots ─── */
     .pad { position: relative; overflow: hidden; user-select: none;
       touch-action: none; }
@@ -876,6 +909,32 @@
   function disposeSequences() {
     sequences.forEach(s => { try { s.stop(); s.dispose(); } catch(e){} });
     sequences = [];
+  }
+
+  // ─── v4: URL hash share — encode/decode current state as base64 JSON ──────────
+  function encodeStateHash(state) {
+    const slim = {
+      bpm: state.bpm, swing: state.swing, humanize: state.humanize, activeBank: state.activeBank,
+      tracks: state.tracks.map(t => ({
+        banks: t.banks, gain: t.gain, pan: t.pan, mute: t.mute, solo: t.solo,
+        sendReverb: t.sendReverb, sendDelay: t.sendDelay,
+        variant: t.variant, octave: t.octave, rootKey: t.rootKey,
+      })),
+      fx: state.fx, master: state.master,
+    };
+    try {
+      return btoa(unescape(encodeURIComponent(JSON.stringify(slim))));
+    } catch (e) { return ""; }
+  }
+  function decodeStateHash(hash) {
+    try {
+      return JSON.parse(decodeURIComponent(escape(atob(hash))));
+    } catch { return null; }
+  }
+  function readHashState() {
+    const h = (location.hash || "").replace(/^#/, "");
+    if (!h.startsWith("s=")) return null;
+    return decodeStateHash(h.slice(2));
   }
 
   // ─── Persistence (kept from v1) ───────────────────────────────────────────────
@@ -2539,6 +2598,14 @@
         h("input", { type: "checkbox", checked: !!state.humanize,
           onChange: e => dispatch({ type: "SET_HUMANIZE", value: e.target.checked }) }),
         "Humanize"
+      ),
+      h("div", { className: "quick-actions" },
+        h("button", { className: "qa-btn danger", onClick: () => dispatch({ type: "QUICK_CLEAR" }),
+          title: "Clear active bank (Q)" }, "Clear"),
+        h("button", { className: "qa-btn", onClick: () => dispatch({ type: "QUICK_FILL" }),
+          title: "Fill active bank with starter pattern (F)" }, "Fill"),
+        h("button", { className: "qa-btn", onClick: () => dispatch({ type: "QUICK_RANDOM_MUTE" }),
+          title: "Randomly mute 1-3 tracks" }, "Rnd Mute")
       )
     );
   }
@@ -2645,9 +2712,13 @@
   }
 
   function MixerTab({ state, dispatch }) {
+    const KEYS = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
     return h("div", null,
-      state.tracks.map((track, ti) =>
-        h("div", { key: ti, className: "mixer-row" },
+      state.tracks.map((track, ti) => {
+        const variantIdx = track.variant != null ? track.variant : 0;
+        const variantName = ((VARIANT_TABLE[ti] || [])[variantIdx] || {}).name || "—";
+        const isMelodic = ti === 6 || ti === 7;
+        return h("div", { key: ti, className: "mixer-row" },
           h("div", { className: "mixer-label", style: { color: TRACK_COLORS_RAW[ti] } }, track.name),
           h("input", { type: "range", className: "mixer-slider", min: 0, max: 1, step: 0.01, value: track.gain,
             style: { "--tc": TRACK_COLORS_RAW[ti], accentColor: TRACK_COLORS_RAW[ti] },
@@ -2659,9 +2730,25 @@
           h("button", { className: "mixer-btn" + (track.mute ? " active" : ""),
             onClick: () => dispatch({ type: "MUTE", id: ti }) }, "M"),
           h("button", { className: "mixer-btn" + (track.solo ? " solo-active" : ""),
-            onClick: () => dispatch({ type: "SOLO", id: ti }) }, "S")
-        )
-      ),
+            onClick: () => dispatch({ type: "SOLO", id: ti }) }, "S"),
+          h("button", { className: "variant-pill",
+            title: "Cycle sound variant (current: " + variantName + ")",
+            onClick: () => dispatch({ type: "SET_VARIANT", trackId: ti, value: variantIdx + 1 }) },
+            variantName),
+          isMelodic ? h("div", { className: "melodic-controls" },
+            h("button", { className: "octave-stepper",
+              title: "Octave",
+              onClick: () => dispatch({ type: "SET_OCTAVE", trackId: ti,
+                value: ((track.octave || 0) + 1 > 2 ? -2 : (track.octave || 0) + 1) }) },
+              (track.octave || 0) >= 0 ? "+" + (track.octave || 0) : "" + (track.octave || 0)),
+            h("select", { className: "key-select",
+              title: "Root key",
+              value: track.rootKey || 0,
+              onChange: e => dispatch({ type: "SET_ROOT_KEY", trackId: ti, value: parseInt(e.target.value) }) },
+              KEYS.map((k, i) => h("option", { key: i, value: i }, k)))
+          ) : null
+        );
+      }),
       h("div", { className: "mixer-row", style: { borderTop: "2px solid oklch(0.65 0.04 70)", marginTop: "8px", paddingTop: "8px" } },
         h("div", { className: "mixer-label", style: { fontWeight: 800 } }, "Master"),
         h("input", { type: "range", className: "mixer-slider", min: 0, max: 1, step: 0.01, value: state.master.gain,
@@ -2706,8 +2793,19 @@
     );
   }
 
-  function PresetTab({ state, dispatch }) {
+  function PresetTab({ state, dispatch, showToast }) {
     const [name, setName] = useState("");
+    const copyUrl = useCallback(async () => {
+      const hash = encodeStateHash(state);
+      const url = location.origin + location.pathname + "#s=" + hash;
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast && showToast("URL copied to clipboard");
+      } catch (e) {
+        location.hash = "s=" + hash;
+        showToast && showToast("URL set in address bar");
+      }
+    }, [state, showToast]);
     return h("div", null,
       h("div", { className: "preset-save-row" },
         h("input", { type: "text", value: name, placeholder: "Preset name...",
@@ -2715,7 +2813,8 @@
           onChange: e => setName(e.target.value),
           onKeyDown: e => { if (e.key === "Enter" && name.trim()) { dispatch({ type: "SAVE_PRESET", name: name.trim() }); setName(""); } }
         }),
-        h("button", { className: "ctrl-btn", onClick: () => { if (name.trim()) { dispatch({ type: "SAVE_PRESET", name: name.trim() }); setName(""); } } }, "SAVE")
+        h("button", { className: "ctrl-btn", onClick: () => { if (name.trim()) { dispatch({ type: "SAVE_PRESET", name: name.trim() }); setName(""); } } }, "SAVE"),
+        h("button", { className: "ctrl-btn", onClick: copyUrl, title: "Copy shareable URL (Cmd/Ctrl+S)" }, "🔗 Copy URL")
       ),
       state.presets.length === 0
         ? h("div", { style: { color: "var(--text-muted)", fontSize: "11px", padding: "16px", textAlign: "center", letterSpacing: ".04em" } },
@@ -2775,6 +2874,21 @@
     const [state, dispatch] = useReducer(reducer, null, createInitialState);
     const stateRef = useRef(state);
     stateRef.current = state;
+    // v4: toast helper
+    const [toast, setToast] = useState(null);
+    const showToast = useCallback((msg) => {
+      setToast(msg);
+      setTimeout(() => setToast(null), 2000);
+    }, []);
+
+    // v4: Hash-share — load on mount if URL has #s=...
+    useEffect(() => {
+      const hashState = readHashState();
+      if (!hashState) return;
+      const migratedTracks = (hashState.tracks || []).map((t, i) => migrateTrack({ ...t, ...TRACK_DEFS[i], id: i }));
+      dispatch({ type: "LOAD_SAVED", data: { ...hashState, tracks: migratedTracks } });
+      showToast("Loaded shared pattern");
+    }, []);
 
     // Sync BPM
     useEffect(() => {
@@ -2836,6 +2950,19 @@
     // Keyboard shortcuts
     useEffect(() => {
       const handler = (e) => {
+        // Cmd/Ctrl+S = copy share URL — works even from inputs
+        if ((e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S")) {
+          e.preventDefault();
+          const hash = encodeStateHash(stateRef.current);
+          const url = location.origin + location.pathname + "#s=" + hash;
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(() => showToast("URL copied"));
+          } else {
+            location.hash = "s=" + hash;
+            showToast("URL set in address bar");
+          }
+          return;
+        }
         if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
         if (e.code === "Space") {
           e.preventDefault();
@@ -2853,6 +2980,8 @@
           }
         }
         if (e.key === "r" || e.key === "R") dispatch({ type: "REROLL_ALL" });
+        if (e.key === "q" || e.key === "Q") dispatch({ type: "QUICK_CLEAR" });
+        if (e.key === "f" || e.key === "F") dispatch({ type: "QUICK_FILL" });
         // v4: 1-4 = bank switch (no shift); Shift+1..Shift+8 = reroll track
         if (e.shiftKey && e.key >= "1" && e.key <= "8" && !e.ctrlKey && !e.metaKey && !e.altKey) {
           dispatch({ type: "REROLL_TRACK", id: parseInt(e.key) - 1 });
@@ -2869,7 +2998,7 @@
     const tabLabels = { seq: "Sequencer", mixer: "Mixer", fx: "FX", presets: "Presets" };
     const panelContent = state.activeTab === "mixer" ? h(MixerTab, { state, dispatch })
       : state.activeTab === "fx" ? h(FxTab, { state, dispatch })
-      : state.activeTab === "presets" ? h(PresetTab, { state, dispatch })
+      : state.activeTab === "presets" ? h(PresetTab, { state, dispatch, showToast })
       : null;
 
     return h("div", { className: "machine" },
@@ -2888,11 +3017,12 @@
         )
       ),
       panelContent ? h("div", { className: "panel" }, panelContent) : null,
-      h("div", { className: "kb-hint" }, "Space \u00B7 R \u00B7 1-8"),
+      h("div", { className: "kb-hint" }, "Space \u00B7 R \u00B7 Q \u00B7 F \u00B7 1-4 banks \u00B7 \u21E7+1-8 reroll \u00B7 \u2318+S share"),
       h("div", { role: "status", "aria-live": "polite",
         style: { position: "absolute", left: "-9999px", top: "-9999px" } },
         state.isPlaying ? "Playing at " + state.bpm + " BPM" : "Stopped"
-      )
+      ),
+      toast ? h("div", { className: "bb-toast", role: "alert" }, toast) : null
     );
   }
 
