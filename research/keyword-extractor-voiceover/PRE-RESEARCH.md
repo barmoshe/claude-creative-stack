@@ -27,7 +27,7 @@ This sits squarely inside the `claude-creative-stack` mission (art / animation /
 
 We need research before design because several decisions are not yet obvious:
 
-- Which Whisper variant (OpenAI cloud API vs `faster-whisper` local vs `whisper.cpp`) — accuracy, cost, latency, language support, word-level timing.
+- Which Whisper variant (OpenAI cloud API vs `faster-whisper` local vs `whisper.cpp` vs **`ivrit-ai` Hebrew-tuned Whisper**) — accuracy, cost, latency, language support, word-level timing. The Hebrew-newsroom angle makes `ivrit-ai` the most-likely default rather than a footnote.
 - What keyword schema does Claude return so the chooser can do a deterministic match (term alone is not enough; "rain" needs a visual concept like *"raindrops on window"*).
 - Where do background videos come from (stock API: Pexels, Pixabay, Storyblocks; generated via Luma/Runway; pre-curated local bank per beat / topic).
 - Output format the editor's pipeline can actually ingest — FFmpeg-renderable EDL JSON, Premiere/DaVinci XML, or a Remotion composition.
@@ -42,7 +42,7 @@ Each unknown maps to a report below.
 
 By the end of the research phase we must be able to answer, with citations:
 
-1. **Whisper variant pick.** A defensible choice between OpenAI cloud Whisper, `faster-whisper`, and `whisper.cpp` — with numbers on accuracy (English + Hebrew), word-level timing precision, $/minute, latency, and offline story.
+1. **Whisper variant pick.** A defensible choice between OpenAI cloud Whisper, `faster-whisper`, `whisper.cpp`, and **`ivrit-ai`'s Hebrew-tuned Whisper variants** (`whisper-large-v3-turbo`, `whisper-large-v3-turbo-ct2`, `whisper-large-v3-ct2`) — with numbers on accuracy (English + Hebrew), word-level timing precision, $/minute, latency, and offline story. ivrit-ai is the obvious default candidate for Hebrew given it's purpose-trained on >22,000 h of Hebrew audio.
 2. **Keyword schema.** A frozen JSON shape Claude returns per voiceover — fields, types, scoring, confidence, and the visual concept string the video chooser can query.
 3. **Prompt design.** A single prompt template (with caching plan) that reliably extracts visual-friendly keywords from news copy in EN and HE, including a small few-shot bank.
 4. **Background-video sourcing.** A ranked recommendation across stock APIs (Pexels, Pixabay, Storyblocks, Artgrid), AI-generated (Luma Ray2, Runway Gen-3), and a local curated bank — with licensing notes for newsroom use.
@@ -89,10 +89,18 @@ All reports land under `research/keyword-extractor-voiceover/`. Each report foll
 ## 4. Per-Report Briefs
 
 ### R1 — Whisper Variant Comparison
-- **Must answer:** for OpenAI cloud Whisper (`whisper-1`, `gpt-4o-transcribe`), `faster-whisper`, `whisper.cpp`, and `whisperX`: WER on English news, WER on Hebrew, word-level-timestamp precision (frames of drift on a 60s clip), $/minute, latency for 60s audio, GPU/CPU footprint, language autodetect quality.
+- **Must answer:** for **OpenAI cloud Whisper** (`whisper-1`, `gpt-4o-transcribe`), **`faster-whisper`** (CTranslate2), **`whisper.cpp`**, **`whisperX`** (forced-alignment for word timing), and **`ivrit-ai`'s Hebrew-tuned variants** — WER on English news, WER on Hebrew, word-level-timestamp precision (frames of drift on a 60 s clip), $/minute, latency for 60 s audio, GPU/CPU footprint, language autodetect quality.
 - **Must skip:** non-Whisper ASR (Deepgram, AssemblyAI) — log them in "Open questions" as a possible R-future, but don't catalogue here.
-- **Implications section:** one default pick + one fallback, with a note on when to switch (e.g. "default OpenAI cloud `gpt-4o-transcribe`; switch to `faster-whisper-large-v3` for offline newsroom").
-- **Search seeds:** "faster-whisper benchmark 2026", "whisper.cpp word timestamps", "Whisper Hebrew accuracy", "gpt-4o-transcribe pricing", "whisperX alignment".
+- **`ivrit-ai` sub-brief (Hebrew-specific lane).** Catalogue all three currently-published variants:
+  - `ivrit-ai/whisper-large-v3-turbo` — `transformers`-format Hebrew-tuned turbo build of OpenAI's `whisper-large-v3-turbo`.
+  - `ivrit-ai/whisper-large-v3-turbo-ct2` — same, in **CTranslate2 format** so it drops into `faster-whisper` directly. Trained on ~295 h volunteer + ~93 h pro Hebrew audio (`crowd-transcribe-v5`). This is the most likely default for the Israeli-newsroom use case.
+  - `ivrit-ai/whisper-large-v3-ct2` — non-turbo, slower but historically slightly more accurate.
+  - Older: `ivrit-ai/whisper-large-v2-tuned`.
+  - Pull WER numbers directly from the **Hebrew Speech Recognition Leaderboard** (`ivrit-ai-hebrew-transcription-leaderboard.hf.space`), not from the model cards — leaderboard is community-maintained and ranks Whisper, ivrit-ai variants, Amazon Transcribe, and others on the same datasets.
+  - Verify the **license** on each model card: ivrit.ai datasets are released under a "specially crafted" permissive licence that explicitly allows commercial AI training; **the model weights inherit Whisper's MIT licence but confirm per release** — a newsroom legal review will ask for this in writing.
+  - **Word-timestamp caveat (important for our pipeline):** earlier ivrit-ai checkpoints had coarse segmentation and required `stable-ts` post-processing; later versions added timestamp labels to ~40 % of training samples and improved. Re-test on a real weather clip before locking the pick. If timing is still loose, plan to combine ivrit-ai for the transcript + `whisperX`/`stable-ts` for forced-alignment word timing.
+- **Implications section:** one default pick + one fallback, plus a Hebrew-specific default. Suggested shape: "default `ivrit-ai/whisper-large-v3-turbo-ct2` (via `faster-whisper`) for HE; default OpenAI `gpt-4o-transcribe` for EN; fall back to `whisper.cpp` for fully-offline air-gapped runs." Include a "if word timestamps drift > 250 ms, run `whisperX` alignment as a second pass" rule.
+- **Search seeds:** "faster-whisper benchmark 2026", "whisper.cpp word timestamps", "Whisper Hebrew accuracy", "gpt-4o-transcribe pricing", "whisperX alignment", "ivrit-ai whisper-large-v3-turbo-ct2", "ivrit.ai Hebrew transcription leaderboard", "ivrit-ai Interspeech 2025".
 
 ### R2 — Keyword Schema and Fields
 - **Must answer:** the exact JSON shape Claude returns per voiceover. At minimum each keyword item should carry: `term`, `lemma`, `visual_concept` (free-text query for the video search), `start_s`, `end_s`, `weight` (0–100), `category` (e.g. `weather`, `place`, `person`, `event`, `mood`), `confidence` (0–1), `alternatives[]`. Top-level fields: `language`, `transcript`, `duration_s`, `keywords[]`, `notes`.
@@ -182,7 +190,7 @@ Ask before R1 starts:
 If the user is unavailable, **default assumptions** for the research phase are:
 
 - Both EN and HE, HE primary.
-- Cloud Whisper allowed (the friend uses a regular newsroom not a classified one).
+- Cloud Whisper allowed (the friend uses a regular newsroom not a classified one). For HE specifically, default to **`ivrit-ai/whisper-large-v3-turbo-ct2` via `faster-whisper`** (runs locally, Hebrew-tuned, CTranslate2-fast); use cloud Whisper as a quality cross-check rather than primary.
 - Free-tier stock first; paid is an opt-in later.
 - Render to MP4 by default; emit FCPXML on a flag.
 - ~5 voiceovers/day, ≤2 min each.
