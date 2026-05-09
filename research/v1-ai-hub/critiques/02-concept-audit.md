@@ -158,9 +158,9 @@
 #### [coherence] Disclosure that R4 is not yet written
 
 **File:** `research/v1-ai-hub/README.md`
-**The gap / problem:** The README lists R4 (`04-v1-keshet-company-context.md`) with status `pending`. The file itself exists in the directory but the audit brief explicitly says it is still being written. Pending is the right status, but the README does not flag that several findings in R0–R2 are knowingly written without that grounding (e.g. R0 §3 "advertisers' creative teams").
-**Why it matters:** The dependency direction matters: company-context findings might invalidate R0/R1 hypotheses.
-**Suggested addition:** A one-line note in the README that "R0–R2 may be revisited once R4 lands". No content change to R0–R2 needed.
+**The gap / problem:** README lists R4 as `pending`; the file exists but is still being written. The README does not flag that several findings in R0–R2 are written without that grounding (e.g. R0 §3 "advertisers' creative teams").
+**Why it matters:** Company-context findings might invalidate R0/R1 hypotheses.
+**Suggested addition:** A one-line note in the README that "R0–R2 may be revisited once R4 lands".
 
 ## What the folder is *not* missing
 
@@ -172,4 +172,4 @@
 
 ## Verdict
 
-The concept holds together. The four reports do not contradict each other on any load-bearing point, and the discipline of "everything is a question" is sustained. The substantive gaps worth telling the user about before further decisions are: (1) R3 has a missing fourth possibility (partial subsumption) and a framing tilt toward A; (2) R0's "product shapes" axis is really a delivery-shell axis, and the genuinely different shapes (regulatory utility, audience-facing feature, B2B export) are absent or buried; (3) R2 is not the complete TBD register it claims to be — five R0/R1 items are unmirrored, the Israeli regulatory layer is absent, and one question is triple-stated. None of these are folder-breaking; all three should be addressed before the user is asked to make any narrowing decision.
+The concept holds together. The four reports do not contradict each other on any load-bearing point and the discipline of "everything is a question" is sustained. Three substantive gaps to flag before any narrowing decision: (1) R3 has a missing fourth possibility (partial subsumption) and a framing tilt toward A; (2) R0's "product shapes" axis is really a delivery-shell axis, and the genuinely different shapes (regulatory utility, audience-facing feature, B2B export) are absent or buried; (3) R2 is not the complete TBD register it claims — five R0/R1 items are unmirrored, the Israeli regulatory layer is absent, and one question is triple-stated. None are folder-breaking; all three should be addressed before further decisions.
