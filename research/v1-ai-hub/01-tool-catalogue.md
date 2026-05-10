@@ -11,7 +11,7 @@ This is a conceptual catalogue of tools the V1 AI Hub *might* contain. It is bra
 
 ## 2. Tool 1 — Weather editing tool
 
-**Status:** the one tool the user named — concept only.
+Status: `concept`. This is the one tool the user has named to date; everything about it is concept-only.
 
 ### One-line description
 
@@ -102,7 +102,7 @@ Each entry is a `candidate, not committed`. The list is intentionally wide to ma
 | 6 | On-air graphic generator | Builds lower-thirds, data tables, comparison cards, and simple maps from structured input. | Graphics teams are a chokepoint; a self-serve generator handles the long tail of routine cards. | candidate, not committed |
 | 7 | Translation / dub assistant | Translates copy or generates a dubbed track for cross-language reuse of segments. | Cross-publishing across language audiences multiplies the value of a single piece of reporting. | candidate, not committed |
 | 8 | Fact-check assistant | Surfaces claims in a draft and proposes citations or flags unverifiable statements. | Reduces the load on editorial review without replacing it. | candidate, not committed |
-| 9 | Voice-over scripting assistant | Drafts a read-ready VO script from raw notes, a wire story, or a structured brief. | Producers often write VO last, fastest, and worst; assistance there is high-leverage. | candidate, not committed |
+| 9 | Voice-over scripting assistant | Drafts a read-ready VO script from raw notes, a wire story, or a structured brief. | Producers often write VO last and under time pressure; assistance there changes a step many producers describe as rushed. | candidate, not committed |
 | 10 | Tonal / style consistency checker | Flags drift from V1's house voice across a piece of copy. | House voice erodes when many hands touch the same brand surface. | candidate, not committed |
 | 11 | Automatic chapter markers | Generates chapter breaks and titles for long-form video or podcast content. | Improves on-platform retention and discoverability. | candidate, not committed |
 | 12 | Accessibility pass | Suggests alt text, audio descriptions, and contrast checks across a piece. | Accessibility is regulated, public-facing, and easy to overlook under deadline. | candidate, not committed |

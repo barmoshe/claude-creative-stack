@@ -66,7 +66,7 @@ The one thing that *is* known:
 
 > **One of the tools inside the hub will be a weather editing tool that takes voice and produces a vertical video.**
 
-That is the entire factual base of this folder. Everything else in this document is framed around the absence of facts, not the presence of plans. The weather tool is enough to confirm that the hub:
+That single statement is the only fact the user has supplied so far. Everything else in this document is framed around the absence of facts, not the presence of plans. The weather tool is enough to confirm that the hub:
 
 - contains at least one tool,
 - works with voice input in some flow,

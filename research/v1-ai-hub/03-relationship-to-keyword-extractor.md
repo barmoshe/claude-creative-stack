@@ -7,11 +7,11 @@
 
 ## TL;DR
 
-How does the V1 AI Hub concept folder relate to the existing `research/keyword-extractor-voiceover/` line, given both name a weather-voiceover → vertical-video tool for V1? Three equal-weight possibilities: **A — subsumes**, **B — references (sibling)**, **C — independent**. No selection is made here.
+How does the V1 AI Hub concept folder relate to the existing `research/keyword-extractor-voiceover/` line, given both name a weather-voiceover → vertical-video tool for V1? Four equal-weight possibilities: **A — subsumes**, **B — references (sibling)**, **C — independent**, **D — partial / selective adoption**. No selection is made here.
 
 ## What `research/keyword-extractor-voiceover/` is
 
-A locked-scope research line (R0 → R9 plus a brand-palette draft `00d-v1-brand-palette.md`) for one tool: a weather-voiceover → 9:16 vertical-video pipeline aimed at the V1 / Keshet newsroom. `PRE-RESEARCH.md` fixes the input (Hebrew-primary daily voiceover), the output canvas (1080×1920, 30 fps), the audience (a named friend at Keshet), and the report catalogue. It sits at **tool-level concept depth** — picks per-decision defaults, names candidate components, ends in a synthesis report with a two-week build plan. Its draft V1 / Keshet brand-palette token list is the one point where it names the V1 brand explicitly.
+A locked-scope research line (R0 → R9 plus a brand-palette draft `00d-v1-brand-palette.md`) for one tool: a weather-voiceover → vertical-video pipeline aimed at the V1 / Keshet newsroom. `PRE-RESEARCH.md` records the input (Hebrew-primary daily voiceover), a target output canvas and frame rate, the audience (a named friend at Keshet), and the report catalogue. It sits at **tool-level concept depth** — picks per-decision defaults, names candidate components, ends in a synthesis report with a fixed build-plan horizon. Its draft V1 / Keshet brand-palette token list is the one point where it names the V1 brand explicitly.
 
 ## Possibility A — V1 AI Hub *subsumes* the existing research
 
@@ -34,9 +34,17 @@ Questions to answer first:
 The V1 AI Hub weather tool is a fresh design, sharing only the theme (weather, V1, vertical video). The existing folder is treated as unrelated prior work or merely thematic neighbour, not a feeder.
 
 Questions to answer first:
-1. What distinguishes the hub's weather tool from the existing one strongly enough to justify duplicate effort rather than reuse?
+1. What design or audience differences would make a fresh hub-side tool the right shape for the hub, even given the existing line?
 2. If both lines reach implementation, how are name collisions, brand-palette divergence, and audience overlap (same Keshet newsroom) reconciled?
+
+## Possibility D — *partial* subsumption / selective adoption
+
+The hub adopts some artefacts of the existing folder (for example, the brand-palette draft, or the schema work) and re-opens others (for example, the locked stack picks, the locked output canvas, or the named-friend audience scope). The existing folder is neither fully absorbed nor treated as a peer; it becomes a **library** the hub draws from selectively, with explicit notes on what was kept and what was re-opened.
+
+Questions to answer first:
+1. If the hub adopts some artefacts and re-opens others, who maintains the inventory of what was kept vs. re-opened, and how is drift between adopted artefact and its origin tracked?
+2. Does selective adoption require the existing folder to keep evolving in parallel, freeze, or annotate which of its decisions are "exported" and which are not?
 
 ## Why the orchestrator forbids merging the two folders unilaterally
 
-Until the user picks A, B, or C, the two folders stay separate. Silent merging would erase the user's right to choose between these three relationships.
+Until the user picks A, B, C, or D, the two folders stay separate. Silent merging would erase the user's right to choose between these four relationships.
