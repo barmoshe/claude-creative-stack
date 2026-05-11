@@ -8,6 +8,15 @@
       "port": 8765
     },
     {
+      "name": "weatherv1",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/barmoshe/claude-creative-stack/weatherV1/app && exec ./.venv/bin/python server.py"
+      ],
+      "port": 8012
+    },
+    {
       "name": "storybook",
       "runtimeExecutable": "/bin/bash",
       "runtimeArgs": [
@@ -15,6 +24,14 @@
         "cd /Users/barmoshe/claude-creative-stack/joomsy-app/apps/web-app; export NVM_DIR=\"$HOME/.nvm\"; source \"$NVM_DIR/nvm.sh\"; nvm use 22; exec pnpm storybook --no-open"
       ],
       "port": 6006
+    },
+    {
+      "name": "nextdev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": true,
+      "cwd": "/Users/barmoshe/claude-creative-stack/weatherv1-next"
     }
   ]
 }
