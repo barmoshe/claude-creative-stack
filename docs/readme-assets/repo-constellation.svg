@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 320" role="img" aria-labelledby="rcTitle">
+  <title id="rcTitle">Repository pieces orbiting the Project hub</title>
+  <defs>
+    <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6366f1"><animate attributeName="stop-color" values="#6366f1;#818cf8;#6366f1" dur="10s" repeatCount="indefinite"/></stop>
+      <stop offset="100%" stop-color="#312e81"/>
+    </radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="1.5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="920" height="320" rx="22" fill="#020617"/>
+  <rect x="2" y="2" width="916" height="316" rx="20" fill="none" stroke="#334155" stroke-width="1">
+    <animate attributeName="stroke-opacity" values="0.4;0.95;0.4" dur="10s" repeatCount="indefinite"/>
+  </rect>
+  <!-- orbit guide (subtle) -->
+  <ellipse cx="460" cy="165" rx="220" ry="95" fill="none" stroke="#1e293b" stroke-width="1" stroke-dasharray="6 12" opacity="0.6">
+    <animateTransform attributeName="transform" type="rotate" from="0 460 165" to="360 460 165" dur="120s" repeatCount="indefinite"/>
+  </ellipse>
+  <!-- dashed spokes -->
+  <g stroke="#475569" stroke-width="1.5" fill="none" opacity="0.85">
+    <path d="M460 165 L460 48"><animate attributeName="stroke-opacity" values="0.3;0.9;0.3" dur="4s" repeatCount="indefinite"/></path>
+    <path d="M460 165 L660 115"><animate attributeName="stroke-opacity" values="0.3;0.9;0.3" dur="4s" begin="0.8s" repeatCount="indefinite"/></path>
+    <path d="M460 165 L640 248"><animate attributeName="stroke-opacity" values="0.3;0.9;0.3" dur="4s" begin="1.6s" repeatCount="indefinite"/></path>
+    <path d="M460 165 L280 248"><animate attributeName="stroke-opacity" values="0.3;0.9;0.3" dur="4s" begin="2.4s" repeatCount="indefinite"/></path>
+    <path d="M460 165 L260 115"><animate attributeName="stroke-opacity" values="0.3;0.9;0.3" dur="4s" begin="3.2s" repeatCount="indefinite"/></path>
+  </g>
+  <!-- animated packets along spokes -->
+  <circle r="5" fill="#fbbf24" filter="url(#soft)"><animateMotion dur="3s" repeatCount="indefinite" path="M460 165 L460 48"/></circle>
+  <circle r="5" fill="#22d3ee" filter="url(#soft)"><animateMotion dur="3s" repeatCount="indefinite" begin="0.6s" path="M460 165 L660 115"/></circle>
+  <circle r="5" fill="#34d399" filter="url(#soft)"><animateMotion dur="3s" repeatCount="indefinite" begin="1.2s" path="M460 165 L640 248"/></circle>
+  <circle r="5" fill="#f472b6" filter="url(#soft)"><animateMotion dur="3s" repeatCount="indefinite" begin="1.8s" path="M460 165 L280 248"/></circle>
+  <circle r="5" fill="#a78bfa" filter="url(#soft)"><animateMotion dur="3s" repeatCount="indefinite" begin="2.4s" path="M460 165 L260 115"/></circle>
+  <!-- hub -->
+  <circle cx="460" cy="165" r="52" fill="url(#hubGrad)" stroke="#a5b4fc" stroke-width="3" filter="url(#soft)">
+    <animate attributeName="r" values="50;54;50" dur="5s" repeatCount="indefinite"/>
+  </circle>
+  <text x="460" y="158" text-anchor="middle" fill="#eef2ff" font-family="system-ui,sans-serif" font-size="13" font-weight="800">PROJECT</text>
+  <text x="460" y="178" text-anchor="middle" fill="#c7d2fe" font-family="system-ui,sans-serif" font-size="10">KB + CLAUDE.md</text>
+  <!-- satellites -->
+  <g transform="translate(380 8)">
+    <rect x="0" y="0" width="160" height="56" rx="12" fill="#1e3a5f" stroke="#38bdf8" stroke-width="2"/>
+    <text x="80" y="24" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="700" font-family="system-ui,sans-serif">knowledge/</text>
+    <text x="80" y="42" text-anchor="middle" fill="#93c5fd" font-size="10" font-family="system-ui,sans-serif">18 guides</text>
+    <animateTransform attributeName="transform" type="translate" values="380 8;380 5;380 8" dur="6s" repeatCount="indefinite"/>
+  </g>
+  <g transform="translate(668 78)">
+    <rect x="0" y="0" width="160" height="56" rx="12" fill="#3f3f46" stroke="#a1a1aa" stroke-width="2"/>
+    <text x="80" y="24" text-anchor="middle" fill="#fafafa" font-size="12" font-weight="700" font-family="system-ui,sans-serif">skills/</text>
+    <text x="80" y="42" text-anchor="middle" fill="#d4d4d8" font-size="10" font-family="system-ui,sans-serif">10 SKILL.md</text>
+    <animateTransform attributeName="transform" type="translate" values="668 78;668 75;668 78" dur="5.5s" begin="0.4s" repeatCount="indefinite"/>
+  </g>
+  <g transform="translate(648 248)">
+    <rect x="0" y="0" width="160" height="56" rx="12" fill="#701a75" stroke="#e879f9" stroke-width="2"/>
+    <text x="80" y="24" text-anchor="middle" fill="#fdf4ff" font-size="12" font-weight="700" font-family="system-ui,sans-serif">artifacts/</text>
+    <text x="80" y="42" text-anchor="middle" fill="#f5c2ff" font-size="10" font-family="system-ui,sans-serif">26 starters</text>
+    <animateTransform attributeName="transform" type="translate" values="648 248;648 251;648 248" dur="6.2s" begin="0.2s" repeatCount="indefinite"/>
+  </g>
+  <g transform="translate(112 248)">
+    <rect x="0" y="0" width="160" height="56" rx="12" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+    <text x="80" y="24" text-anchor="middle" fill="#ecfdf5" font-size="12" font-weight="700" font-family="system-ui,sans-serif">mcp/servers/</text>
+    <text x="80" y="42" text-anchor="middle" fill="#a7f3d0" font-size="10" font-family="system-ui,sans-serif">3 TypeScript</text>
+    <animateTransform attributeName="transform" type="translate" values="112 248;112 245;112 248" dur="5.8s" begin="0.6s" repeatCount="indefinite"/>
+  </g>
+  <g transform="translate(92 78)">
+    <rect x="0" y="0" width="160" height="56" rx="12" fill="#422006" stroke="#fb923c" stroke-width="2"/>
+    <text x="80" y="24" text-anchor="middle" fill="#fff7ed" font-size="12" font-weight="700" font-family="system-ui,sans-serif">recipes · prompts</text>
+    <text x="80" y="42" text-anchor="middle" fill="#fed7aa" font-size="10" font-family="system-ui,sans-serif">narratives</text>
+    <animateTransform attributeName="transform" type="translate" values="92 78;92 75;92 78" dur="5.3s" begin="0.9s" repeatCount="indefinite"/>
+  </g>
+</svg>
