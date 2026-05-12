@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" role="img" aria-labelledby="btitle">
+  <title id="btitle">Claude Creative Stack banner</title>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b">
+        <animate attributeName="stop-color" values="#1e1b4b;#312e81;#1e1b4b" dur="16s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="55%" stop-color="#831843">
+        <animate attributeName="stop-color" values="#831843;#9d174d;#831843" dur="16s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#0f766e">
+        <animate attributeName="stop-color" values="#0f766e;#0d9488;#0f766e" dur="16s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+    <linearGradient id="beam" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#c084fc" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="-300 0;300 0;-300 0" dur="22s" repeatCount="indefinite"/>
+    </linearGradient>
+    <filter id="g">
+      <feGaussianBlur stdDeviation="3" result="x"/><feMerge><feMergeNode in="x"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="340" fill="url(#bg)"/>
+  <rect width="1200" height="340" fill="url(#beam)"/>
+  <!-- sketch grid -->
+  <g opacity="0.07" stroke="#faf5ff" stroke-width="1">
+    <path d="M0 110 H1200 M0 220 H1200"><animateTransform attributeName="transform" type="translate" values="0 0;24 0;0 0" dur="28s" repeatCount="indefinite"/></path>
+  </g>
+  <!-- orbit dots -->
+  <g fill="#fbbf24" opacity="0.85">
+    <circle cx="980" cy="90" r="5"><animate attributeName="cx" values="960;1000;960" dur="8s" repeatCount="indefinite"/></circle>
+    <circle cx="1040" cy="200" r="4" fill="#22d3ee"><animate attributeName="cy" values="180;220;180" dur="6s" repeatCount="indefinite"/></circle>
+  </g>
+  <!-- wordmark -->
+  <text x="48" y="120" fill="#fafafa" font-family="ui-sans-serif,system-ui,sans-serif" font-size="46" font-weight="800" letter-spacing="-0.04em">Claude Creative Stack</text>
+  <text x="48" y="175" fill="#e9d5ff" font-family="ui-sans-serif,sans-serif" font-size="22" font-weight="500">Knowledge &#183; Skills &#183; Artifacts &#183; MCP &#183; Recipes</text>
+  <text x="48" y="228" fill="#5eead4" font-family="ui-monospace,monospace" font-size="17">Art &#183; animation &#183; UX &#183; games &#183; audio &#183; dataviz &#183; shaders &#183; pipelines</text>
+  <!-- decorative strokes -->
+  <path d="M48 260 H420" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" opacity="0.85" stroke-dasharray="72 48">
+    <animate attributeName="stroke-dashoffset" values="0;-240" dur="3.5s" repeatCount="indefinite"/>
+  </path>
+</svg>

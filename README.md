@@ -1,141 +1,211 @@
-# claude-creative-stack
+<p align="center">
+  <img src="docs/readme-assets/banner.svg" alt="Claude Creative Stack — banner" width="100%"/>
+</p>
 
-Scaffolding + reference pack for building **art, animation, graphics, UX/UI, games, audio, and dataviz** with Claude-native tooling — Artifacts, Skills, MCP, and the API.
+<p align="center"><sub>Banner + strip graphics use SVG <strong>SMIL</strong> — animates in GitHub README previews.</sub></p>
 
-Designed to be mounted into a [Claude Project](https://support.claude.com/en/articles/9517075-what-are-projects) so every conversation is grounded in the same facts, follows the same defaults, and has ready-made scaffolds to build against.
+<p align="center">
+  <img src="https://img.shields.io/badge/Claude-Projects-D97757?style=for-the-badge" alt="Claude Projects"/>
+  <img src="https://img.shields.io/badge/Artifacts-preview-6366f1?style=for-the-badge" alt="Artifacts"/>
+  <img src="https://img.shields.io/badge/Skills-10_in_repo-0ea5e9?style=for-the-badge" alt="Skills"/>
+  <img src="https://img.shields.io/badge/MCP-3%20servers-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="MCP three servers"/>
+  <img src="https://img.shields.io/badge/license-MIT-a31f34?style=for-the-badge" alt="MIT"/>
+</p>
 
-> Targets the Claude ecosystem as of **May 2026** — Opus 4.7, Sonnet 4.6, Haiku 4.5. See [`knowledge/99-caveats.md`](knowledge/99-caveats.md) for values Anthropic rotates silently.
+<p align="center"><strong>Scaffolding + reference library + runnable MCP servers</strong> for <strong>art, animation, UX/UI, graphics, games, audio, dataviz, shaders, export, and agentic asset pipelines</strong> — built around Claude <strong>Artifacts</strong>, <strong>Skills</strong>, <strong>MCP</strong>, and the <strong>API</strong>.</p>
+
+<p align="center">Mount into a <a href="https://support.claude.com/en/articles/9517075-what-are-projects">Claude Project</a> so every thread shares the same facts, guardrails, and starters.</p>
+
+<p align="center">
+  <a href="#how-the-pieces-stack">Stack</a>
+  &nbsp;·&nbsp; <a href="#whats-in-the-box">Inventory</a>
+  &nbsp;·&nbsp; <a href="#cold-start-reading">Reading order</a>
+  &nbsp;·&nbsp; <a href="#quick-start">Recipes</a>
+  &nbsp;·&nbsp; <a href="#install">Install</a>
+  &nbsp;·&nbsp; <a href="#host-layout--child-repos">Child repos</a>
+</p>
 
 ---
 
-## What's inside
+> **Snapshot:** May **2026** — Opus **4.7**, Sonnet **4.6**, Haiku **4.5**. Anthropic rotates IDs without fanfare → **[`knowledge/99-caveats.md`](knowledge/99-caveats.md)** before freezing versions.
+
+---
+
+## At a glance
+
+| You pull from… | You get |
+|----------------|---------|
+| **[`knowledge/`](knowledge/)** | Routed reference docs (`01`–`16`, `99`) — upload into the Project KB |
+| **[`skills/`](skills/)** | **10** `SKILL.md` agents (games, motion, shaders, UI, procgen, critique, …) |
+| **[`artifacts/`](artifacts/)** | **26** sandbox-correct HTML / JSX starters |
+| **[`prompts/`](prompts/)** | Copy-paste scaffolds — catalog **[`prompts/README.md`](prompts/README.md)** |
+| **[`recipes/`](recipes/)** | End-to-end narratives — index **[`recipes/README.md`](recipes/README.md)** |
+| **[`mcp/servers/`](mcp/servers/)** | **3** TypeScript MCP servers + **[`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json)** |
+
+---
+
+## How the pieces stack
+
+<p align="center">
+  <img src="docs/readme-assets/layers-strip.svg" alt="Skill determinism to Artifact preview to MCP side-effects" width="min(880px, 100%)"/>
+</p>
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#818cf8', 'lineColor': '#94a3b8'}}}%%
+flowchart LR
+  subgraph skill [Skill]
+    S[Deterministic scaffold]
+  end
+  subgraph art [Artifact]
+    A[Interactive preview]
+  end
+  subgraph mcp [MCP]
+    M[Filesystem · APIs · tools]
+  end
+  S --> A --> M
+```
+
+**Defaults** (full routing in [`CLAUDE.md`](CLAUDE.md)): animate **`transform` / `opacity` / `filter` only** · **`oklch()`** · Artifacts → **`window.storage`**, fetch **`api.anthropic.com/v1/messages`** only · Three.js **r128** in sandbox · ship as **Skill → Artifact → MCP**.
+
+---
+
+## Cold-start reading
+
+Priority adapted from [`knowledge/00-index.md`](knowledge/00-index.md):
+
+1. **[`03-artifacts.md`](knowledge/03-artifacts.md)** — sandbox violations are expensive.
+2. **[`01-claude-ecosystem.md`](knowledge/01-claude-ecosystem.md)** — models & API shapes.
+3. **Domain file** for today’s task (`04` animation … `16` hooks).
+4. **[`14-accessibility-performance.md`](knowledge/14-accessibility-performance.md)** — before calling anything “done”.
+5. **[`99-caveats.md`](knowledge/99-caveats.md)** — last stop before hardcoding.
+
+---
+
+## What’s in the box
 
 ```
-knowledge/   11 re-chunked reference docs + index (the Project knowledge payload)
-skills/       7 Agent Skills in SKILL.md format
-artifacts/   12 single-file starters (7 HTML, 5 React/JSX)
-prompts/     10 ready-to-paste prompt scaffolds
-recipes/      4 end-to-end workflow narratives
-mcp/          1 working TypeScript MCP server + drop-in .mcp.json
-playground/  optional Vite + React + TS harness for off-sandbox iteration
-CLAUDE.md    routing rules + defaults (loaded into Project custom instructions)
+knowledge/     18 Markdown guides — 00-index, 01–16, 99-caveats  → Project knowledge payload
+skills/        10 Agent Skills (SKILL.md)
+artifacts/     26 single-file starters (HTML + React/JSX)
+prompts/       11 prompt scaffolds + README
+recipes/       5 workflow narratives + README
+mcp/servers/   3 TypeScript MCP servers + drop-in config
+playground/    optional Vite + React harness (off-sandbox iteration)
+plugins/       JUCE pairs for native audio — companions to select artifacts/html
+CLAUDE.md      paste into Project Custom Instructions
 ```
 
-### knowledge/ — the reference layer
+### Knowledge — routing
 
-| File | Covers |
-|---|---|
-| [`01-claude-ecosystem.md`](knowledge/01-claude-ecosystem.md) | Models, pricing, tool use, caching, batch, thinking, MCP basics |
-| [`02-skills-system.md`](knowledge/02-skills-system.md) | Writing and evaluating a Skill |
-| [`03-artifacts.md`](knowledge/03-artifacts.md) | Artifact sandbox constraints — read before building in-artifact |
-| [`04-animation.md`](knowledge/04-animation.md) | CSS, GSAP, Motion, Anime, SVG, Canvas, easing |
-| [`05-graphics-design.md`](knowledge/05-graphics-design.md) | Design, typography, color, icons, Tailwind |
-| [`06-games.md`](knowledge/06-games.md) | Engines, ECS, 2D/3D, juice, procgen, pathfinding, AI, netcode |
-| [`07-audio.md`](knowledge/07-audio.md) | Tone.js, Web Audio, Howler, SFX, procedural music |
-| [`08-dataviz.md`](knowledge/08-dataviz.md) | Dataviz patterns and libraries |
-| [`09-prompting.md`](knowledge/09-prompting.md) | XML, few-shot, CoT, caching strategy, long-context |
-| [`10-workflows.md`](knowledge/10-workflows.md) | Skills + Artifacts + MCP together, critique loops, Claudeception |
-| [`99-caveats.md`](knowledge/99-caveats.md) | Values Anthropic silently rotates — check before hardcoding |
+Open **[`knowledge/00-index.md`](knowledge/00-index.md)** for the full **“if the user asks about…”** table. Abbreviated map:
 
-### skills/ — 7 Agent Skills
+| # | Files | Covers |
+|---|--------|--------|
+| 01–03 | [`01`](knowledge/01-claude-ecosystem.md) [`02`](knowledge/02-skills-system.md) [`03`](knowledge/03-artifacts.md) | Ecosystem · Skills · **Artifacts (constraints)** |
+| 04–10 | [`04`](knowledge/04-animation.md) [`05`](knowledge/05-graphics-design.md) [`06`](knowledge/06-games.md) [`07`](knowledge/07-audio.md) [`08`](knowledge/08-dataviz.md) [`09`](knowledge/09-prompting.md) [`10`](knowledge/10-workflows.md) | Animation · design · games · audio · dataviz · prompting · pipelines |
+| 11–16 | [`11`](knowledge/11-creative-connectors.md) [`12`](knowledge/12-shaders-webgpu.md) [`13`](knowledge/13-asset-pipelines.md) [`14`](knowledge/14-accessibility-performance.md) [`15`](knowledge/15-export-recording.md) [`16`](knowledge/16-hooks-and-retrieval.md) | Connectors · shaders · generative media · a11y/perf · export · hooks |
+| 99 | [`99-caveats.md`](knowledge/99-caveats.md) | Silent rotation |
 
-[`artifact-game-builder`](skills/artifact-game-builder/SKILL.md) · [`animation-composer`](skills/animation-composer/SKILL.md) · [`shader-smith`](skills/shader-smith/SKILL.md) · [`palette-generator`](skills/palette-generator/SKILL.md) · [`sprite-atlas-builder`](skills/sprite-atlas-builder/SKILL.md) · [`ui-design-kit`](skills/ui-design-kit/SKILL.md) · [`procgen-toolkit`](skills/procgen-toolkit/SKILL.md)
+### Skills — 10 in-repo
 
-### artifacts/ — sandbox-correct starters
+[`artifact-game-builder`](skills/artifact-game-builder/SKILL.md) · [`animation-composer`](skills/animation-composer/SKILL.md) · [`shader-smith`](skills/shader-smith/SKILL.md) · [`palette-generator`](skills/palette-generator/SKILL.md) · [`sprite-atlas-builder`](skills/sprite-atlas-builder/SKILL.md) · [`ui-design-kit`](skills/ui-design-kit/SKILL.md) · [`procgen-toolkit`](skills/procgen-toolkit/SKILL.md) · [`critique-loop`](skills/critique-loop/SKILL.md) · [`asset-generator`](skills/asset-generator/SKILL.md) · [`viral-news-scanner`](skills/viral-news-scanner/SKILL.md)
 
-HTML: Three.js (r128), GSAP scroll story, Kaplay, Phaser 4, shader playground, procgen dungeon, Tone.js procedural music.
-React: bento-grid landing, kinetic typography, dataviz dashboard, ECS game starter, Claudeception critic loop.
+### Artifacts
 
-All respect the real artifact constraints: composite-only CSS, `window.storage` (not `localStorage`), allow-listed fetch, Three.js **r128 only**, no `CapsuleGeometry`, no `OrbitControls` from addons. See [`artifacts/README.md`](artifacts/README.md).
+HTML & React starters respect real sandbox rules — catalog **[`artifacts/README.md`](artifacts/README.md)**.
 
-### mcp/ — working server
+### MCP — three servers
 
-[`palette-oklch`](mcp/servers/palette-oklch) is a real TypeScript MCP server (not a placeholder) for generating WCAG-checked oklch color palettes. See [`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json) for the drop-in client config.
+| Server | Role |
+|--------|------|
+| [`palette-oklch`](mcp/servers/palette-oklch) | WCAG-aware **oklch** palettes |
+| [`sprite-packer`](mcp/servers/sprite-packer) | Atlas packing |
+| [`asset-router`](mcp/servers/asset-router) | Asset routing / pipeline glue |
+
+Wire clients with **[`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json)**.
 
 ---
 
 ## Quick start
 
-Three concrete flows that exercise the whole stack. Each assumes you've installed into a Claude Project (next section) and registered the MCPs.
+Assumes [`CLAUDE.md`](CLAUDE.md) + [`knowledge/`](knowledge/) are in a Project and MCPs are built (see [Install](#install)).
 
-| You want to… | Open | Then |
-|---|---|---|
-| **Build a playable game** | [`recipes/game-jam.md`](recipes/game-jam.md) | Use the `artifact-game-builder` skill; start from [`artifacts/react/game-ecs-starter.jsx`](artifacts/react/game-ecs-starter.jsx) or [`artifacts/html/kaplay-top-down.html`](artifacts/html/kaplay-top-down.html). |
-| **Animate a landing page** | [`recipes/animated-landing.md`](recipes/animated-landing.md) | Use the `animation-composer` skill; start from [`artifacts/html/css-animation-hero.html`](artifacts/html/css-animation-hero.html) or [`artifacts/react/bento-grid-landing.jsx`](artifacts/react/bento-grid-landing.jsx). |
-| **Tell a data story** | [`recipes/data-story.md`](recipes/data-story.md) | Use [`prompts/build-dataviz.md`](prompts/build-dataviz.md); start from [`artifacts/react/dataviz-dashboard.jsx`](artifacts/react/dataviz-dashboard.jsx). |
-| **Run an agentic asset pipeline** | [`recipes/agentic-asset-pipeline.md`](recipes/agentic-asset-pipeline.md) | Uses `asset-generator` + `palette-oklch` + `sprite-packer` MCPs to ship a tile set into Kaplay. |
-| **Critique your own artifact** | [`prompts/critique-and-refine.md`](prompts/critique-and-refine.md) | Use the `critique-loop` skill, or the [`shader-jam.jsx`](artifacts/react/shader-jam.jsx) flagship for vision-grounded feedback. |
+| Goal | Recipe | Starter / prompt |
+|------|--------|-------------------|
+| **Playable game** | [`recipes/game-jam.md`](recipes/game-jam.md) | `artifact-game-builder` + [`game-ecs-starter.jsx`](artifacts/react/game-ecs-starter.jsx) or [`kaplay-top-down.html`](artifacts/html/kaplay-top-down.html) |
+| **Animated landing** | [`recipes/animated-landing.md`](recipes/animated-landing.md) | `animation-composer` + [`css-animation-hero.html`](artifacts/html/css-animation-hero.html) or [`bento-grid-landing.jsx`](artifacts/react/bento-grid-landing.jsx) |
+| **Data story** | [`recipes/data-story.md`](recipes/data-story.md) | [`prompts/build-dataviz.md`](prompts/build-dataviz.md) + [`dataviz-dashboard.jsx`](artifacts/react/dataviz-dashboard.jsx) |
+| **Design system** | [`recipes/design-system.md`](recipes/design-system.md) | `ui-design-kit` + palette / UI prompts from [`prompts/README.md`](prompts/README.md) |
+| **Agentic pipeline** | [`recipes/agentic-asset-pipeline.md`](recipes/agentic-asset-pipeline.md) | `asset-generator` + **`palette-oklch`** + **`sprite-packer`** (full-stack narrative) |
+| **Critique loop** | [`prompts/critique-and-refine.md`](prompts/critique-and-refine.md) | `critique-loop` or [`shader-jam.jsx`](artifacts/react/shader-jam.jsx) |
 
-See [`docs/diagram.md`](docs/diagram.md) for a one-page visual of how knowledge / prompts / skills / artifacts / MCP fit together.
+One-page diagram of how layers connect → **[`docs/diagram.md`](docs/diagram.md)**.
+
+---
 
 ## Install
 
-### Into a Claude Project (primary use case)
+### Claude Project (primary)
 
-1. Create a new Claude Project at [claude.ai](https://claude.ai).
-2. Paste [`CLAUDE.md`](CLAUDE.md) into the project's **Custom Instructions** field.
-3. Upload every file in [`knowledge/`](knowledge/) to the project's knowledge base.
-4. *(Optional)* Upload any [`prompts/`](prompts/) or [`recipes/`](recipes/) files you want Claude to reference directly.
-5. Start a new chat — Claude now has the full reference plus routing rules.
+1. New Project at [claude.ai](https://claude.ai).
+2. Paste **[`CLAUDE.md`](CLAUDE.md)** into **Custom Instructions**.
+3. Upload **[all of `knowledge/`](knowledge/)** to the knowledge base.
+4. *(Optional)* Attach [`prompts/`](prompts/) or [`recipes/`](recipes/) files you want one-click visible.
+5. Start chatting — routing + defaults apply.
 
-### Skills
+### Skills outside Projects
 
-- **Claude Code** — copy a skill folder into `~/.claude/skills/<skill-name>/`, or `/plugin add /path/to/claude-creative-stack/skills/<skill-name>`.
-- **Claude.ai (Pro/Max/Team/Enterprise)** — upload via the Skills panel.
-- **API** — upload to `/v1/skills` (requires `code-execution` tool).
+| Surface | How |
+|---------|-----|
+| **Claude Code** | Copy to `~/.claude/skills/<name>/` or `/plugin add …/skills/<name>` |
+| **Claude.ai** (paid) | Skills panel |
+| **API** | `/v1/skills` where `code-execution` applies |
 
-### MCP server
+### MCP — build all three
 
 ```bash
-cd mcp/servers/palette-oklch
-npm install && npm run build
+for d in palette-oklch sprite-packer asset-router; do
+  ( cd "mcp/servers/$d" && npm install && npm run build )
+done
 ```
 
-Then add it to `~/.claude.json` or a project `.mcp.json` using the template at [`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json).
+Point **`~/.claude.json`** or a project **`.mcp.json`** at **[`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json)**.
 
-### Artifacts
+### Artifacts locally
 
-Open any [`artifacts/html/*.html`](artifacts/html/) directly in a browser — no build step. React starters are `.jsx` written against the artifact runtime's library whitelist; paste into a Claude chat, or import into [`playground/`](playground/) to iterate outside the sandbox.
-
----
-
-## Defaults (enforced via `CLAUDE.md`)
-
-- Composite-only CSS props for animation (`transform`, `opacity`, `filter`) — never animate layout-triggering properties.
-- `oklch()` over hex/hsl; check WCAG contrast on paired text/background.
-- Three.js **r128** inside artifacts; no `CapsuleGeometry`; no `OrbitControls` from the addons path.
-- `window.storage`, not `localStorage`. Fetch only `api.anthropic.com/v1/messages` (key-less, billed to viewer).
-- Three-layer pipeline when shipping: **Skill** (determinism) → **Artifact** (live preview) → **MCP** (side-effects).
+Open [`artifacts/html/*.html`](artifacts/html/) in a browser. For React, paste `.jsx` into Claude or import via [`playground/`](playground/).
 
 ---
 
-## Related work (install alongside)
+## Host layout — child repos
 
-This repo does **not** duplicate prior art. For deeper coverage, install in parallel:
+Top-level folders may be **separate git repos** (their own `.git`). **Not** submodules. Work **inside** the child for that project’s git history — **do not** mix host and child commits. Details → **[`CLAUDE.md`](CLAUDE.md)** (Child repos).
 
-- [anthropics/skills](https://github.com/anthropics/skills) — official skills (`docx`, `pptx`, `xlsx`, `pdf`, `algorithmic-art`, `canvas-design`, `frontend-design`, `web-artifacts-builder`, `theme-factory`, `skill-creator`, `mcp-builder`, `slack-gif-creator`, `brand-guidelines`).
-- [greensock/gsap-skills](https://github.com/greensock/gsap-skills) — official GSAP skills for agents.
-- [freshtechbro/claudedesignskills](https://github.com/freshtechbro/claudedesignskills) — maintained 3D/animation skills marketplace (Three.js, R3F, Babylon, A-Frame, PlayCanvas, Pixi, Motion, React Spring, Magic UI, Lottie, Anime, Rive, Blender, Spline).
-- [HermeticOrmus/claude-code-game-development](https://github.com/HermeticOrmus/claude-code-game-development) — game-dev patterns.
-- [awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills) / [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) — discovery lists.
-- Plugin registries: [buildwithclaude.com](https://buildwithclaude.com) · [claudemarketplaces.com](https://claudemarketplaces.com) · [claudepluginhub.com](https://www.claudepluginhub.com).
+---
 
-### One-shot install via Claude Code plugin marketplaces
+## Related work (alongside, not redundant)
+
+- [anthropics/skills](https://github.com/anthropics/skills) — official Skills.
+- [greensock/gsap-skills](https://github.com/greensock/gsap-skills) — GSAP.
+- [freshtechbro/claudedesignskills](https://github.com/freshtechbro/claudedesignskills) — design / 3D / motion marketplace.
+- [HermeticOrmus/claude-code-game-development](https://github.com/HermeticOrmus/claude-code-game-development) — game workflows.
+- Lists: [awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills) · [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills).
+- Registries: [buildwithclaude.com](https://buildwithclaude.com) · [claudemarketplaces.com](https://claudemarketplaces.com) · [claudepluginhub.com](https://www.claudepluginhub.com).
+
+<details>
+<summary><strong>Optional — Claude Code marketplace bulk install</strong></summary>
 
 ```sh
-# Add the four marketplaces
 claude plugin marketplace add anthropics/skills
 claude plugin marketplace add greensock/gsap-skills
 claude plugin marketplace add freshtechbro/claudedesignskills
 claude plugin marketplace add HermeticOrmus/claude-code-game-development
 
-# Core skills
 claude plugin install example-skills@anthropic-agent-skills
 claude plugin install claude-api@anthropic-agent-skills
 claude plugin install gsap-skills@gsap-skills
 claude plugin install game-development@claude-code-workflows
 
-# Design-stack skills (3D, motion, scroll, components)
 for p in threejs-webgl react-three-fiber pixijs-2d animejs motion-framer \
          lottie-animations rive-interactive gsap-scrolltrigger react-spring-physics \
          babylonjs-engine playcanvas-engine aframe-webxr spline-interactive \
@@ -148,22 +218,22 @@ for p in threejs-webgl react-three-fiber pixijs-2d animejs motion-framer \
 done
 ```
 
-Browse with `claude plugin list --available --json`; remove with `claude plugin uninstall <name>`.
+`claude plugin list --available --json`
 
-### What this repo adds
+</details>
 
-| Others | This repo |
-|---|---|
-| Claude Code-first | **Claude Project-first** — `knowledge/` is the primary deliverable |
-| Skills only | Knowledge + prompts + skills + artifacts + MCP + recipes, unified |
-| Configs and docs | A **real** working MCP server you can `npm install && run` |
-| Silent on version drift | [`knowledge/99-caveats.md`](knowledge/99-caveats.md) calls it out explicitly |
-| Animation/3D only | Full creative scope: art, animation, UX/UI, graphics, games, audio, dataviz |
+### Why this repo still matters
+
+| Elsewhere | Here |
+|-----------|------|
+| Claude Code–first | **Project-first** — `knowledge/` is the spine |
+| Skills only | Knowledge + prompts + artifacts + MCP + recipes |
+| Docs-only MCP | **`npm install && npm run build`** servers in-tree |
+| Silent drift | **[`99-caveats.md`](knowledge/99-caveats.md)** names it |
 
 ---
 
-## License & contributing
-
-MIT — see [`LICENSE`](LICENSE).
-
-PRs welcome. New skills should follow the `SKILL.md` format documented in [`knowledge/02-skills-system.md`](knowledge/02-skills-system.md). Starter ideas → open an issue.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a31f34?style=flat-square" alt="MIT"/></a>
+  &nbsp;PRs welcome · new Skills → <a href="knowledge/02-skills-system.md"><code>02-skills-system.md</code></a>
+</p>
