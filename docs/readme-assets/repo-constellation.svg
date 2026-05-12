@@ -62,7 +62,7 @@
   </g>
   <g transform="translate(92 78)">
     <rect x="0" y="0" width="160" height="56" rx="12" fill="#422006" stroke="#fb923c" stroke-width="2"/>
-    <text x="80" y="24" text-anchor="middle" fill="#fff7ed" font-size="12" font-weight="700" font-family="system-ui,sans-serif">recipes · prompts</text>
+    <text x="80" y="24" text-anchor="middle" fill="#fff7ed" font-size="12" font-weight="700" font-family="system-ui,sans-serif">recipes Â· prompts</text>
     <text x="80" y="42" text-anchor="middle" fill="#fed7aa" font-size="10" font-family="system-ui,sans-serif">narratives</text>
     <animateTransform attributeName="transform" type="translate" values="92 78;92 75;92 78" dur="5.3s" begin="0.9s" repeatCount="indefinite"/>
   </g>

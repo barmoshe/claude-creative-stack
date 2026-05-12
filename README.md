@@ -2,7 +2,13 @@
   <img src="docs/readme-assets/banner.svg" alt="Claude Creative Stack — banner" width="100%"/>
 </p>
 
-<p align="center"><sub>Banner + strip graphics use SVG <strong>SMIL</strong> — animates in GitHub README previews.</sub></p>
+<p align="center"><sub>Banner + strips + mascot use SVG <strong>SMIL</strong> — animates in GitHub README previews.</sub></p>
+
+<p align="center">
+  <img src="playground/monkey-pasta.svg" alt="Animated monkey mascot slurping spaghetti — idle bob, blink, steam, noodle shimmer" width="220"/>
+</p>
+
+<p align="center"><sub>Playground sprite · <a href="playground/monkey-pasta.svg"><code>playground/monkey-pasta.svg</code></a> · single SVG “sheet,” motion via <code>&lt;animate&gt;</code> / <code>&lt;animateTransform&gt;</code></sub></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude-Projects-D97757?style=for-the-badge" alt="Claude Projects"/>
