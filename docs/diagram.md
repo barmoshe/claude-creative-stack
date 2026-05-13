@@ -5,7 +5,7 @@ How the layers of `claude-creative-stack` fit together.
 ```mermaid
 flowchart LR
   subgraph "Claude Project"
-    K["knowledge/<br/>15 files<br/>routing + reference"]
+    K["knowledge/<br/>19 files<br/>routing + reference"]
     C["CLAUDE.md<br/>routing rules"]
   end
 
@@ -14,12 +14,12 @@ flowchart LR
   end
 
   subgraph "Determinism layer"
-    P["prompts/<br/>11 XML scaffolds"]
-    S["skills/<br/>9 SKILL.md packages"]
+    P["prompts/<br/>13 XML scaffolds"]
+    S["skills/<br/>12 SKILL.md packages"]
   end
 
   subgraph "Surfaces"
-    A["artifacts/<br/>14 single-file starters<br/>HTML + JSX"]
+    A["artifacts/<br/>27 single-file starters<br/>HTML + JSX"]
     PG["playground/<br/>Vite + R3F + TS"]
   end
 

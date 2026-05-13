@@ -47,6 +47,38 @@ for (const file of readdirSync(DIR).sort()) {
       page.waitForFunction("typeof window.__ready === 'undefined' || window.__ready === true", { timeout: 4000 }),
       page.waitForTimeout(2500),
     ]);
+    if (file === "animated-presentation.html") {
+      await page.locator("#stage h1").waitFor({ timeout: 4000 });
+      const firstTitle = await page.locator("#stage h1").evaluate(el => el.textContent);
+      const box = await page.locator("#stage").boundingBox();
+      if (!box?.width || !box?.height) throw new Error("animated stage is blank or unmeasurable");
+      await page.locator("#nextBtn").click();
+      await page.waitForFunction(title => document.querySelector("#stage h1")?.textContent !== title, firstTitle, { timeout: 3000 });
+      await page.locator("#overviewBtn").click();
+      await page.locator("#overview.is-open").waitFor({ timeout: 3000 });
+      await page.locator("#closeOverview").click();
+      await page.locator("#notesBtn").click();
+      const notesHidden = await page.locator("#notesPanel").evaluate(el => el.hidden);
+      if (!notesHidden) throw new Error("notes toggle did not hide the notes panel");
+      await page.evaluate(() => {
+        const scene = window.__animatedPresentation.deckToExcalidraw();
+        if (!scene.elements.some(el => el.type === "frame")) throw new Error("Excalidraw export has no frames");
+        const ordered = scene.elements
+          .filter(el => el.type === "frame")
+          .every(frame => {
+            const frameIndex = scene.elements.findIndex(el => el.id === frame.id);
+            const childIndex = scene.elements.findIndex(el => el.frameId === frame.id);
+            return childIndex >= 0 && childIndex < frameIndex;
+          });
+        if (!ordered) throw new Error("Excalidraw frame children are not ordered before frames");
+      });
+      await page.locator("#fileInput").setInputFiles(join(ROOT, "docs", "examples", "sketch-frames.excalidraw"));
+      await page.waitForFunction(() => window.__animatedPresentation.getState().slides.length === 2, { timeout: 3000 });
+      const importedTitle = await page.locator("#stage h1").evaluate(el => el.textContent);
+      if (importedTitle !== "Frame A") throw new Error(`Excalidraw frame import failed: saw "${importedTitle}"`);
+      await page.keyboard.press("ArrowRight");
+      await page.waitForFunction(() => document.querySelector("#stage h1")?.textContent === "Frame B", { timeout: 3000 });
+    }
     if (errors.length) {
       failures.push({ file, errors });
       console.error(`✗ ${file}\n  ${errors.join("\n  ")}`);

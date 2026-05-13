@@ -13,7 +13,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Claude-Projects-D97757?style=for-the-badge" alt="Claude Projects"/>
   <img src="https://img.shields.io/badge/Artifacts-preview-6366f1?style=for-the-badge" alt="Artifacts"/>
-  <img src="https://img.shields.io/badge/Skills-10_in_repo-0ea5e9?style=for-the-badge" alt="Skills"/>
+  <img src="https://img.shields.io/badge/Skills-12_in_repo-0ea5e9?style=for-the-badge" alt="Skills"/>
   <img src="https://img.shields.io/badge/MCP-3%20servers-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="MCP three servers"/>
   <img src="https://img.shields.io/badge/license-MIT-a31f34?style=for-the-badge" alt="MIT"/>
 </p>
@@ -41,9 +41,9 @@
 
 | You pull from… | You get |
 |----------------|---------|
-| **[`knowledge/`](knowledge/)** | Routed reference docs (`01`–`16`, `99`) — upload into the Project KB |
-| **[`skills/`](skills/)** | **10** `SKILL.md` agents (games, motion, shaders, UI, procgen, critique, …) |
-| **[`artifacts/`](artifacts/)** | **26** sandbox-correct HTML / JSX starters |
+| **[`knowledge/`](knowledge/)** | Routed reference docs (`01`–`17`, `99`) — upload into the Project KB |
+| **[`skills/`](skills/)** | **12** `SKILL.md` agents (games, motion, shaders, UI, decks, diagrams, …) |
+| **[`artifacts/`](artifacts/)** | **27** sandbox-correct HTML / JSX starters |
 | **[`prompts/`](prompts/)** | Copy-paste scaffolds — catalog **[`prompts/README.md`](prompts/README.md)** |
 | **[`recipes/`](recipes/)** | End-to-end narratives — index **[`recipes/README.md`](recipes/README.md)** |
 | **[`mcp/servers/`](mcp/servers/)** | **3** TypeScript MCP servers + **[`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json)** |
@@ -90,11 +90,11 @@ Priority adapted from [`knowledge/00-index.md`](knowledge/00-index.md):
 ## What’s in the box
 
 ```
-knowledge/     18 Markdown guides — 00-index, 01–16, 99-caveats  → Project knowledge payload
-skills/        10 Agent Skills (SKILL.md)
-artifacts/     26 single-file starters (HTML + React/JSX)
-prompts/       11 prompt scaffolds + README
-recipes/       5 workflow narratives + README
+knowledge/     19 Markdown guides — 00-index, 01–17, 99-caveats  → Project knowledge payload
+skills/        12 Agent Skills (SKILL.md)
+artifacts/     27 single-file starters (HTML + React/JSX)
+prompts/       13 prompt scaffolds + README
+recipes/       6 workflow narratives + README
 mcp/servers/   3 TypeScript MCP servers + drop-in config
 playground/    optional Vite + React harness (off-sandbox iteration)
 plugins/       JUCE pairs for native audio — companions to select artifacts/html
@@ -109,12 +109,12 @@ Open **[`knowledge/00-index.md`](knowledge/00-index.md)** for the full **“if t
 |---|--------|--------|
 | 01–03 | [`01`](knowledge/01-claude-ecosystem.md) [`02`](knowledge/02-skills-system.md) [`03`](knowledge/03-artifacts.md) | Ecosystem · Skills · **Artifacts (constraints)** |
 | 04–10 | [`04`](knowledge/04-animation.md) [`05`](knowledge/05-graphics-design.md) [`06`](knowledge/06-games.md) [`07`](knowledge/07-audio.md) [`08`](knowledge/08-dataviz.md) [`09`](knowledge/09-prompting.md) [`10`](knowledge/10-workflows.md) | Animation · design · games · audio · dataviz · prompting · pipelines |
-| 11–16 | [`11`](knowledge/11-creative-connectors.md) [`12`](knowledge/12-shaders-webgpu.md) [`13`](knowledge/13-asset-pipelines.md) [`14`](knowledge/14-accessibility-performance.md) [`15`](knowledge/15-export-recording.md) [`16`](knowledge/16-hooks-and-retrieval.md) | Connectors · shaders · generative media · a11y/perf · export · hooks |
+| 11–17 | [`11`](knowledge/11-creative-connectors.md) [`12`](knowledge/12-shaders-webgpu.md) [`13`](knowledge/13-asset-pipelines.md) [`14`](knowledge/14-accessibility-performance.md) [`15`](knowledge/15-export-recording.md) [`16`](knowledge/16-hooks-and-retrieval.md) [`17`](knowledge/17-presentations-diagrams.md) | Connectors · shaders · generative media · a11y/perf · export · hooks · decks/diagrams |
 | 99 | [`99-caveats.md`](knowledge/99-caveats.md) | Silent rotation |
 
-### Skills — 10 in-repo
+### Skills — 12 in-repo
 
-[`artifact-game-builder`](skills/artifact-game-builder/SKILL.md) · [`animation-composer`](skills/animation-composer/SKILL.md) · [`shader-smith`](skills/shader-smith/SKILL.md) · [`palette-generator`](skills/palette-generator/SKILL.md) · [`sprite-atlas-builder`](skills/sprite-atlas-builder/SKILL.md) · [`ui-design-kit`](skills/ui-design-kit/SKILL.md) · [`procgen-toolkit`](skills/procgen-toolkit/SKILL.md) · [`critique-loop`](skills/critique-loop/SKILL.md) · [`asset-generator`](skills/asset-generator/SKILL.md) · [`viral-news-scanner`](skills/viral-news-scanner/SKILL.md)
+[`artifact-game-builder`](skills/artifact-game-builder/SKILL.md) · [`animation-composer`](skills/animation-composer/SKILL.md) · [`presentation-studio`](skills/presentation-studio/SKILL.md) · [`diagram-composer`](skills/diagram-composer/SKILL.md) · [`shader-smith`](skills/shader-smith/SKILL.md) · [`palette-generator`](skills/palette-generator/SKILL.md) · [`sprite-atlas-builder`](skills/sprite-atlas-builder/SKILL.md) · [`ui-design-kit`](skills/ui-design-kit/SKILL.md) · [`procgen-toolkit`](skills/procgen-toolkit/SKILL.md) · [`critique-loop`](skills/critique-loop/SKILL.md) · [`asset-generator`](skills/asset-generator/SKILL.md) · [`viral-news-scanner`](skills/viral-news-scanner/SKILL.md)
 
 ### Artifacts
 
@@ -141,6 +141,8 @@ Assumes [`CLAUDE.md`](CLAUDE.md) + [`knowledge/`](knowledge/) are in a Project a
 | **Playable game** | [`recipes/game-jam.md`](recipes/game-jam.md) | `artifact-game-builder` + [`game-ecs-starter.jsx`](artifacts/react/game-ecs-starter.jsx) or [`kaplay-top-down.html`](artifacts/html/kaplay-top-down.html) |
 | **Animated landing** | [`recipes/animated-landing.md`](recipes/animated-landing.md) | `animation-composer` + [`css-animation-hero.html`](artifacts/html/css-animation-hero.html) or [`bento-grid-landing.jsx`](artifacts/react/bento-grid-landing.jsx) |
 | **Data story** | [`recipes/data-story.md`](recipes/data-story.md) | [`prompts/build-dataviz.md`](prompts/build-dataviz.md) + [`dataviz-dashboard.jsx`](artifacts/react/dataviz-dashboard.jsx) |
+| **Animated presentation** | [`recipes/animated-presentation.md`](recipes/animated-presentation.md) | `presentation-studio` + [`animated-presentation.html`](artifacts/html/animated-presentation.html) |
+| **Diagram / Excalidraw** | [`prompts/build-diagram.md`](prompts/build-diagram.md) | `diagram-composer` + [`scripts/render-diagram.mjs`](scripts/render-diagram.mjs) |
 | **Design system** | [`recipes/design-system.md`](recipes/design-system.md) | `ui-design-kit` + palette / UI prompts from [`prompts/README.md`](prompts/README.md) |
 | **Agentic pipeline** | [`recipes/agentic-asset-pipeline.md`](recipes/agentic-asset-pipeline.md) | `asset-generator` + **`palette-oklch`** + **`sprite-packer`** (full-stack narrative) |
 | **Critique loop** | [`prompts/critique-and-refine.md`](prompts/critique-and-refine.md) | `critique-loop` or [`shader-jam.jsx`](artifacts/react/shader-jam.jsx) |

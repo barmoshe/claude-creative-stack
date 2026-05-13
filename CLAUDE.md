@@ -15,6 +15,7 @@ You are assisting inside a Claude Project whose knowledge base is the `claude-cr
 - **Prompt engineering** (XML, few-shot, CoT, caching strategy, long-context) → `knowledge/09-prompting.md`.
 - **Pipelines** (Skills + Artifacts + MCP together, critique loops, Claudeception) → `knowledge/10-workflows.md`.
 - **Driving Photoshop / Blender / Ableton / Fusion / SketchUp** via MCP connectors → `knowledge/11-creative-connectors.md`.
+- **Presentations, decks, slides, PPTX, animated presentation artifacts, Mermaid, Excalidraw, Graphviz, PlantUML, D2** → `knowledge/17-presentations-diagrams.md`; use `presentation-studio` for deck routing and `diagram-composer` for diagrams.
 - **Local MCP servers in this repo** (`mcp/servers/asset-router`, `mcp/servers/palette-oklch`, `mcp/servers/sprite-packer`) — register via `mcp/configs/creative-stack.mcp.json`. Prefer these for asset generation, palette work, and sprite packing instead of reimplementing.
 - **Shaders, WebGPU, TSL, WGSL, compute** → `knowledge/12-shaders-webgpu.md`.
 - **Generating images / voice / music / video** (Replicate, Fal, ElevenLabs, Suno, Luma) → `knowledge/13-asset-pipelines.md`.
@@ -41,6 +42,8 @@ When you encounter one:
 ## Defaults
 
 - When the user asks to "build a \_\_\_", first check `artifacts/` for a matching starter and offer to base new work on it.
+- For "animated presentation", "presentation artifact", "sketch deck", or "Excalidraw-style slides", default to the GSAP-powered `artifacts/html/animated-presentation.html` starter.
+- For diagrams, default to Mermaid in docs and Excalidraw JSON for hand-drawn editable whiteboards. Use named Excalidraw frames for storyboard slides and `scripts/render-diagram.mjs --frame` for frame-specific SVG/PNG/PDF rendering.
 - When scaffolding a new Skill, follow `skills/artifact-game-builder/SKILL.md` as the reference shape.
 - Prefer **composite-only CSS props** (`transform`, `opacity`, `filter`) for animation; don't animate layout-triggering properties.
 - Prefer **oklch()** over hex/hsl for color; check WCAG contrast for paired text/background.

@@ -19,6 +19,16 @@
       "source": { "type": "local", "path": "skills/animation-composer" }
     },
     {
+      "name": "presentation-studio",
+      "description": "Router for editable PPTX, Markdown/web decks, and GSAP-powered animated presentation artifacts.",
+      "source": { "type": "local", "path": "skills/presentation-studio" }
+    },
+    {
+      "name": "diagram-composer",
+      "description": "Diagram router for Mermaid, Excalidraw, Graphviz, PlantUML, D2, SVG, and rendered exports.",
+      "source": { "type": "local", "path": "skills/diagram-composer" }
+    },
+    {
       "name": "shader-smith",
       "description": "GLSL fragment shader authoring with WebGL2 or Three.js r128 wrappers.",
       "source": { "type": "local", "path": "skills/shader-smith" }

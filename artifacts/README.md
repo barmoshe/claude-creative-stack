@@ -26,6 +26,7 @@ From [`../knowledge/03-artifacts.md`](../knowledge/03-artifacts.md) and [`../kno
 | [`html/view-transitions-demo.html`](html/view-transitions-demo.html) | Same-document View Transitions API morph (Baseline Oct 2025); falls back to instant DOM swap. |
 | [`html/audio-visualizer.html`](html/audio-visualizer.html) | Tone.js generative arpeggio + `AnalyserNode` + Canvas visualizer (composite-only). |
 | [`html/gsap-scroll-story.html`](html/gsap-scroll-story.html) | GSAP ScrollTrigger horizontal-pin storytelling with reduced-motion fallback. |
+| [`html/animated-presentation.html`](html/animated-presentation.html) | Barmoshe Builder branded GSAP presentation artifact. Animated Excalidraw-style SVG sketch graphics, stable-ID keyframes, keyboard navigation, overview, speaker notes, fullscreen, `window.storage` persistence, JSON and `.excalidraw` frame import/export, embedded-scene SVG export, PNG export, and browser tour recording with reduced-motion fallback. |
 | [`html/procgen-dungeon.html`](html/procgen-dungeon.html) | Seeded BSP dungeon with regenerate button and editable seed. |
 | [`html/kaplay-top-down.html`](html/kaplay-top-down.html) | Kaplay top-down mover with trauma-based screen shake. |
 | [`html/tone-procmusic.html`](html/tone-procmusic.html) | Tone.js procedural music — euclidean rhythm + scale-constrained melody. |

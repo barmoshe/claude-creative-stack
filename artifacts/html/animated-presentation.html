@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Barmoshe Builder - Animated Sketch Presentation</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --v1-red: #FF0000;
+      --v1-coral: #F9543E;
+      --v1-coral-soft: #FCE9E4;
+      --v1-cream: #F4F3EF;
+      --v1-paper: #FFFFFF;
+      --v1-ink: #000000;
+      --v1-ink-muted: #313131;
+      --v1-accent-yellow: #F2C231;
+      --page: var(--v1-cream);
+      --panel: var(--v1-paper);
+      --ink: var(--v1-ink);
+      --muted: var(--v1-ink-muted);
+      --paper: var(--v1-paper);
+      --paper-ink: var(--v1-ink);
+      --accent: var(--v1-coral);
+      --accent-2: var(--v1-accent-yellow);
+      --danger: #C8202B;
+      --shadow: 8px 8px 0 var(--v1-ink);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background:
+        linear-gradient(90deg, rgb(0 0 0 / 0.035) 1px, transparent 1px) 0 0 / 28px 28px,
+        linear-gradient(0deg, rgb(0 0 0 / 0.03) 1px, transparent 1px) 0 0 / 28px 28px,
+        radial-gradient(circle at 18% 10%, rgb(249 84 62 / 0.18), transparent 34rem),
+        radial-gradient(circle at 84% 78%, rgb(242 194 49 / 0.24), transparent 38rem),
+        var(--page);
+      color: var(--ink);
+      font: 15px/1.45 Heebo, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+
+    button, input, textarea {
+      font: inherit;
+    }
+
+    button {
+      color: var(--ink);
+      background: rgb(255 255 255 / 0.72);
+      border: 1.5px solid var(--v1-ink);
+      border-radius: 12px;
+      min-height: 38px;
+      padding: 0 12px;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--v1-ink);
+      transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    button:hover { background: var(--v1-accent-yellow); transform: translateY(-2px); box-shadow: 3px 3px 0 var(--v1-ink); }
+    button:active { transform: translateY(0); }
+    button:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 3px; }
+    button[aria-pressed="true"] { background: var(--v1-coral-soft); }
+    button.primary { background: var(--accent); color: var(--v1-ink); font-weight: 900; }
+
+    .app {
+      height: 100svh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .topbar, .bottombar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .topbar {
+      background: var(--v1-coral);
+      color: var(--v1-ink);
+      border: 2px solid var(--v1-ink);
+      border-radius: 16px;
+      padding: 10px 12px;
+      box-shadow: 4px 4px 0 var(--v1-ink);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      color: var(--muted);
+    }
+
+    .brand strong {
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      background: var(--v1-red);
+      color: #fff;
+      border-radius: 4px;
+      font-weight: 900;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      box-shadow: 3px 3px 0 var(--v1-ink);
+      flex: 0 0 auto;
+    }
+
+    .wordmark {
+      display: inline-flex;
+      gap: 0.4rem;
+      align-items: baseline;
+      flex-wrap: wrap;
+      color: var(--v1-ink);
+      font-weight: 900;
+      letter-spacing: -0.01em;
+    }
+
+    .wordmark-sub { font-weight: 750; opacity: 0.72; }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .shell {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+      gap: 14px;
+    }
+
+    .stage-wrap {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      perspective: 1600px;
+    }
+
+    .stage {
+      width: min(100%, calc((100svh - 128px) * 16 / 9));
+      aspect-ratio: 16 / 9;
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: var(--paper);
+      color: var(--paper-ink);
+      box-shadow: var(--shadow);
+      border: 2px solid var(--v1-ink);
+      isolation: isolate;
+      transform-style: preserve-3d;
+    }
+
+    .stage.is-entering {
+      animation: slide-in 520ms cubic-bezier(.2, .7, .2, 1) both;
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(18px) rotateX(2deg) scale(0.985); filter: blur(8px); }
+      to { opacity: 1; transform: none; filter: none; }
+    }
+
+    .paper-grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.28;
+      background:
+        linear-gradient(90deg, oklch(0 0 0 / 0.025) 1px, transparent 1px) 0 0 / 18px 18px,
+        linear-gradient(0deg, oklch(0 0 0 / 0.018) 1px, transparent 1px) 0 0 / 18px 18px;
+      mix-blend-mode: multiply;
+      z-index: 1;
+    }
+
+    .slide-copy {
+      position: absolute;
+      left: clamp(28px, 5vw, 74px);
+      top: clamp(30px, 6vw, 82px);
+      width: min(44%, 520px);
+      z-index: 5;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: var(--slide-accent, var(--accent-2));
+      font-size: clamp(11px, 1.4vw, 15px);
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .kicker::before {
+      content: "";
+      width: 24px;
+      height: 3px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 6vw, 84px);
+      line-height: 0.95;
+      letter-spacing: -0.015em;
+      max-width: 11ch;
+    }
+
+    .subtitle {
+      margin: 18px 0 0;
+      max-width: 34ch;
+      color: oklch(0.34 0.035 250);
+      font-size: clamp(15px, 1.7vw, 22px);
+    }
+
+    .bullets {
+      margin: 28px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      color: oklch(0.26 0.035 250);
+      font-weight: 650;
+    }
+
+    .bullets li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: reveal-up 500ms cubic-bezier(.2, .7, .2, 1) forwards;
+      animation-delay: calc(220ms + var(--i) * 110ms);
+    }
+
+    .bullets li::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: var(--slide-accent, var(--accent-2));
+      box-shadow: 0 0 0 5px oklch(0.65 0.14 205 / 0.15);
+      flex: 0 0 auto;
+    }
+
+    @keyframes reveal-up {
+      to { opacity: 1; transform: none; }
+    }
+
+    .sketch {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      overflow: visible;
+    }
+
+    .sketch path,
+    .sketch line,
+    .sketch rect,
+    .sketch ellipse,
+    .sketch polygon {
+      vector-effect: non-scaling-stroke;
+    }
+
+    .sketch-camera,
+    .sketch-item {
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .drawn {
+      stroke-dasharray: var(--dash, 900);
+      stroke-dashoffset: var(--dash, 900);
+      animation: sketch-draw 900ms cubic-bezier(.2, .7, .2, 1) forwards;
+      animation-delay: var(--delay, 160ms);
+    }
+
+    .gsap-ready .drawn {
+      animation: none;
+      stroke-dashoffset: var(--dash, 900);
+    }
+
+    .gsap-ready .bullets li {
+      animation: none;
+      opacity: 0;
+      transform: translateY(18px);
+    }
+
+    .gsap-ready .stage.is-entering {
+      animation: none;
+    }
+
+    @keyframes sketch-draw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .slide-number {
+      position: absolute;
+      right: 28px;
+      bottom: 22px;
+      z-index: 6;
+      color: oklch(0.34 0.025 250 / 0.64);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .notes {
+      min-height: 0;
+      border: 2px solid var(--v1-ink);
+      border-radius: 14px;
+      background: rgb(255 255 255 / .72);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    .notes header {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid oklch(1 0 0 / 0.09);
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .notes textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      resize: none;
+      border: 0;
+      outline: 0;
+      padding: 14px;
+      color: var(--ink);
+      background: transparent;
+    }
+
+    .notes[hidden] { display: none; }
+
+    .progress {
+      flex: 1;
+      min-width: 120px;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: oklch(1 0 0 / 0.09);
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: var(--progress);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 240ms ease;
+    }
+
+    .status {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .overview {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 20;
+      padding: 36px;
+      background: rgb(244 243 239 / 0.9);
+      backdrop-filter: blur(18px);
+      overflow: auto;
+    }
+
+    .overview.is-open {
+      display: block;
+    }
+
+    .overview-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 18px;
+    }
+
+    .thumb {
+      text-align: left;
+      min-height: 156px;
+      border-radius: 14px;
+      padding: 16px;
+      background: var(--paper);
+      color: var(--paper-ink);
+      border: 2px solid transparent;
+      box-shadow: 4px 4px 0 var(--v1-ink);
+    }
+
+    .thumb.is-current {
+      border-color: var(--accent);
+    }
+
+    .thumb small {
+      display: block;
+      color: oklch(0.42 0.035 250);
+      margin-bottom: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .thumb strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .file-input {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 72px;
+      z-index: 30;
+      translate: -50% 20px;
+      opacity: 0;
+      pointer-events: none;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgb(255 255 255 / .9);
+      border: 2px solid var(--v1-ink);
+      color: var(--ink);
+      transition: opacity 180ms ease, translate 180ms ease;
+    }
+
+    .toast.is-visible {
+      opacity: 1;
+      translate: -50% 0;
+    }
+
+    .builder-credit {
+      direction: ltr;
+      unicode-bidi: isolate;
+      position: fixed;
+      left: 0.875rem;
+      bottom: 0.875rem;
+      z-index: 60;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      max-width: calc(100vw - 1.75rem);
+      padding: 0.22rem 0.5rem;
+      border: 1.5px solid var(--v1-ink);
+      border-radius: 999px;
+      background: rgb(255 255 255 / .72);
+      color: var(--v1-ink);
+      box-shadow: 1.5px 1.5px 0 var(--v1-ink);
+      text-decoration: none;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      line-height: 1;
+      white-space: nowrap;
+      transform: translateY(0);
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .builder-credit__label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.72;
+    }
+
+    .builder-credit__sep { opacity: 0.52; }
+    .builder-credit__name { font-weight: 900; }
+
+    .builder-credit:hover,
+    .builder-credit:focus-visible {
+      background: var(--v1-accent-yellow);
+      box-shadow: 2px 2px 0 var(--v1-ink);
+      outline: 3px solid var(--v1-paper);
+      outline-offset: 2px;
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .app { min-height: 100svh; height: auto; }
+      .shell { grid-template-columns: 1fr; }
+      .stage { width: 100%; }
+      .slide-copy { width: 52%; left: 26px; top: 28px; }
+      .notes { min-height: 220px; }
+    }
+
+    @media (max-width: 620px) {
+      .topbar, .bottombar { align-items: flex-start; flex-direction: column; }
+      .controls { justify-content: flex-start; }
+      .slide-copy { width: calc(100% - 52px); }
+      .subtitle, .bullets { max-width: 28ch; }
+      .sketch { opacity: 0.42; transform: translateX(18%); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+      .stage.is-entering { animation: none; }
+      .drawn { stroke-dashoffset: 0; }
+      .sketch-camera,
+      .sketch-item { transform: none !important; opacity: 1 !important; }
+      .bullets li { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">BB</span>
+        <span class="wordmark">
+          <strong>Barmoshe Builder</strong>
+          <span class="wordmark-sub">animated sketch deck</span>
+        </span>
+        <span id="deckTitle" hidden>Creative Stack</span>
+      </div>
+      <div class="controls" aria-label="Presentation controls">
+        <button id="prevBtn" title="Previous slide">Prev</button>
+        <button id="nextBtn" class="primary" title="Next slide">Next</button>
+        <button id="overviewBtn" title="Open overview">Overview</button>
+        <button id="notesBtn" aria-pressed="true" title="Toggle notes">Notes</button>
+        <button id="fullBtn" title="Fullscreen">Full</button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="stage-wrap" aria-label="Slide stage">
+        <article id="stage" class="stage" tabindex="0"></article>
+      </section>
+
+      <aside id="notesPanel" class="notes" aria-label="Speaker notes">
+        <header>
+          <span>Speaker notes</span>
+          <span id="notesMeta">Slide 1</span>
+        </header>
+        <textarea id="notesText" spellcheck="true"></textarea>
+      </aside>
+    </main>
+
+    <footer class="bottombar">
+      <div class="progress" aria-hidden="true"><span id="progressFill"></span></div>
+      <div class="status" id="statusText">1 / 5</div>
+      <div class="controls" aria-label="Export controls">
+        <button id="pngBtn">PNG</button>
+        <button id="recordBtn">Record tour</button>
+        <button id="jsonBtn">Export JSON</button>
+        <button id="excalidrawBtn">Export Excalidraw</button>
+        <button id="svgSceneBtn">Scene SVG</button>
+        <button id="importBtn">Import JSON/Excalidraw</button>
+        <input id="fileInput" class="file-input" type="file" accept="application/json,.json,.excalidraw">
+      </div>
+    </footer>
+  </div>
+
+  <section id="overview" class="overview" aria-label="Slide overview" aria-hidden="true">
+    <div class="overview-head">
+      <div>
+        <h2 style="margin:0">Overview</h2>
+        <p style="margin:.25rem 0 0;color:var(--muted)">Pick a slide or press Escape.</p>
+      </div>
+      <button id="closeOverview">Close</button>
+    </div>
+    <div id="overviewGrid" class="overview-grid"></div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <a
+    class="builder-credit"
+    dir="ltr"
+    href="https://barmoshe.github.io/bar-portfolio/"
+    target="_blank"
+    rel="noreferrer"
+    aria-label="Builder: Bar Moshe"
+    title="Open Bar Moshe portfolio"
+  >
+    <span class="builder-credit__label">Builder</span>
+    <span class="builder-credit__sep" aria-hidden="true">·</span>
+    <strong class="builder-credit__name">Bar Moshe</strong>
+  </a>
+  <canvas id="recordCanvas" width="1280" height="720" hidden></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script>
+    const STORAGE_KEY = "creative-stack:animated-presentation:v1";
+    const SIZE = { w: 1280, h: 720 };
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const hasGsap = Boolean(window.gsap) && !reduceMotion;
+    if (hasGsap) document.documentElement.classList.add("gsap-ready");
+
+    const DEFAULT_SLIDES = [
+      {
+        id: "opening",
+        kicker: "Barmoshe Builder",
+        title: "Sketch ideas that move.",
+        subtitle: "A GSAP-powered presentation artifact with animated Excalidraw-style graphics, notes, overview, persistence, and export.",
+        bullets: ["GSAP timelines", "Presenter controls", "Sketch diagrams"],
+        notes: "Open with the promise: this is not a static deck. It is a live Barmoshe Builder presentation surface that remains editable as data.",
+        theme: { paper: "#FFFFFF", ink: "#000000", accent: "#F9543E" },
+        animation: {
+          camera: [
+            { time: 0, scale: 1.04, x: -18, y: 0 },
+            { time: 900, scale: 1, x: 0, y: 0, ease: "power3.out" }
+          ],
+          elements: {
+            "opening-story": [{ time: 120, opacity: 0, scale: 0.94 }, { time: 920, opacity: 1, scale: 1, drawProgress: 1 }],
+            "opening-motion": [{ time: 360, drawProgress: 0 }, { time: 1280, drawProgress: 1, ease: "power2.inOut" }],
+            "opening-live-artifact": [{ time: 760, opacity: 0, scale: 0.7 }, { time: 1500, opacity: 1, scale: 1 }]
+          },
+          clipRange: { start: 0, end: 3600 }
+        },
+        sketch: [
+          { id: "opening-story", type: "frame", x: 660, y: 96, w: 420, h: 270, label: "story" },
+          { id: "opening-motion", type: "arrow", x1: 790, y1: 392, x2: 1010, y2: 520, label: "motion" },
+          { id: "opening-live-artifact", type: "ellipse", x: 875, y: 498, w: 210, h: 92, label: "live artifact" },
+          { id: "opening-scribble", type: "scribble", x: 610, y: 565, w: 220, h: 40 }
+        ]
+      },
+      {
+        id: "model",
+        kicker: "Data model",
+        title: "Slides are just objects.",
+        subtitle: "Each slide carries copy, notes, visual mode, theme tokens, and sketch primitives that can be revised by an agent.",
+        bullets: ["Text stays text", "Sketches stay structured", "Exports are derived"],
+        notes: "Emphasize source durability. The deck can be patched without asking a model to reinterpret pixels.",
+        theme: { paper: "#FCE9E4", ink: "#000000", accent: "#F9543E" },
+        animation: {
+          elements: {
+            "model-copy": [{ time: 120, opacity: 0, y: -18 }, { time: 620, opacity: 1, y: 0 }],
+            "model-notes": [{ time: 220, opacity: 0, y: -18 }, { time: 720, opacity: 1, y: 0 }],
+            "model-theme": [{ time: 440, opacity: 0, y: 18 }, { time: 940, opacity: 1, y: 0 }],
+            "model-sketch": [{ time: 540, opacity: 0, y: 18 }, { time: 1040, opacity: 1, y: 0 }]
+          }
+        },
+        sketch: [
+          { id: "model-copy", type: "box", x: 650, y: 120, w: 165, h: 90, label: "copy" },
+          { id: "model-notes", type: "box", x: 865, y: 120, w: 165, h: 90, label: "notes" },
+          { id: "model-theme", type: "box", x: 650, y: 285, w: 165, h: 90, label: "theme" },
+          { id: "model-sketch", type: "box", x: 865, y: 285, w: 165, h: 90, label: "sketch" },
+          { id: "model-arrow-1", type: "arrow", x1: 730, y1: 220, x2: 730, y2: 278 },
+          { id: "model-arrow-2", type: "arrow", x1: 945, y1: 220, x2: 945, y2: 278 },
+          { id: "model-arrow-3", type: "arrow", x1: 820, y1: 330, x2: 858, y2: 330 },
+          { id: "model-source", type: "callout", x: 780, y: 455, w: 330, h: 86, label: "JSON source" }
+        ]
+      },
+      {
+        id: "diagrams",
+        kicker: "Diagram lane",
+        title: "Mermaid for logic. Excalidraw for feeling.",
+        subtitle: "Use text diagrams for precision and sketch scenes for presentation moments that need warmth.",
+        bullets: ["Mermaid defaults", "Excalidraw source", "SVG/PNG outputs"],
+        notes: "This slide introduces the new diagram-composer routing. Mention Graphviz, PlantUML, and D2 as specialized lanes.",
+        theme: { paper: "#FFFFFF", ink: "#000000", accent: "#1FA871" },
+        animation: {
+          camera: [
+            { time: 0, scale: 1.08, x: -72, y: -12 },
+            { time: 1200, scale: 1, x: 0, y: 0, ease: "power2.inOut" }
+          ]
+        },
+        sketch: [
+          { id: "diagrams-choice", type: "diamond", x: 705, y: 118, w: 155, h: 110, label: "docs?" },
+          { id: "diagrams-mermaid", type: "box", x: 930, y: 102, w: 190, h: 92, label: "Mermaid" },
+          { id: "diagrams-excalidraw", type: "box", x: 930, y: 258, w: 190, h: 92, label: "Excalidraw" },
+          { id: "diagrams-yes", type: "arrow", x1: 855, y1: 172, x2: 922, y2: 148, label: "yes" },
+          { id: "diagrams-show", type: "arrow", x1: 806, y1: 230, x2: 922, y2: 302, label: "show" },
+          { id: "diagrams-scribble", type: "scribble", x: 660, y: 432, w: 420, h: 68 }
+        ]
+      },
+      {
+        id: "motion",
+        kicker: "Motion rules",
+        title: "Animate meaning, not furniture.",
+        subtitle: "Transitions establish place, reveals pace the argument, and line drawing teaches the diagram.",
+        bullets: ["Composite-friendly", "Reduced-motion safe", "Keyboard first"],
+        notes: "Call out accessibility. The deck should still work with motion reduced and on smaller screens.",
+        theme: { paper: "#F4F3EF", ink: "#000000", accent: "#C8202B" },
+        animation: {
+          elements: {
+            "motion-transition": [{ time: 180, drawProgress: 0 }, { time: 700, drawProgress: 1 }],
+            "motion-reveal": [{ time: 760, drawProgress: 0 }, { time: 1280, drawProgress: 1 }],
+            "motion-draw": [{ time: 1340, drawProgress: 0 }, { time: 1920, drawProgress: 1 }]
+          },
+          clipRange: { start: 0, end: 3200 }
+        },
+        sketch: [
+          { id: "motion-transition", type: "line", x1: 665, y1: 180, x2: 1050, y2: 180, label: "transition" },
+          { id: "motion-reveal", type: "line", x1: 705, y1: 298, x2: 1055, y2: 298, label: "reveal" },
+          { id: "motion-draw", type: "line", x1: 750, y1: 416, x2: 1060, y2: 416, label: "draw" },
+          { id: "motion-one", type: "circle", x: 632, y: 154, r: 26, label: "1" },
+          { id: "motion-two", type: "circle", x: 672, y: 272, r: 26, label: "2" },
+          { id: "motion-three", type: "circle", x: 718, y: 390, r: 26, label: "3" }
+        ]
+      },
+      {
+        id: "ship",
+        kicker: "Ship path",
+        title: "Present, export, remix.",
+        subtitle: "Use live mode for delivery, PNG for stills, JSON for source backup, and recording for animated walkthroughs.",
+        bullets: ["Live controls", "PNG stills", "JSON source", "Video tour"],
+        notes: "End with the operational path: this starter is both a demo and a template for future animated presentation requests.",
+        theme: { paper: "#F2C231", ink: "#000000", accent: "#FF0000" },
+        animation: {
+          elements: {
+            "ship-present": [{ time: 120, opacity: 0, scale: 0.8 }, { time: 560, opacity: 1, scale: 1 }],
+            "ship-export": [{ time: 460, opacity: 0, scale: 0.8 }, { time: 900, opacity: 1, scale: 1 }],
+            "ship-remix": [{ time: 900, opacity: 0, scale: 0.8 }, { time: 1320, opacity: 1, scale: 1 }]
+          }
+        },
+        sketch: [
+          { id: "ship-present", type: "box", x: 640, y: 130, w: 160, h: 86, label: "present" },
+          { id: "ship-export", type: "box", x: 870, y: 130, w: 160, h: 86, label: "export" },
+          { id: "ship-remix", type: "box", x: 760, y: 315, w: 190, h: 94, label: "remix" },
+          { id: "ship-arrow-1", type: "arrow", x1: 802, y1: 172, x2: 860, y2: 172 },
+          { id: "ship-arrow-2", type: "arrow", x1: 940, y1: 225, x2: 900, y2: 306 },
+          { id: "ship-arrow-3", type: "arrow", x1: 760, y1: 306, x2: 715, y2: 225 },
+          { id: "ship-one-file", type: "callout", x: 648, y: 485, w: 430, h: 72, label: "one HTML file" }
+        ]
+      }
+    ];
+
+    let state = {
+      index: 0,
+      notesOpen: true,
+      deckTitle: "Barmoshe Builder",
+      slides: normalizeDeck(structuredCloneSafe(DEFAULT_SLIDES))
+    };
+
+    const els = {
+      stage: document.getElementById("stage"),
+      deckTitle: document.getElementById("deckTitle"),
+      prev: document.getElementById("prevBtn"),
+      next: document.getElementById("nextBtn"),
+      overview: document.getElementById("overview"),
+      overviewBtn: document.getElementById("overviewBtn"),
+      overviewGrid: document.getElementById("overviewGrid"),
+      closeOverview: document.getElementById("closeOverview"),
+      notesBtn: document.getElementById("notesBtn"),
+      notesPanel: document.getElementById("notesPanel"),
+      notesText: document.getElementById("notesText"),
+      notesMeta: document.getElementById("notesMeta"),
+      fullBtn: document.getElementById("fullBtn"),
+      progress: document.getElementById("progressFill"),
+      status: document.getElementById("statusText"),
+      png: document.getElementById("pngBtn"),
+      record: document.getElementById("recordBtn"),
+      json: document.getElementById("jsonBtn"),
+      excalidraw: document.getElementById("excalidrawBtn"),
+      svgScene: document.getElementById("svgSceneBtn"),
+      importBtn: document.getElementById("importBtn"),
+      file: document.getElementById("fileInput"),
+      toast: document.getElementById("toast"),
+      canvas: document.getElementById("recordCanvas")
+    };
+
+    function structuredCloneSafe(value) {
+      if ("structuredClone" in window) return structuredClone(value);
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[ch]));
+    }
+
+    function slugify(value, fallback = "item") {
+      const slug = String(value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 46);
+      return slug || fallback;
+    }
+
+    function makeSketchId(slide, el, i) {
+      const base = el.id || el.label || el.text || el.type || "sketch";
+      return `${slugify(slide.id || slide.title || "slide", "slide")}-${slugify(base, "sketch")}-${i + 1}`;
+    }
+
+    function normalizeSlide(slide, i = 0) {
+      const normalized = {
+        id: slide.id || slugify(slide.title || `slide-${i + 1}`, `slide-${i + 1}`),
+        kicker: slide.kicker || "Slide",
+        title: slide.title || `Slide ${i + 1}`,
+        subtitle: slide.subtitle || "",
+        bullets: Array.isArray(slide.bullets) ? slide.bullets : [],
+        notes: slide.notes || "",
+        theme: slide.theme || { paper: "#FFFFFF", ink: "#000000", accent: "#F9543E" },
+        animation: slide.animation || {},
+        frameName: slide.frameName || slide.name || slide.title || `Slide ${i + 1}`,
+        sketch: Array.isArray(slide.sketch) ? slide.sketch : []
+      };
+      normalized.sketch = normalized.sketch.map((el, sketchIndex) => ({
+        ...el,
+        id: el.id || makeSketchId(normalized, el, sketchIndex)
+      }));
+      return normalized;
+    }
+
+    function normalizeDeck(slides) {
+      return (Array.isArray(slides) && slides.length ? slides : structuredCloneSafe(DEFAULT_SLIDES))
+        .map((slide, i) => normalizeSlide(slide, i));
+    }
+
+    function clampIndex(index) {
+      return Math.max(0, Math.min(state.slides.length - 1, index));
+    }
+
+    function currentSlide() {
+      return state.slides[state.index] || state.slides[0];
+    }
+
+    function seededNoise(seed) {
+      let x = Math.sin(seed * 999) * 10000;
+      return x - Math.floor(x);
+    }
+
+    function jitter(value, seed, amount = 4) {
+      return value + (seededNoise(seed) - 0.5) * amount;
+    }
+
+    function roughRectPath(x, y, w, h, seed = 1) {
+      const a = [
+        [jitter(x, seed), jitter(y, seed + 1)],
+        [jitter(x + w, seed + 2), jitter(y, seed + 3)],
+        [jitter(x + w, seed + 4), jitter(y + h, seed + 5)],
+        [jitter(x, seed + 6), jitter(y + h, seed + 7)]
+      ];
+      return `M ${a[0][0]} ${a[0][1]} L ${a[1][0]} ${a[1][1]} L ${a[2][0]} ${a[2][1]} L ${a[3][0]} ${a[3][1]} Z`;
+    }
+
+    function roughDiamondPath(x, y, w, h, seed = 1) {
+      const points = [
+        [jitter(x + w / 2, seed), jitter(y, seed + 1)],
+        [jitter(x + w, seed + 2), jitter(y + h / 2, seed + 3)],
+        [jitter(x + w / 2, seed + 4), jitter(y + h, seed + 5)],
+        [jitter(x, seed + 6), jitter(y + h / 2, seed + 7)]
+      ];
+      return `M ${points.map(p => p.join(" ")).join(" L ")} Z`;
+    }
+
+    function linePath(x1, y1, x2, y2, seed = 1) {
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      return `M ${jitter(x1, seed)} ${jitter(y1, seed + 1)} Q ${jitter(mx, seed + 2, 18)} ${jitter(my, seed + 3, 18)} ${jitter(x2, seed + 4)} ${jitter(y2, seed + 5)}`;
+    }
+
+    function arrowHead(x1, y1, x2, y2) {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const size = 17;
+      const a1 = angle + Math.PI * 0.82;
+      const a2 = angle - Math.PI * 0.82;
+      const p1 = [x2 + Math.cos(a1) * size, y2 + Math.sin(a1) * size];
+      const p2 = [x2 + Math.cos(a2) * size, y2 + Math.sin(a2) * size];
+      return `M ${p1[0]} ${p1[1]} L ${x2} ${y2} L ${p2[0]} ${p2[1]}`;
+    }
+
+    function sketchElement(el, i, accent, slide = currentSlide()) {
+      const seed = i * 17 + 3;
+      const delay = 180 + i * 110;
+      const id = el.id || makeSketchId(slide, el, i);
+      const common = `class="drawn" style="--delay:${delay}ms;--dash:1200" fill="none" stroke="${accent}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"`;
+      const ink = "oklch(0.18 0.035 250)";
+      let shape = "";
+
+      if (el.type === "box" || el.type === "frame" || el.type === "callout") {
+        const path = roughRectPath(el.x, el.y, el.w, el.h, seed);
+        const fill = el.type === "callout" ? "oklch(1 0 0 / 0.28)" : "oklch(1 0 0 / 0.12)";
+        shape = `<path d="${path}" fill="${fill}" stroke="${accent}" stroke-width="${el.type === "frame" ? 5 : 4}" stroke-linejoin="round" class="drawn" style="--delay:${delay}ms;--dash:1400"></path>`;
+      } else if (el.type === "diamond") {
+        shape = `<path d="${roughDiamondPath(el.x, el.y, el.w, el.h, seed)}" fill="oklch(1 0 0 / 0.15)" stroke="${accent}" stroke-width="4" class="drawn" style="--delay:${delay}ms;--dash:1000"></path>`;
+      } else if (el.type === "ellipse") {
+        shape = `<ellipse cx="${el.x + el.w / 2}" cy="${el.y + el.h / 2}" rx="${el.w / 2}" ry="${el.h / 2}" fill="oklch(1 0 0 / 0.16)" stroke="${accent}" stroke-width="4" class="drawn" style="--delay:${delay}ms;--dash:1000"></ellipse>`;
+      } else if (el.type === "circle") {
+        shape = `<ellipse cx="${el.x}" cy="${el.y}" rx="${el.r}" ry="${el.r}" fill="oklch(1 0 0 / 0.18)" stroke="${accent}" stroke-width="4" class="drawn" style="--delay:${delay}ms;--dash:700"></ellipse>`;
+      } else if (el.type === "line") {
+        shape = `<path d="${linePath(el.x1, el.y1, el.x2, el.y2, seed)}" ${common}></path>`;
+      } else if (el.type === "arrow") {
+        shape = `<path d="${linePath(el.x1, el.y1, el.x2, el.y2, seed)}" ${common}></path><path d="${arrowHead(el.x1, el.y1, el.x2, el.y2)}" ${common}></path>`;
+      } else if (el.type === "scribble") {
+        const y = el.y + el.h / 2;
+        const d = Array.from({ length: 9 }, (_, n) => {
+          const x = el.x + (el.w / 8) * n;
+          const yy = y + Math.sin(n * 1.7) * el.h * 0.36;
+          return `${n ? "L" : "M"} ${jitter(x, seed + n, 8)} ${jitter(yy, seed + n + 10, 8)}`;
+        }).join(" ");
+        shape = `<path d="${d}" ${common}></path>`;
+      } else if (el.type === "text") {
+        shape = "";
+      }
+
+      const label = el.label || el.text || "";
+      if (label) {
+        const hasBoxPoint = Number.isFinite(Number(el.x)) && Number.isFinite(Number(el.y));
+        const lx = hasBoxPoint ? Number(el.x) + Number(el.w || 0) / 2 : (Number(el.x1 || 0) + Number(el.x2 || 0)) / 2;
+        const ly = hasBoxPoint ? Number(el.y) + Number(el.h || 0) / 2 + 7 : (Number(el.y1 || 0) + Number(el.y2 || 0)) / 2 - 12;
+        const anchor = el.type === "text" ? "start" : "middle";
+        const textX = el.type === "text" ? Number(el.x || 0) : lx;
+        const textY = el.type === "text" ? Number(el.y || 0) + Number(el.fontSize || 26) : ly;
+        const fontSize = Number(el.fontSize || 26);
+        shape += `<text x="${textX}" y="${textY}" text-anchor="${anchor}" fill="${ink}" font-size="${fontSize}" font-weight="850">${escapeHtml(label)}</text>`;
+      }
+
+      return `<g class="sketch-item" data-sketch-id="${escapeHtml(id)}" data-sketch-type="${escapeHtml(el.type || "shape")}">${shape}</g>`;
+    }
+
+    function renderSketch(slide) {
+      const accent = slide.theme?.accent || "oklch(0.65 0.15 205)";
+      return `
+        <svg class="sketch" viewBox="0 0 ${SIZE.w} ${SIZE.h}" role="img" aria-label="${escapeHtml(slide.title)} sketch graphic">
+          <defs>
+            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="black" flood-opacity="0.14"></feDropShadow>
+            </filter>
+          </defs>
+          <g class="sketch-camera" filter="url(#softShadow)">
+            ${(slide.sketch || []).map((el, i) => sketchElement(el, i, accent, slide)).join("")}
+          </g>
+        </svg>`;
+    }
+
+    function renderSlide() {
+      const slide = currentSlide();
+      const theme = slide.theme || {};
+      const bullets = (slide.bullets || []).map((item, i) => `<li style="--i:${i}">${escapeHtml(item)}</li>`).join("");
+
+      els.deckTitle.textContent = state.deckTitle;
+      els.stage.style.setProperty("--slide-accent", theme.accent || "var(--accent-2)");
+      els.stage.style.background = theme.paper || "var(--paper)";
+      els.stage.style.color = theme.ink || "var(--paper-ink)";
+      els.stage.innerHTML = `
+        <div class="paper-grain"></div>
+        ${renderSketch(slide)}
+        <div class="slide-copy">
+          <div class="kicker">${escapeHtml(slide.kicker || "Slide")}</div>
+          <h1>${escapeHtml(slide.title)}</h1>
+          <p class="subtitle">${escapeHtml(slide.subtitle || "")}</p>
+          <ul class="bullets">${bullets}</ul>
+        </div>
+        <div class="slide-number">${String(state.index + 1).padStart(2, "0")} / ${String(state.slides.length).padStart(2, "0")}</div>
+      `;
+      els.stage.classList.remove("is-entering");
+      void els.stage.offsetWidth;
+      els.stage.classList.add("is-entering");
+      runSlideAnimation();
+
+      els.notesText.value = slide.notes || "";
+      els.notesMeta.textContent = `Slide ${state.index + 1}`;
+      els.progress.style.setProperty("--progress", `${((state.index + 1) / state.slides.length) * 100}%`);
+      els.status.textContent = `${state.index + 1} / ${state.slides.length}`;
+      els.notesPanel.hidden = !state.notesOpen;
+      els.notesBtn.setAttribute("aria-pressed", String(state.notesOpen));
+      renderOverview();
+      saveSoon();
+    }
+
+    function frameVars(frame = {}, mode = "element") {
+      const vars = {};
+      if ("opacity" in frame) vars.autoAlpha = Number(frame.opacity);
+      if ("x" in frame) vars.x = Number(frame.x);
+      if ("y" in frame) vars.y = Number(frame.y);
+      if ("scale" in frame) vars.scale = Number(frame.scale);
+      if ("rotation" in frame) vars.rotation = Number(frame.rotation);
+      if (mode === "stroke" && "drawProgress" in frame) {
+        vars.strokeDashoffset = Math.max(0, 1200 * (1 - Number(frame.drawProgress || 0)));
+      }
+      return vars;
+    }
+
+    function runKeyframes(tl, target, frames, mode = "element") {
+      const ordered = (Array.isArray(frames) ? frames : [])
+        .filter(frame => Number.isFinite(Number(frame.time)))
+        .sort((a, b) => Number(a.time) - Number(b.time));
+      if (!ordered.length) return false;
+      const first = ordered[0];
+      tl.set(target, frameVars(first, mode), 0);
+      for (let i = 1; i < ordered.length; i++) {
+        const prev = ordered[i - 1];
+        const nextFrame = ordered[i];
+        const duration = Math.max(0.05, (Number(nextFrame.time) - Number(prev.time)) / 1000);
+        tl.to(target, {
+          ...frameVars(nextFrame, mode),
+          duration,
+          ease: nextFrame.ease || prev.ease || "power3.out"
+        }, Number(prev.time) / 1000);
+      }
+      if (ordered.length === 1) tl.set(target, frameVars(first, mode), Number(first.time) / 1000);
+      return true;
+    }
+
+    function runSlideAnimation() {
+      const slide = currentSlide();
+      if (!hasGsap) {
+        els.stage.querySelectorAll(".drawn").forEach(el => { el.style.strokeDashoffset = 0; });
+        els.stage.querySelectorAll(".sketch-item, .sketch-camera").forEach(el => {
+          el.style.opacity = 1;
+          el.style.transform = "none";
+        });
+        return;
+      }
+      const scoped = gsap.utils.selector(els.stage);
+      const stageTargets = [els.stage, ...scoped(".slide-copy, .kicker, h1, .subtitle, .bullets li, .drawn, .slide-number, .sketch-item, .sketch-camera")];
+      gsap.killTweensOf(stageTargets);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.fromTo(els.stage,
+        { autoAlpha: 0, y: 34, rotateX: 4, scale: 0.975, filter: "blur(10px)" },
+        { autoAlpha: 1, y: 0, rotateX: 0, scale: 1, filter: "blur(0px)", duration: 0.72 }
+      );
+      tl.fromTo(scoped(".kicker"), { autoAlpha: 0, x: -24 }, { autoAlpha: 1, x: 0, duration: 0.42 }, "-=0.42");
+      tl.fromTo(scoped("h1"), { autoAlpha: 0, y: 34, skewY: 2 }, { autoAlpha: 1, y: 0, skewY: 0, duration: 0.68 }, "-=0.25");
+      tl.fromTo(scoped(".subtitle"), { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.5 }, "-=0.34");
+      tl.fromTo(scoped(".bullets li"),
+        { autoAlpha: 0, y: 22, rotate: -1.2 },
+        { autoAlpha: 1, y: 0, rotate: 0, duration: 0.38, stagger: 0.08 },
+        "-=0.24"
+      );
+
+      const camera = scoped(".sketch-camera")[0];
+      if (camera && !runKeyframes(tl, camera, slide.animation?.camera, "element")) {
+        gsap.set(camera, { x: 0, y: 0, scale: 1, rotation: 0 });
+      }
+
+      scoped(".sketch-item").forEach((item, index) => {
+        const id = item.dataset.sketchId;
+        const frames = slide.animation?.elements?.[id];
+        const strokes = item.querySelectorAll(".drawn");
+        if (frames) {
+          runKeyframes(tl, item, frames, "element");
+          runKeyframes(tl, strokes, frames, "stroke");
+        } else {
+          const at = 0.46 + index * 0.08;
+          tl.fromTo(item,
+            { autoAlpha: 0, y: 16, scale: 0.98 },
+            { autoAlpha: 1, y: 0, scale: 1, duration: 0.42, ease: "power3.out" },
+            at
+          );
+          tl.fromTo(strokes,
+            { strokeDashoffset: 1200 },
+            { strokeDashoffset: 0, duration: 0.82, ease: "power2.inOut" },
+            at + 0.04
+          );
+        }
+      });
+
+      tl.fromTo(scoped(".slide-number"), { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.28 }, "-=0.35");
+    }
+
+    function renderOverview() {
+      els.overviewGrid.innerHTML = state.slides.map((slide, i) => `
+        <button class="thumb ${i === state.index ? "is-current" : ""}" data-index="${i}">
+          <small>${String(i + 1).padStart(2, "0")} - ${escapeHtml(slide.frameName || slide.kicker || "Slide")}</small>
+          <strong>${escapeHtml(slide.title)}</strong>
+          <span>${escapeHtml(slide.subtitle || "")}</span>
+        </button>
+      `).join("");
+      els.overviewGrid.querySelectorAll(".thumb").forEach(btn => {
+        btn.addEventListener("click", () => {
+          goTo(Number(btn.dataset.index));
+          closeOverview();
+        });
+      });
+    }
+
+    function goTo(index) {
+      state.index = clampIndex(index);
+      renderSlide();
+    }
+
+    function next() { goTo(state.index + 1); }
+    function prev() { goTo(state.index - 1); }
+
+    function openOverview() {
+      els.overview.classList.add("is-open");
+      els.overview.setAttribute("aria-hidden", "false");
+    }
+
+    function closeOverview() {
+      els.overview.classList.remove("is-open");
+      els.overview.setAttribute("aria-hidden", "true");
+      els.stage.focus();
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("is-visible");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("is-visible"), 1800);
+    }
+
+    async function loadState() {
+      if (!window.storage) return;
+      try {
+        const record = await window.storage.get(STORAGE_KEY);
+        if (!record?.value) return;
+        const parsed = JSON.parse(record.value);
+        if (Array.isArray(parsed.slides) && parsed.slides.length) {
+          state = { ...state, ...parsed, slides: normalizeDeck(parsed.slides) };
+          state.index = clampIndex(parsed.index || 0);
+        }
+      } catch {
+        showToast("Storage unavailable; using default deck.");
+      }
+    }
+
+    let saveTimer = 0;
+    function saveSoon() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveState, 250);
+    }
+
+    async function saveState() {
+      if (!window.storage) return;
+      try {
+        await window.storage.set(STORAGE_KEY, JSON.stringify(state), { shared: false });
+      } catch {
+        /* Local browser preview may not provide artifact storage. */
+      }
+    }
+
+    function downloadBlob(blob, filename) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    function buildExportSvg(slide = currentSlide()) {
+      const theme = slide.theme || {};
+      const paper = theme.paper || "oklch(0.97 0.025 88)";
+      const ink = theme.ink || "oklch(0.18 0.035 250)";
+      const accent = theme.accent || "oklch(0.65 0.15 205)";
+      const bullets = (slide.bullets || []).map((item, i) => (
+        `<text x="86" y="${385 + i * 38}" fill="${ink}" font-size="23" font-weight="700">- ${escapeHtml(item)}</text>`
+      )).join("");
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE.w}" height="${SIZE.h}" viewBox="0 0 ${SIZE.w} ${SIZE.h}">
+  <rect width="1280" height="720" fill="${paper}"/>
+  <g opacity="0.28">
+    <path d="M0 0 H1280 M0 72 H1280 M0 144 H1280 M0 216 H1280 M0 288 H1280 M0 360 H1280 M0 432 H1280 M0 504 H1280 M0 576 H1280 M0 648 H1280" stroke="black" stroke-opacity="0.06"/>
+    <path d="M0 0 V720 M128 0 V720 M256 0 V720 M384 0 V720 M512 0 V720 M640 0 V720 M768 0 V720 M896 0 V720 M1024 0 V720 M1152 0 V720" stroke="black" stroke-opacity="0.04"/>
+  </g>
+  <text x="76" y="110" fill="${accent}" font-size="18" font-weight="900" letter-spacing="4">${escapeHtml(slide.kicker || "Slide").toUpperCase()}</text>
+  <text x="76" y="205" fill="${ink}" font-size="76" font-weight="900">${escapeHtml(slide.title)}</text>
+  <foreignObject x="76" y="232" width="460" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font: 26px/1.25 system-ui; color:${ink}; opacity:.76">${escapeHtml(slide.subtitle || "")}</div>
+  </foreignObject>
+  ${bullets}
+  ${(slide.sketch || []).map((el, i) => sketchElement(el, i, accent, slide)).join("")}
+</svg>`;
+    }
+
+    async function exportPng(slide = currentSlide(), filename = `${slide.id || "slide"}.png`) {
+      const svg = buildExportSvg(slide);
+      const blob = new Blob([svg], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.decoding = "async";
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = SIZE.w * 2;
+      canvas.height = SIZE.h * 2;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      await new Promise(resolve => canvas.toBlob(blobOut => {
+        if (blobOut) downloadBlob(blobOut, filename);
+        resolve();
+      }, "image/png"));
+    }
+
+    async function drawSlideToCanvas(ctx, slide) {
+      const svg = buildExportSvg(slide);
+      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      ctx.drawImage(img, 0, 0, SIZE.w, SIZE.h);
+      URL.revokeObjectURL(url);
+    }
+
+    async function recordTour() {
+      if (!("MediaRecorder" in window) || !els.canvas.captureStream) {
+        showToast("Recording is not supported in this browser.");
+        return;
+      }
+      const ctx = els.canvas.getContext("2d");
+      const stream = els.canvas.captureStream(30);
+      const mime = MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4" : "video/webm";
+      const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4000000 });
+      const chunks = [];
+      recorder.ondataavailable = e => e.data.size && chunks.push(e.data);
+      recorder.onstop = () => downloadBlob(new Blob(chunks, { type: mime }), `animated-deck.${mime.includes("mp4") ? "mp4" : "webm"}`);
+      recorder.start();
+      els.record.disabled = true;
+      for (const slide of state.slides) {
+        await drawSlideToCanvas(ctx, slide);
+        await new Promise(resolve => setTimeout(resolve, 900));
+      }
+      recorder.stop();
+      els.record.disabled = false;
+      showToast("Tour recording exported.");
+    }
+
+    function sceneId(prefix, value) {
+      return `${prefix}-${slugify(value, "item")}-${Math.random().toString(16).slice(2, 8)}`;
+    }
+
+    function excalidrawBase(props) {
+      return {
+        id: props.id || sceneId("el", props.type),
+        type: props.type,
+        x: Number(props.x || 0),
+        y: Number(props.y || 0),
+        width: Number(props.width || 1),
+        height: Number(props.height || 1),
+        angle: Number(props.angle || 0),
+        strokeColor: props.strokeColor || "#000000",
+        backgroundColor: props.backgroundColor || "transparent",
+        fillStyle: props.fillStyle || "hachure",
+        strokeWidth: Number(props.strokeWidth || 2),
+        strokeStyle: props.strokeStyle || "solid",
+        roughness: Number(props.roughness || 1.6),
+        opacity: Number(props.opacity || 100),
+        groupIds: props.groupIds || [],
+        frameId: props.frameId || null,
+        roundness: props.roundness ?? null,
+        seed: Math.floor(100000 + seededNoise((props.x || 0) + (props.y || 0)) * 900000),
+        version: 1,
+        versionNonce: Math.floor(100000 + Math.random() * 900000),
+        isDeleted: false,
+        boundElements: null,
+        updated: Date.now(),
+        link: null,
+        locked: false
+      };
+    }
+
+    function excalidrawText(props) {
+      const fontSize = Number(props.fontSize || 28);
+      const text = String(props.text || "");
+      return {
+        ...excalidrawBase({
+          ...props,
+          type: "text",
+          width: props.width || Math.max(80, text.length * fontSize * 0.58),
+          height: props.height || fontSize * Math.max(1.2, text.split("\n").length * 1.18),
+          backgroundColor: "transparent",
+          fillStyle: "solid"
+        }),
+        text,
+        fontSize,
+        fontFamily: 1,
+        textAlign: props.textAlign || "left",
+        verticalAlign: props.verticalAlign || "top",
+        containerId: null,
+        originalText: text,
+        lineHeight: 1.18,
+        baseline: Math.round(fontSize * 0.86)
+      };
+    }
+
+    function sketchToExcalidraw(el, frame, slide, index) {
+      const strokeColor = slide.theme?.accent || "#F9543E";
+      const base = {
+        id: el.id || sceneId("sketch", index),
+        frameId: frame.id,
+        strokeColor,
+        backgroundColor: "transparent"
+      };
+      let shape = null;
+      if (el.type === "box" || el.type === "frame" || el.type === "callout") {
+        shape = excalidrawBase({
+          ...base,
+          type: "rectangle",
+          x: frame.x + Number(el.x || 0),
+          y: frame.y + Number(el.y || 0),
+          width: Number(el.w || 120),
+          height: Number(el.h || 80),
+          backgroundColor: el.type === "callout" ? "#ffffff" : "transparent",
+          roundness: { type: 3 }
+        });
+      } else if (el.type === "diamond") {
+        shape = excalidrawBase({ ...base, type: "diamond", x: frame.x + Number(el.x || 0), y: frame.y + Number(el.y || 0), width: Number(el.w || 120), height: Number(el.h || 90) });
+      } else if (el.type === "ellipse") {
+        shape = excalidrawBase({ ...base, type: "ellipse", x: frame.x + Number(el.x || 0), y: frame.y + Number(el.y || 0), width: Number(el.w || 120), height: Number(el.h || 90) });
+      } else if (el.type === "circle") {
+        const r = Number(el.r || 32);
+        shape = excalidrawBase({ ...base, type: "ellipse", x: frame.x + Number(el.x || 0) - r, y: frame.y + Number(el.y || 0) - r, width: r * 2, height: r * 2 });
+      } else if (el.type === "line" || el.type === "arrow") {
+        const x1 = frame.x + Number(el.x1 || 0);
+        const y1 = frame.y + Number(el.y1 || 0);
+        const x2 = frame.x + Number(el.x2 || 0);
+        const y2 = frame.y + Number(el.y2 || 0);
+        shape = {
+          ...excalidrawBase({ ...base, type: el.type, x: x1, y: y1, width: x2 - x1, height: y2 - y1 }),
+          points: [[0, 0], [x2 - x1, y2 - y1]],
+          startBinding: null,
+          endBinding: null,
+          startArrowhead: null,
+          endArrowhead: el.type === "arrow" ? "arrow" : null
+        };
+      } else if (el.type === "scribble") {
+        const x = frame.x + Number(el.x || 0);
+        const y = frame.y + Number(el.y || 0);
+        const w = Number(el.w || 240);
+        const h = Number(el.h || 48);
+        const points = Array.from({ length: 9 }, (_, n) => [(w / 8) * n, h / 2 + Math.sin(n * 1.7) * h * 0.36]);
+        shape = { ...excalidrawBase({ ...base, type: "freedraw", x, y, width: w, height: h }), points, pressures: [], simulatePressure: true, lastCommittedPoint: points.at(-1) };
+      } else if (el.type === "text") {
+        shape = excalidrawText({ ...base, id: el.id, x: frame.x + Number(el.x || 0), y: frame.y + Number(el.y || 0), text: el.text || el.label || "", fontSize: el.fontSize || 28 });
+      }
+
+      const elements = shape ? [shape] : [];
+      if (shape && el.label && el.type !== "text") {
+        const labelX = "x" in el ? frame.x + Number(el.x || 0) + Number(el.w || 0) / 2 - 56 : frame.x + (Number(el.x1 || 0) + Number(el.x2 || 0)) / 2 - 34;
+        const labelY = "y" in el ? frame.y + Number(el.y || 0) + Number(el.h || 0) / 2 - 15 : frame.y + (Number(el.y1 || 0) + Number(el.y2 || 0)) / 2 - 36;
+        elements.push(excalidrawText({
+          id: `${shape.id}-label`,
+          frameId: frame.id,
+          x: labelX,
+          y: labelY,
+          text: el.label,
+          fontSize: 26,
+          strokeColor: "#000000",
+          textAlign: "center"
+        }));
+      }
+      return elements;
+    }
+
+    function deckToExcalidraw(deckState = state) {
+      const elements = [];
+      const slides = normalizeDeck(deckState.slides);
+      slides.forEach((slide, index) => {
+        const frame = excalidrawBase({
+          id: `frame-${slide.id || index + 1}`,
+          type: "frame",
+          x: index * (SIZE.w + 180),
+          y: 0,
+          width: SIZE.w,
+          height: SIZE.h,
+          strokeColor: "#000000",
+          backgroundColor: "transparent",
+          fillStyle: "solid"
+        });
+        frame.name = slide.frameName || slide.title || `Slide ${index + 1}`;
+
+        elements.push(
+          excalidrawText({ id: `${frame.id}-kicker`, frameId: frame.id, x: frame.x + 76, y: frame.y + 76, text: slide.kicker || "Slide", fontSize: 18, strokeColor: slide.theme?.accent || "#F9543E" }),
+          excalidrawText({ id: `${frame.id}-title`, frameId: frame.id, x: frame.x + 76, y: frame.y + 130, text: slide.title || `Slide ${index + 1}`, fontSize: 58, strokeColor: slide.theme?.ink || "#000000" }),
+          excalidrawText({ id: `${frame.id}-subtitle`, frameId: frame.id, x: frame.x + 76, y: frame.y + 236, text: slide.subtitle || "", fontSize: 25, strokeColor: slide.theme?.ink || "#000000", width: 460 }),
+          ...(slide.bullets || []).map((bullet, bulletIndex) => excalidrawText({
+            id: `${frame.id}-bullet-${bulletIndex + 1}`,
+            frameId: frame.id,
+            x: frame.x + 92,
+            y: frame.y + 380 + bulletIndex * 40,
+            text: `- ${bullet}`,
+            fontSize: 24,
+            strokeColor: slide.theme?.ink || "#000000"
+          })),
+          ...(slide.sketch || []).flatMap((el, sketchIndex) => sketchToExcalidraw(el, frame, slide, sketchIndex)),
+          frame
+        );
+      });
+      return {
+        type: "excalidraw",
+        version: 2,
+        source: "claude-creative-stack/barmoshe-builder",
+        elements,
+        appState: {
+          viewBackgroundColor: "#F4F3EF",
+          exportEmbedScene: true,
+          currentItemFontFamily: 1
+        },
+        files: {}
+      };
+    }
+
+    function elementInsideFrame(el, frame) {
+      const x = Number(el.x || 0);
+      const y = Number(el.y || 0);
+      const w = Number(el.width || 0);
+      const h = Number(el.height || 0);
+      return x >= frame.x && y >= frame.y && x + w <= frame.x + frame.width && y + h <= frame.y + frame.height;
+    }
+
+    function excalidrawElementToSketch(el, frame, index) {
+      const x = Number(el.x || 0) - Number(frame.x || 0);
+      const y = Number(el.y || 0) - Number(frame.y || 0);
+      const w = Number(el.width || 0);
+      const h = Number(el.height || 0);
+      const common = { id: el.id || `imported-${index + 1}` };
+      if (el.type === "rectangle") return { ...common, type: "box", x, y, w: Math.max(1, w), h: Math.max(1, h) };
+      if (el.type === "diamond") return { ...common, type: "diamond", x, y, w: Math.max(1, w), h: Math.max(1, h) };
+      if (el.type === "ellipse") return { ...common, type: "ellipse", x, y, w: Math.max(1, w), h: Math.max(1, h) };
+      if (el.type === "line" || el.type === "arrow") {
+        const points = Array.isArray(el.points) && el.points.length ? el.points : [[0, 0], [w, h]];
+        const first = points[0];
+        const last = points[points.length - 1];
+        return { ...common, type: el.type, x1: x + first[0], y1: y + first[1], x2: x + last[0], y2: y + last[1] };
+      }
+      if (el.type === "freedraw") return { ...common, type: "scribble", x, y, w: Math.max(80, w), h: Math.max(28, h) };
+      if (el.type === "text") return { ...common, type: "text", x, y, text: el.text || "", fontSize: el.fontSize || 26 };
+      return null;
+    }
+
+    function excalidrawToSlides(scene) {
+      const elements = (scene.elements || []).filter(el => !el.isDeleted);
+      const frames = elements.filter(el => el.type === "frame");
+      const frameList = frames.length ? frames : [{
+        id: "scene",
+        name: "Imported scene",
+        x: 0,
+        y: 0,
+        width: SIZE.w,
+        height: SIZE.h
+      }];
+      return frameList.map((frame, index) => {
+        const children = elements.filter(el => el.type !== "frame" && (el.frameId === frame.id || (!el.frameId && elementInsideFrame(el, frame))));
+        const textChildren = children.filter(el => el.type === "text" && String(el.text || "").trim());
+        const titleText = frame.name || textChildren[0]?.text || `Frame ${index + 1}`;
+        const sketch = children
+          .filter(el => el !== textChildren[0])
+          .map((el, childIndex) => excalidrawElementToSketch(el, frame, childIndex))
+          .filter(Boolean);
+        return normalizeSlide({
+          id: slugify(titleText, `frame-${index + 1}`),
+          frameName: frame.name || titleText,
+          kicker: "Excalidraw frame",
+          title: titleText,
+          subtitle: "Imported from an Excalidraw frame. Slide JSON is now the live source.",
+          bullets: textChildren.slice(1, 4).map(el => el.text),
+          notes: `Imported from Excalidraw frame "${titleText}". Frame children were converted into editable sketch primitives where possible.`,
+          theme: { paper: "#FFFFFF", ink: "#000000", accent: "#F9543E" },
+          animation: {
+            elements: Object.fromEntries(sketch.map((el, childIndex) => [el.id, [
+              { time: 160 + childIndex * 110, opacity: 0, y: 12, drawProgress: 0 },
+              { time: 760 + childIndex * 110, opacity: 1, y: 0, drawProgress: 1 }
+            ]]))
+          },
+          sketch
+        }, index);
+      });
+    }
+
+    function encodeBase64(text) {
+      return btoa(unescape(encodeURIComponent(text)));
+    }
+
+    function buildExcalidrawSceneSvg() {
+      const scene = deckToExcalidraw(state);
+      const source = JSON.stringify(scene);
+      const slides = normalizeDeck(state.slides);
+      const width = SIZE.w;
+      const height = Math.max(SIZE.h, slides.length * 170 + 90);
+      const frames = slides.map((slide, i) => {
+        const y = 48 + i * 170;
+        return `<g>
+          <rect x="54" y="${y}" width="300" height="124" rx="10" fill="${escapeHtml(slide.theme?.paper || "#ffffff")}" stroke="#000" stroke-width="3"/>
+          <text x="382" y="${y + 38}" fill="#F9543E" font-size="18" font-weight="900">${escapeHtml(slide.frameName || slide.kicker || `Frame ${i + 1}`)}</text>
+          <text x="382" y="${y + 82}" fill="#000" font-size="34" font-weight="900">${escapeHtml(slide.title || `Slide ${i + 1}`)}</text>
+        </g>`;
+      }).join("");
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img">
+  <metadata id="excalidraw-source">${encodeBase64(source)}</metadata>
+  <rect width="${width}" height="${height}" fill="#F4F3EF"/>
+  <text x="54" y="34" fill="#000" font-size="22" font-weight="900">Barmoshe Builder Excalidraw scene export</text>
+  ${frames}
+</svg>`;
+    }
+
+    function exportJson() {
+      state.slides = normalizeDeck(state.slides);
+      downloadBlob(new Blob([JSON.stringify(state, null, 2)], { type: "application/json" }), "animated-presentation.json");
+    }
+
+    function exportExcalidraw() {
+      const scene = deckToExcalidraw(state);
+      downloadBlob(new Blob([JSON.stringify(scene, null, 2)], { type: "application/json" }), "barmoshe-builder-deck.excalidraw");
+      showToast("Excalidraw frames exported.");
+    }
+
+    function exportExcalidrawSvg() {
+      downloadBlob(new Blob([buildExcalidrawSceneSvg()], { type: "image/svg+xml" }), "barmoshe-builder-excalidraw-scene.svg");
+      showToast("Embedded-scene SVG exported.");
+    }
+
+    async function importDeckFile(file) {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (parsed.type === "excalidraw" || Array.isArray(parsed.elements)) {
+        const slides = excalidrawToSlides(parsed);
+        if (!slides.length) throw new Error("No Excalidraw frames or elements found.");
+        state = { ...state, index: 0, deckTitle: parsed.name || "Barmoshe Builder", slides };
+        renderSlide();
+        showToast(`${slides.length} Excalidraw frame${slides.length === 1 ? "" : "s"} imported.`);
+        return;
+      }
+      if (!Array.isArray(parsed.slides) || !parsed.slides.length) throw new Error("JSON must include slides[] or Excalidraw elements[].");
+      state = { ...state, ...parsed, slides: normalizeDeck(parsed.slides) };
+      state.index = clampIndex(parsed.index || 0);
+      renderSlide();
+      showToast("Deck imported.");
+    }
+
+    els.prev.addEventListener("click", prev);
+    els.next.addEventListener("click", next);
+    els.overviewBtn.addEventListener("click", openOverview);
+    els.closeOverview.addEventListener("click", closeOverview);
+    els.notesBtn.addEventListener("click", () => {
+      state.notesOpen = !state.notesOpen;
+      renderSlide();
+    });
+    els.notesText.addEventListener("input", () => {
+      currentSlide().notes = els.notesText.value;
+      saveSoon();
+    });
+    els.fullBtn.addEventListener("click", () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    });
+    els.png.addEventListener("click", () => exportPng().then(() => showToast("PNG exported.")));
+    els.record.addEventListener("click", recordTour);
+    els.json.addEventListener("click", exportJson);
+    els.excalidraw.addEventListener("click", exportExcalidraw);
+    els.svgScene.addEventListener("click", exportExcalidrawSvg);
+    els.importBtn.addEventListener("click", () => els.file.click());
+    els.file.addEventListener("change", async () => {
+      if (!els.file.files?.[0]) return;
+      try { await importDeckFile(els.file.files[0]); }
+      catch (err) { showToast(err.message || "Import failed."); }
+      els.file.value = "";
+    });
+
+    window.addEventListener("keydown", event => {
+      if (event.target === els.notesText) return;
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        next();
+      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        prev();
+      } else if (event.key.toLowerCase() === "o") {
+        openOverview();
+      } else if (event.key.toLowerCase() === "n") {
+        state.notesOpen = !state.notesOpen;
+        renderSlide();
+      } else if (event.key === "Escape") {
+        closeOverview();
+      }
+    });
+
+    window.__animatedPresentation = {
+      getState: () => structuredCloneSafe(state),
+      deckToExcalidraw,
+      excalidrawToSlides,
+      importExcalidrawScene: scene => {
+        state = { ...state, index: 0, slides: excalidrawToSlides(scene) };
+        renderSlide();
+        return structuredCloneSafe(state);
+      }
+    };
+
+    (async function init() {
+      await loadState();
+      state.slides = normalizeDeck(state.slides);
+      state.index = clampIndex(state.index || 0);
+      renderSlide();
+      els.stage.focus();
+    })();
+  </script>
+</body>
+</html>

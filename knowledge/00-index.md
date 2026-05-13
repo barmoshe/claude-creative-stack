@@ -22,6 +22,7 @@ This folder is the reference context for Claude working inside the `claude-creat
 | INP / LCP / CLS targets, prefers-reduced-motion, keyboard nav for canvas, profiling, color contrast | [`14-accessibility-performance.md`](14-accessibility-performance.md) |
 | Exporting canvas → PNG/GIF/MP4/WebM, MediaRecorder, WebCodecs, ffmpeg.wasm, sprite packing | [`15-export-recording.md`](15-export-recording.md) |
 | Claude Code hooks (`SessionStart`, `Stop`, `UserPromptSubmit`), context injection, retrieval-on-prompt | [`16-hooks-and-retrieval.md`](16-hooks-and-retrieval.md) |
+| Presentations, decks, slides, PPTX, Slidev, Reveal.js, Marp, Mermaid, Excalidraw, Graphviz, PlantUML, D2 | [`17-presentations-diagrams.md`](17-presentations-diagrams.md) |
 | "Is this version still current? Is this model ID still valid?" | [`99-caveats.md`](99-caveats.md) |
 
 ## Reading priority for cold starts

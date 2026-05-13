@@ -1,11 +1,13 @@
 # Skills
 
-Nine agent skills that layer on top of the official Anthropic skills. Each is a folder containing a `SKILL.md` (progressive-disclosure entry point) and optional supporting files (scripts, references, assets).
+Twelve agent skills that layer on top of the official Anthropic skills. Each is a folder containing a `SKILL.md` (progressive-disclosure entry point) and optional supporting files (scripts, references, assets).
 
 | Skill | Triggers | Backed by | Demo |
 |---|---|---|---|
 | [`artifact-game-builder`](artifact-game-builder/SKILL.md) | "build a game", "mini game", "playable artifact" | `knowledge/06-games.md`, `knowledge/03-artifacts.md` | [`artifacts/react/game-ecs-starter.jsx`](../artifacts/react/game-ecs-starter.jsx) |
 | [`animation-composer`](animation-composer/SKILL.md) | "animate", "scroll story", "timeline" | `knowledge/04-animation.md` | [`artifacts/html/gsap-scroll-story.html`](../artifacts/html/gsap-scroll-story.html), [`artifacts/html/css-animation-hero.html`](../artifacts/html/css-animation-hero.html) |
+| [`presentation-studio`](presentation-studio/SKILL.md) | "deck", "slides", "presentation", "PowerPoint", "animated slides" | `knowledge/17-presentations-diagrams.md`, `knowledge/15-export-recording.md` | [`artifacts/html/animated-presentation.html`](../artifacts/html/animated-presentation.html) |
+| [`diagram-composer`](diagram-composer/SKILL.md) | "diagram", "flowchart", "architecture", "Excalidraw", "Mermaid" | `knowledge/17-presentations-diagrams.md` | [`scripts/render-diagram.mjs`](../scripts/render-diagram.mjs), [`docs/diagram.md`](../docs/diagram.md) |
 | [`shader-smith`](shader-smith/SKILL.md) | "shader", "glsl", "fragment", "raymarch" | `knowledge/12-shaders-webgpu.md`, `knowledge/05-graphics-design.md` | [`artifacts/html/shader-playground.html`](../artifacts/html/shader-playground.html), [`assets/`](shader-smith/assets) |
 | [`palette-generator`](palette-generator/SKILL.md) | "palette", "color tokens", "oklch" | `knowledge/05-graphics-design.md`, `knowledge/14-accessibility-performance.md` | [`mcp/servers/palette-oklch/`](../mcp/servers/palette-oklch/) |
 | [`sprite-atlas-builder`](sprite-atlas-builder/SKILL.md) | "sprite sheet", "atlas", "animation frames" | `knowledge/15-export-recording.md` §15.8 | [`scripts/pack.ts`](sprite-atlas-builder/scripts/pack.ts), [`mcp/servers/sprite-packer/`](../mcp/servers/sprite-packer/) |

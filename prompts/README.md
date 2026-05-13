@@ -9,6 +9,8 @@ Copy-paste-ready prompt templates for common creative tasks. Each file contains 
 | [`build-shader.md`](build-shader.md) | Write a GLSL fragment shader for a visual effect. | `#shader` `#code` |
 | [`shader-critique.md`](shader-critique.md) | **Vision-grounded** critique of a running shader (image + code → critique). | `#shader` `#meta` `#vision` |
 | [`build-dataviz.md`](build-dataviz.md) | Build a dashboard or explanatory chart. | `#data` `#code` |
+| [`build-presentation.md`](build-presentation.md) | Build a deck, animated HTML presentation artifact, or presentation export workflow. | `#slides` `#deck` `#presentation` |
+| [`build-diagram.md`](build-diagram.md) | Build Mermaid, Excalidraw, Graphviz, PlantUML, D2, or SVG diagrams. | `#diagram` `#excalidraw` `#architecture` |
 | [`build-landing-hero.md`](build-landing-hero.md) | Design a landing-page hero section. | `#design` `#code` `#landing` |
 | [`generate-palette.md`](generate-palette.md) | Generate an accessible oklch color palette. | `#design` `#tokens` |
 | [`generate-sprite-sheet.md`](generate-sprite-sheet.md) | Plan and lay out a sprite atlas. | `#game` `#asset` |
@@ -23,6 +25,8 @@ Copy-paste-ready prompt templates for common creative tasks. Each file contains 
 - **`#shader`** — `build-shader.md`, `shader-critique.md`
 - **`#design`** — `build-landing-hero.md`, `generate-palette.md`, `generate-ui-kit.md`
 - **`#data`** — `build-dataviz.md`
+- **`#slides`** — `build-presentation.md`
+- **`#diagram`** — `build-diagram.md`
 - **`#meta`** (skill orchestration / critique) — `critique-and-refine.md`, `persona-voting.md`, `shader-critique.md`
 
 ## How to use

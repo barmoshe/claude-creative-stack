@@ -68,7 +68,9 @@
     // ---- audio graph ---------------------------------------------------
     const analyser = new Tone.Analyser({ type: "fft", size: 1024, smoothing: 0.85 });
     const wave = new Tone.Analyser({ type: "waveform", size: 1024 });
-    const verb = new Tone.Reverb({ decay: 4, wet: 0.45 }).fanOut(analyser, wave).toDestination();
+    const verb = new Tone.Reverb({ decay: 4, wet: 0.45 }).toDestination();
+    verb.connect(analyser);
+    verb.connect(wave);
     const synth = new Tone.PolySynth(Tone.FMSynth, {
       envelope: { attack: 0.05, decay: 0.4, sustain: 0.0, release: 1.5 },
       modulationIndex: 8,

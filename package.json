@@ -16,7 +16,8 @@
     "validate:artifacts": "node -e \"const {readdirSync,readFileSync,statSync}=require('fs');const {join}=require('path');for (const f of readdirSync('artifacts/html').filter(x=>x.endsWith('.html'))){const p=join('artifacts/html',f);if(!statSync(p).size||!readFileSync(p,'utf8').includes('</html>'))throw new Error('bad html: '+f);}console.log('artifacts/html OK');\"",
     "validate:mcp": "npm run -ws --if-present build && npm run -ws --if-present test",
     "smoke:artifacts": "node scripts/smoke-artifacts.mjs",
-    "build:mcp": "npm run -ws build"
+    "build:mcp": "npm run -ws build",
+    "render:diagram": "node scripts/render-diagram.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.21.0",
