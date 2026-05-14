@@ -1,0 +1,1129 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WeatherV1 Next - מצגת מונפשת</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --v1-red: #FF0000;
+      --v1-coral: #F9543E;
+      --v1-coral-soft: #FCE9E4;
+      --v1-cream: #F4F3EF;
+      --v1-paper: #FFFFFF;
+      --v1-ink: #000000;
+      --v1-ink-muted: #313131;
+      --v1-yellow: #F2C231;
+      --v1-success: #1FA871;
+      --v1-warning: #F5A623;
+      --v1-danger: #C8202B;
+      --shadow: 8px 8px 0 var(--v1-ink);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgb(0 0 0 / .035) 1px, transparent 1px) 0 0 / 28px 28px,
+        linear-gradient(0deg, rgb(0 0 0 / .03) 1px, transparent 1px) 0 0 / 28px 28px,
+        radial-gradient(circle at 12% 18%, rgb(242 194 49 / .26), transparent 30rem),
+        radial-gradient(circle at 82% 72%, rgb(249 84 62 / .18), transparent 36rem),
+        var(--v1-cream);
+      color: var(--v1-ink);
+      font: 15px/1.45 Heebo, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, textarea { font: inherit; }
+    button {
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1.5px solid var(--v1-ink);
+      border-radius: 12px;
+      background: rgb(255 255 255 / .76);
+      color: var(--v1-ink);
+      box-shadow: 2px 2px 0 var(--v1-ink);
+      cursor: pointer;
+      font-weight: 800;
+      transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+    button:hover { background: var(--v1-yellow); transform: translateY(-2px); box-shadow: 3px 3px 0 var(--v1-ink); }
+    button.primary { background: var(--v1-red); color: #fff; }
+    button[aria-pressed="true"] { background: var(--v1-coral-soft); }
+
+    .app {
+      height: 100svh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .topbar, .bottombar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .topbar {
+      background: var(--v1-coral);
+      border: 2px solid var(--v1-ink);
+      border-radius: 16px;
+      padding: 10px 12px;
+      box-shadow: 4px 4px 0 var(--v1-ink);
+    }
+
+    .brand, .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      background: var(--v1-red);
+      color: #fff;
+      box-shadow: 3px 3px 0 var(--v1-ink);
+      font-weight: 900;
+    }
+
+    .wordmark {
+      display: inline-flex;
+      align-items: baseline;
+      gap: .45rem;
+      flex-wrap: wrap;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+    .wordmark-sub { opacity: .72; font-weight: 750; }
+
+    .shell {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+      gap: 14px;
+    }
+
+    .stage-wrap {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      perspective: 1600px;
+    }
+
+    .stage {
+      width: min(100%, calc((100svh - 128px) * 16 / 9));
+      aspect-ratio: 16 / 9;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid var(--v1-ink);
+      border-radius: var(--radius);
+      background: var(--slide-paper, var(--v1-paper));
+      color: var(--slide-ink, var(--v1-ink));
+      box-shadow: var(--shadow);
+      isolation: isolate;
+      transform-style: preserve-3d;
+    }
+
+    .paper-grid {
+      position: absolute;
+      inset: 0;
+      opacity: .25;
+      background:
+        linear-gradient(90deg, rgb(0 0 0 / .055) 1px, transparent 1px) 0 0 / 36px 36px,
+        linear-gradient(0deg, rgb(0 0 0 / .04) 1px, transparent 1px) 0 0 / 36px 36px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .slide-copy {
+      position: absolute;
+      right: clamp(28px, 5vw, 74px);
+      top: clamp(30px, 6vw, 78px);
+      z-index: 5;
+      width: min(45%, 530px);
+      text-align: right;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      color: var(--slide-accent, var(--v1-coral));
+      font-size: clamp(11px, 1.25vw, 15px);
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .kicker::before {
+      content: "";
+      width: 24px;
+      height: 3px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 12ch;
+      font-size: clamp(36px, 5.7vw, 78px);
+      line-height: .98;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 35ch;
+      margin: 18px 0 0;
+      color: var(--v1-ink-muted);
+      font-size: clamp(15px, 1.65vw, 22px);
+      font-weight: 500;
+    }
+
+    .bullets {
+      margin: 26px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+      list-style: none;
+      color: var(--v1-ink);
+      font-weight: 750;
+    }
+    .bullets li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    .bullets li::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 9px;
+      height: 9px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: var(--slide-accent, var(--v1-coral));
+      box-shadow: 0 0 0 5px rgb(249 84 62 / .14);
+    }
+
+    .sketch {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      overflow: visible;
+    }
+    .sketch-camera, .sketch-item {
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .drawn {
+      stroke-dasharray: var(--dash, 1200);
+      stroke-dashoffset: var(--dash, 1200);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .slide-number {
+      position: absolute;
+      left: 28px;
+      bottom: 22px;
+      z-index: 6;
+      color: rgb(49 49 49 / .64);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      direction: ltr;
+    }
+
+    .notes {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      border: 2px solid var(--v1-ink);
+      border-radius: 14px;
+      background: rgb(255 255 255 / .74);
+      box-shadow: var(--shadow);
+    }
+    .notes header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px 14px;
+      color: var(--v1-ink-muted);
+      border-bottom: 1px solid rgb(0 0 0 / .08);
+      font-weight: 900;
+    }
+    .notes textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      padding: 14px;
+      resize: none;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--v1-ink);
+      direction: rtl;
+    }
+    .notes[hidden] { display: none; }
+
+    .progress {
+      flex: 1;
+      min-width: 120px;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--v1-coral-soft);
+    }
+    .progress span {
+      display: block;
+      width: var(--progress);
+      height: 100%;
+      background: linear-gradient(90deg, var(--v1-yellow), var(--v1-red));
+      transition: width 240ms ease;
+    }
+    .status {
+      direction: ltr;
+      color: var(--v1-ink-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .overview {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      overflow: auto;
+      padding: 36px;
+      background: rgb(244 243 239 / .92);
+      backdrop-filter: blur(18px);
+    }
+    .overview.is-open { display: block; }
+    .overview-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 18px;
+    }
+    .thumb {
+      min-height: 156px;
+      padding: 16px;
+      text-align: right;
+      border: 2px solid transparent;
+      border-radius: 14px;
+      background: var(--v1-paper);
+      box-shadow: 4px 4px 0 var(--v1-ink);
+    }
+    .thumb.is-current { border-color: var(--v1-red); }
+    .thumb small {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--v1-coral);
+      font-weight: 900;
+    }
+    .thumb strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .file-input {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 72px;
+      z-index: 30;
+      translate: -50% 20px;
+      opacity: 0;
+      pointer-events: none;
+      padding: 10px 14px;
+      border: 2px solid var(--v1-ink);
+      border-radius: 999px;
+      background: rgb(255 255 255 / .92);
+      transition: opacity 180ms ease, translate 180ms ease;
+    }
+    .toast.is-visible {
+      opacity: 1;
+      translate: -50% 0;
+    }
+    .builder-credit {
+      direction: ltr;
+      unicode-bidi: isolate;
+      position: fixed;
+      left: .875rem;
+      bottom: .875rem;
+      z-index: 60;
+      display: inline-flex;
+      gap: .25rem;
+      align-items: center;
+      padding: .22rem .5rem;
+      border: 1.5px solid var(--v1-ink);
+      border-radius: 999px;
+      background: rgb(255 255 255 / .72);
+      color: var(--v1-ink);
+      box-shadow: 1.5px 1.5px 0 var(--v1-ink);
+      text-decoration: none;
+      font-size: .68rem;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .builder-credit__label {
+      font-size: .58rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      opacity: .72;
+    }
+    .builder-credit__name { font-weight: 900; }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .app { min-height: 100svh; height: auto; }
+      .shell { grid-template-columns: 1fr; }
+      .stage { width: 100%; }
+      .slide-copy { width: 54%; right: 26px; top: 28px; }
+      .notes { min-height: 220px; }
+    }
+    @media (max-width: 620px) {
+      .topbar, .bottombar { align-items: flex-start; flex-direction: column; }
+      .slide-copy { width: calc(100% - 52px); }
+      .subtitle, .bullets { max-width: 30ch; }
+      .sketch { opacity: .38; transform: translateX(-20%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+      }
+      .drawn { stroke-dashoffset: 0 !important; }
+      .sketch-camera, .sketch-item, .bullets li { transform: none !important; opacity: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">V1</span>
+        <span class="wordmark">
+          <strong>WeatherV1 Next</strong>
+          <span class="wordmark-sub">מצגת מוצר מונפשת</span>
+        </span>
+      </div>
+      <div class="controls" aria-label="פקדי מצגת">
+        <button id="prevBtn" title="שקף קודם">קודם</button>
+        <button id="nextBtn" class="primary" title="שקף הבא">הבא</button>
+        <button id="overviewBtn" title="סקירת שקופיות">סקירה</button>
+        <button id="notesBtn" aria-pressed="true" title="הצגת הערות">הערות</button>
+        <button id="fullBtn" title="מסך מלא">מלא</button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="stage-wrap" aria-label="במת שקופית">
+        <article id="stage" class="stage" tabindex="0"></article>
+      </section>
+      <aside id="notesPanel" class="notes" aria-label="הערות דובר">
+        <header>
+          <span>הערות דובר</span>
+          <span id="notesMeta">שקף 1</span>
+        </header>
+        <textarea id="notesText" spellcheck="true"></textarea>
+      </aside>
+    </main>
+
+    <footer class="bottombar">
+      <div class="progress" aria-hidden="true"><span id="progressFill"></span></div>
+      <div class="status" id="statusText">1 / 15</div>
+      <div class="controls" aria-label="פקדי ייצוא">
+        <button id="pngBtn">PNG</button>
+        <button id="jsonBtn">ייצוא JSON</button>
+        <button id="excalidrawBtn">ייצוא Excalidraw</button>
+      </div>
+    </footer>
+  </div>
+
+  <section id="overview" class="overview" aria-label="סקירת שקופיות" aria-hidden="true">
+    <div class="overview-head">
+      <div>
+        <h2 style="margin:0">סקירה</h2>
+        <p style="margin:.25rem 0 0;color:var(--v1-ink-muted)">בחרו שקף או לחצו Escape.</p>
+      </div>
+      <button id="closeOverview">סגור</button>
+    </div>
+    <div id="overviewGrid" class="overview-grid"></div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <a class="builder-credit" dir="ltr" href="https://barmoshe.github.io/bar-portfolio/" target="_blank" rel="noreferrer">
+    <span class="builder-credit__label">Builder</span>
+    <span aria-hidden="true">·</span>
+    <strong class="builder-credit__name">Bar Moshe</strong>
+  </a>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script>
+    const SIZE = { w: 1280, h: 720 };
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const hasGsap = Boolean(window.gsap) && !reduceMotion;
+
+    const THEMES = {
+      product: { paper: "#FFFFFF", ink: "#000000", accent: "#F9543E" },
+      soft: { paper: "#FCE9E4", ink: "#000000", accent: "#FF0000" },
+      tech: { paper: "#FFFFFF", ink: "#000000", accent: "#1FA871" },
+      cream: { paper: "#F4F3EF", ink: "#000000", accent: "#C8202B" },
+      decision: { paper: "#F2C231", ink: "#000000", accent: "#FF0000" }
+    };
+
+    const slides = [
+      {
+        id: "hero",
+        frameName: "פתיחה",
+        kicker: "WeatherV1 Next",
+        title: "סטודיו תחזית וידאו",
+        subtitle: "{{משפט פתיחה: מה המוצר עושה ולמי הוא מיועד}}",
+        bullets: ["קריינות נכנסת", "תכנון סצנות חכם", "MP4 אנכי מוכן להפצה"],
+        notes: "הצג את WeatherV1 Next כמוצר הפקה מקומי: מקריינות לסרטון תחזית אנכי.",
+        theme: THEMES.product,
+        sketch: [
+          { id: "hero-phone", type: "frame", x: 112, y: 82, w: 244, h: 430, label: "9:16 MP4" },
+          { id: "hero-audio", type: "box", x: 486, y: 146, w: 190, h: 92, label: "קריינות" },
+          { id: "hero-arrow", type: "arrow", x1: 478, y1: 215, x2: 366, y2: 292, label: "הפקה" },
+          { id: "hero-weather", type: "ellipse", x: 160, y: 535, w: 230, h: 84, label: "תחזית מוכנה" }
+        ]
+      },
+      {
+        id: "problem",
+        frameName: "הבעיה",
+        kicker: "המצב היום",
+        title: "הפקה מפוזרת מדי",
+        subtitle: "{{כאן נוסיף את הכאב המרכזי בתהליך הנוכחי}}",
+        bullets: ["אודיו במקום אחד", "קליפים במקום אחר", "רינדור ידני ואיטי"],
+        notes: "להדגיש את החיכוך: כל שלב חי בכלי אחר ולכן קשה לחזור, לתקן ולייצא במהירות.",
+        theme: THEMES.soft,
+        sketch: [
+          { id: "problem-audio", type: "box", x: 118, y: 104, w: 178, h: 82, label: "אודיו" },
+          { id: "problem-clips", type: "box", x: 385, y: 138, w: 190, h: 90, label: "קליפים" },
+          { id: "problem-script", type: "box", x: 184, y: 322, w: 190, h: 90, label: "תסריט" },
+          { id: "problem-render", type: "box", x: 480, y: 390, w: 174, h: 84, label: "רינדור" },
+          { id: "problem-scribble", type: "scribble", x: 120, y: 552, w: 520, h: 70 }
+        ]
+      },
+      {
+        id: "solution",
+        frameName: "הפתרון",
+        kicker: "סטודיו אחד",
+        title: "כל הזרימה במקום אחד",
+        subtitle: "{{כאן ננסח את הבטחת המוצר בצורה חדה}}",
+        bullets: ["העלאה", "תמלול", "תכנון", "רינדור", "פלט"],
+        notes: "להראות שהמוצר לא מחליף רק כלי אחד, אלא מחבר את כל שרשרת ההפקה.",
+        theme: THEMES.product,
+        sketch: [
+          { id: "solution-upload", type: "box", x: 80, y: 180, w: 126, h: 76, label: "Upload" },
+          { id: "solution-transcribe", type: "box", x: 242, y: 180, w: 144, h: 76, label: "Whisper" },
+          { id: "solution-plan", type: "box", x: 424, y: 180, w: 142, h: 76, label: "Plan" },
+          { id: "solution-render", type: "box", x: 610, y: 180, w: 128, h: 76, label: "ffmpeg" },
+          { id: "solution-arrow-1", type: "arrow", x1: 206, y1: 218, x2: 236, y2: 218 },
+          { id: "solution-arrow-2", type: "arrow", x1: 386, y1: 218, x2: 418, y2: 218 },
+          { id: "solution-arrow-3", type: "arrow", x1: 566, y1: 218, x2: 604, y2: 218 },
+          { id: "solution-output", type: "callout", x: 210, y: 378, w: 420, h: 92, label: "סרטון תחזית מוכן" }
+        ]
+      },
+      {
+        id: "pipeline",
+        frameName: "איך זה עובד",
+        kicker: "Pipeline",
+        title: "מאודיו ל-MP4",
+        subtitle: "{{כאן נוסיף פירוט לפי הארכיטקטורה בפועל}}",
+        bullets: ["Audio → Whisper", "Scene Planner → v1Drive", "ffmpeg → MP4"],
+        notes: "להשתמש בשקף הזה כעוגן הטכני של המצגת.",
+        theme: THEMES.tech,
+        sketch: [
+          { id: "pipe-audio", type: "circle", x: 118, y: 180, r: 42, label: "Audio" },
+          { id: "pipe-whisper", type: "box", x: 226, y: 135, w: 145, h: 90, label: "Whisper" },
+          { id: "pipe-plan", type: "diamond", x: 432, y: 126, w: 150, h: 108, label: "Planner" },
+          { id: "pipe-drive", type: "box", x: 640, y: 135, w: 145, h: 90, label: "v1Drive" },
+          { id: "pipe-ffmpeg", type: "box", x: 365, y: 365, w: 160, h: 88, label: "ffmpeg" },
+          { id: "pipe-mp4", type: "frame", x: 100, y: 330, w: 140, h: 250, label: "MP4" },
+          { id: "pipe-a1", type: "arrow", x1: 160, y1: 180, x2: 222, y2: 180 },
+          { id: "pipe-a2", type: "arrow", x1: 372, y1: 180, x2: 425, y2: 180 },
+          { id: "pipe-a3", type: "arrow", x1: 582, y1: 180, x2: 634, y2: 180 },
+          { id: "pipe-a4", type: "arrow", x1: 648, y1: 232, x2: 524, y2: 366 },
+          { id: "pipe-a5", type: "arrow", x1: 362, y1: 410, x2: 246, y2: 458 }
+        ]
+      },
+      {
+        id: "studio-home",
+        frameName: "מסך סטודיו ראשי",
+        kicker: "מסכים",
+        title: "הסטודיו הראשי",
+        subtitle: "{{כאן נכניס צילום מסך של הדשבורד הראשי}}",
+        bullets: ["Masthead", "Tabs", "Hero Strip", "Progress"],
+        notes: "שקף placeholder לצילום מסך: מסך הבית של הסטודיו.",
+        theme: THEMES.cream,
+        sketch: [
+          { id: "home-window", type: "frame", x: 74, y: 78, w: 650, h: 430, label: "צילום מסך" },
+          { id: "home-masthead", type: "box", x: 104, y: 110, w: 590, h: 58, label: "V1 · תחזית חדשה · הגדרות" },
+          { id: "home-hero", type: "box", x: 130, y: 205, w: 520, h: 82, label: "סטודיו · סטטוס · מודלים" },
+          { id: "home-progress", type: "line", x1: 148, y1: 320, x2: 622, y2: 320, label: "פס התקדמות" }
+        ]
+      },
+      {
+        id: "upload-record",
+        frameName: "העלאה והקלטה",
+        kicker: "Input",
+        title: "מכניסים קריינות",
+        subtitle: "{{כאן נסביר את זרימת העלאת האודיו או ההקלטה}}",
+        bullets: ["קובץ אודיו", "משך קריינות", "Job חדש"],
+        notes: "להציג את כרטיס ההעלאה ואת המשמעות של יצירת תחזית חדשה.",
+        theme: THEMES.soft,
+        sketch: [
+          { id: "upload-card", type: "callout", x: 136, y: 130, w: 500, h: 260, label: "העלה קובץ אודיו" },
+          { id: "upload-mic", type: "circle", x: 392, y: 220, r: 46, label: "Mic" },
+          { id: "upload-ring", type: "ellipse", x: 326, y: 154, w: 134, h: 134 },
+          { id: "upload-btn", type: "box", x: 284, y: 315, w: 222, h: 54, label: "בחר קובץ" }
+        ]
+      },
+      {
+        id: "transcription",
+        frameName: "תמלול",
+        kicker: "Whisper",
+        title: "הקול הופך לטקסט",
+        subtitle: "{{כאן נוסיף דוגמה לתמלול ולמקטעים}}",
+        bullets: ["Transcript", "Timecodes", "Segments"],
+        notes: "להראות שהתמלול הוא מקור העבודה של מתכנן הסצנות.",
+        theme: THEMES.tech,
+        sketch: [
+          { id: "tx-panel", type: "frame", x: 100, y: 92, w: 560, h: 390, label: "Transcript" },
+          { id: "tx-time-1", type: "box", x: 132, y: 160, w: 118, h: 42, label: "00:12" },
+          { id: "tx-line-1", type: "line", x1: 270, y1: 180, x2: 610, y2: 180 },
+          { id: "tx-time-2", type: "box", x: 132, y: 250, w: 118, h: 42, label: "00:28" },
+          { id: "tx-line-2", type: "line", x1: 270, y1: 270, x2: 610, y2: 270 },
+          { id: "tx-time-3", type: "box", x: 132, y: 340, w: 118, h: 42, label: "00:43" },
+          { id: "tx-line-3", type: "line", x1: 270, y1: 360, x2: 610, y2: 360 }
+        ]
+      },
+      {
+        id: "planning",
+        frameName: "תכנון ו-Replan",
+        kicker: "AI Planning",
+        title: "מתכננים סצנות",
+        subtitle: "{{כאן נפרט איך ה-AI בוחר סצנות וקליפים}}",
+        bullets: ["Scene cards", "Clip picker", "Replan loop"],
+        notes: "להסביר שהמוצר מאפשר תכנון חוזר בלי להתחיל מאפס.",
+        theme: THEMES.product,
+        sketch: [
+          { id: "plan-scene-1", type: "box", x: 100, y: 104, w: 220, h: 120, label: "סצנה 1" },
+          { id: "plan-scene-2", type: "box", x: 360, y: 104, w: 220, h: 120, label: "סצנה 2" },
+          { id: "plan-scene-3", type: "box", x: 230, y: 292, w: 220, h: 120, label: "סצנה 3" },
+          { id: "plan-replan", type: "arrow", x1: 450, y1: 286, x2: 560, y2: 202, label: "Replan" },
+          { id: "plan-clips", type: "callout", x: 120, y: 500, w: 500, h: 68, label: "בחירת קליפים מתוך הקטלוג" }
+        ]
+      },
+      {
+        id: "render-queue",
+        frameName: "תור רינדור",
+        kicker: "Render",
+        title: "עוקבים אחרי העבודה",
+        subtitle: "{{כאן נסביר את הסטטוסים ואת תור העבודות}}",
+        bullets: ["ממתין", "מעבד", "הושלם", "נכשל"],
+        notes: "להציג את מודל העבודה הארוך: עבודה יכולה לרוץ כמה דקות ויש סטטוס ברור.",
+        theme: THEMES.cream,
+        sketch: [
+          { id: "queue-row-1", type: "box", x: 110, y: 120, w: 550, h: 66, label: "ממתין בתור" },
+          { id: "queue-row-2", type: "box", x: 110, y: 220, w: 550, h: 66, label: "מעבד" },
+          { id: "queue-row-3", type: "box", x: 110, y: 320, w: 550, h: 66, label: "הושלם" },
+          { id: "queue-progress", type: "line", x1: 160, y1: 450, x2: 610, y2: 450, label: "progress" }
+        ]
+      },
+      {
+        id: "outputs",
+        frameName: "תוצרים",
+        kicker: "Output",
+        title: "וידאו מוכן להפצה",
+        subtitle: "{{כאן נפרט את התוצרים: MP4, פוסטרים, פריוויו והיסטוריה}}",
+        bullets: ["Vertical MP4", "Preview", "Posters", "History"],
+        notes: "להראות את הסוף של הזרימה: תוצר שאפשר לשמור, לבדוק ולהפיץ.",
+        theme: THEMES.product,
+        sketch: [
+          { id: "out-video", type: "frame", x: 100, y: 78, w: 190, h: 338, label: "9:16" },
+          { id: "out-history", type: "box", x: 362, y: 124, w: 340, h: 68, label: "History row" },
+          { id: "out-preview", type: "box", x: 362, y: 232, w: 340, h: 68, label: "Preview" },
+          { id: "out-poster", type: "box", x: 362, y: 340, w: 340, h: 68, label: "Poster" },
+          { id: "out-arrow", type: "arrow", x1: 356, y1: 280, x2: 292, y2: 274 }
+        ]
+      },
+      {
+        id: "models-costs",
+        frameName: "מודלים ועלויות",
+        kicker: "Costs",
+        title: "מודלים ועלויות",
+        subtitle: "{{כאן נוסיף טבלת עלויות לפי ספק, מודל ושימוש}}",
+        bullets: ["Whisper לתמלול", "GPT / Claude לתכנון", "עלות לפי דקות וטוקנים"],
+        notes: "שקף placeholder לטבלה מספרית. להשאיר מקום למחירים אמיתיים בהמשך.",
+        theme: THEMES.decision,
+        sketch: [
+          { id: "cost-whisper", type: "box", x: 100, y: 130, w: 190, h: 124, label: "Whisper" },
+          { id: "cost-gpt", type: "box", x: 330, y: 130, w: 190, h: 124, label: "GPT" },
+          { id: "cost-claude", type: "box", x: 560, y: 130, w: 190, h: 124, label: "Claude" },
+          { id: "cost-table", type: "callout", x: 140, y: 360, w: 560, h: 110, label: "{{טבלת עלויות}}" }
+        ]
+      },
+      {
+        id: "storage-options",
+        frameName: "אפשרויות אחסון",
+        kicker: "Storage",
+        title: "איפה המדיה חיה?",
+        subtitle: "{{כאן נשווה בין אחסון מקומי, v1Drive, runtime ו-R2}}",
+        bullets: ["Local workspace", "v1Drive", "Cloudflare R2", "Docker volume"],
+        notes: "להסביר שהמוצר מקומי קודם, עם אפשרות סנכרון ענן.",
+        theme: THEMES.tech,
+        sketch: [
+          { id: "storage-local", type: "box", x: 88, y: 122, w: 170, h: 90, label: "Local" },
+          { id: "storage-drive", type: "box", x: 315, y: 122, w: 170, h: 90, label: "v1Drive" },
+          { id: "storage-r2", type: "box", x: 542, y: 122, w: 170, h: 90, label: "R2" },
+          { id: "storage-sync-1", type: "arrow", x1: 258, y1: 166, x2: 308, y2: 166 },
+          { id: "storage-sync-2", type: "arrow", x1: 485, y1: 166, x2: 535, y2: 166 },
+          { id: "storage-gate", type: "callout", x: 160, y: 348, w: 480, h: 100, label: "Storage Gate" }
+        ]
+      },
+      {
+        id: "platforms",
+        frameName: "אפליקציה מול אתר מול מובייל",
+        kicker: "Platforms",
+        title: "דסקטופ, ווב או מובייל?",
+        subtitle: "{{כאן נכניס את ההשוואה העסקית והמוצרית}}",
+        bullets: ["Electron קודם", "Web לניהול", "Mobile בהמשך"],
+        notes: "ברירת המחדל: דסקטופ קודם בגלל ffmpeg, דיסק, קבצים גדולים ועבודה ארוכה.",
+        theme: THEMES.soft,
+        sketch: [
+          { id: "platform-desktop", type: "box", x: 94, y: 138, w: 190, h: 220, label: "Electron" },
+          { id: "platform-web", type: "box", x: 344, y: 138, w: 190, h: 220, label: "Web" },
+          { id: "platform-mobile", type: "box", x: 594, y: 138, w: 138, h: 220, label: "Mobile" },
+          { id: "platform-rec", type: "callout", x: 120, y: 462, w: 560, h: 78, label: "המלצה: דסקטופ קודם" }
+        ]
+      },
+      {
+        id: "boundaries",
+        frameName: "גבולות טכניים",
+        kicker: "Boundaries",
+        title: "למה לא Serverless?",
+        subtitle: "{{כאן נסביר את גבולות התשתית והסיבות להחלטות}}",
+        bullets: ["ffmpeg subprocess", "קבצים גדולים", "דיסק מקומי", "עבודות ארוכות"],
+        notes: "להציג את זה כהחלטה הנדסית בריאה, לא כחולשה.",
+        theme: THEMES.cream,
+        sketch: [
+          { id: "bound-ffmpeg", type: "box", x: 106, y: 120, w: 186, h: 88, label: "ffmpeg" },
+          { id: "bound-disk", type: "box", x: 374, y: 120, w: 186, h: 88, label: "Disk" },
+          { id: "bound-upload", type: "box", x: 106, y: 300, w: 186, h: 88, label: "Uploads" },
+          { id: "bound-time", type: "box", x: 374, y: 300, w: 186, h: 88, label: "Long jobs" },
+          { id: "bound-warn", type: "scribble", x: 102, y: 498, w: 500, h: 58 }
+        ]
+      },
+      {
+        id: "recommendation",
+        frameName: "המלצה ובקשה",
+        kicker: "Next step",
+        title: "מה מחליטים עכשיו?",
+        subtitle: "{{כאן ננסח את ההמלצה הסופית והבקשה מהקהל}}",
+        bullets: ["לאשר כיוון דסקטופ", "להשלים מסכים ותוכן", "לסגור מודלים ועלויות"],
+        notes: "לסיים בבקשה ברורה: החלטה, תקציב, או אישור המשך.",
+        theme: THEMES.decision,
+        sketch: [
+          { id: "ask-frame", type: "frame", x: 122, y: 96, w: 560, h: 354, label: "V1 Decision" },
+          { id: "ask-one", type: "circle", x: 205, y: 205, r: 30, label: "1" },
+          { id: "ask-two", type: "circle", x: 392, y: 205, r: 30, label: "2" },
+          { id: "ask-three", type: "circle", x: 578, y: 205, r: 30, label: "3" },
+          { id: "ask-arrow", type: "arrow", x1: 580, y1: 410, x2: 405, y2: 515, label: "קדימה" }
+        ]
+      }
+    ];
+
+    let index = 0;
+    let notesOpen = true;
+
+    const els = {
+      stage: document.getElementById("stage"),
+      prev: document.getElementById("prevBtn"),
+      next: document.getElementById("nextBtn"),
+      overview: document.getElementById("overview"),
+      overviewBtn: document.getElementById("overviewBtn"),
+      overviewGrid: document.getElementById("overviewGrid"),
+      closeOverview: document.getElementById("closeOverview"),
+      notesBtn: document.getElementById("notesBtn"),
+      notesPanel: document.getElementById("notesPanel"),
+      notesText: document.getElementById("notesText"),
+      notesMeta: document.getElementById("notesMeta"),
+      fullBtn: document.getElementById("fullBtn"),
+      progress: document.getElementById("progressFill"),
+      status: document.getElementById("statusText"),
+      png: document.getElementById("pngBtn"),
+      json: document.getElementById("jsonBtn"),
+      excalidraw: document.getElementById("excalidrawBtn"),
+      toast: document.getElementById("toast")
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[ch]));
+    }
+
+    function seededNoise(seed) {
+      const x = Math.sin(seed * 999) * 10000;
+      return x - Math.floor(x);
+    }
+    function jitter(value, seed, amount = 4) {
+      return value + (seededNoise(seed) - .5) * amount;
+    }
+    function roughRectPath(x, y, w, h, seed = 1) {
+      const p = [
+        [jitter(x, seed), jitter(y, seed + 1)],
+        [jitter(x + w, seed + 2), jitter(y, seed + 3)],
+        [jitter(x + w, seed + 4), jitter(y + h, seed + 5)],
+        [jitter(x, seed + 6), jitter(y + h, seed + 7)]
+      ];
+      return `M ${p.map(pt => pt.join(" ")).join(" L ")} Z`;
+    }
+    function roughDiamondPath(x, y, w, h, seed = 1) {
+      const p = [
+        [jitter(x + w / 2, seed), jitter(y, seed + 1)],
+        [jitter(x + w, seed + 2), jitter(y + h / 2, seed + 3)],
+        [jitter(x + w / 2, seed + 4), jitter(y + h, seed + 5)],
+        [jitter(x, seed + 6), jitter(y + h / 2, seed + 7)]
+      ];
+      return `M ${p.map(pt => pt.join(" ")).join(" L ")} Z`;
+    }
+    function linePath(x1, y1, x2, y2, seed = 1) {
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      return `M ${jitter(x1, seed)} ${jitter(y1, seed + 1)} Q ${jitter(mx, seed + 2, 18)} ${jitter(my, seed + 3, 18)} ${jitter(x2, seed + 4)} ${jitter(y2, seed + 5)}`;
+    }
+    function arrowHead(x1, y1, x2, y2) {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const size = 17;
+      const p1 = [x2 + Math.cos(angle + Math.PI * .82) * size, y2 + Math.sin(angle + Math.PI * .82) * size];
+      const p2 = [x2 + Math.cos(angle - Math.PI * .82) * size, y2 + Math.sin(angle - Math.PI * .82) * size];
+      return `M ${p1[0]} ${p1[1]} L ${x2} ${y2} L ${p2[0]} ${p2[1]}`;
+    }
+
+    function sketchElement(el, i, accent) {
+      const seed = i * 17 + 3;
+      const label = el.label || "";
+      const common = `class="drawn" style="--dash:1200" fill="none" stroke="${accent}" stroke-width="4"`;
+      let shape = "";
+      if (["box", "frame", "callout"].includes(el.type)) {
+        const fill = el.type === "callout" ? "rgb(255 255 255 / .36)" : "rgb(255 255 255 / .18)";
+        shape = `<path d="${roughRectPath(el.x, el.y, el.w, el.h, seed)}" fill="${fill}" stroke="${accent}" stroke-width="${el.type === "frame" ? 5 : 4}" class="drawn" style="--dash:1400"></path>`;
+      } else if (el.type === "diamond") {
+        shape = `<path d="${roughDiamondPath(el.x, el.y, el.w, el.h, seed)}" fill="rgb(255 255 255 / .18)" stroke="${accent}" stroke-width="4" class="drawn" style="--dash:1000"></path>`;
+      } else if (el.type === "ellipse") {
+        shape = `<ellipse cx="${el.x + el.w / 2}" cy="${el.y + el.h / 2}" rx="${el.w / 2}" ry="${el.h / 2}" fill="rgb(255 255 255 / .18)" stroke="${accent}" stroke-width="4" class="drawn" style="--dash:1000"></ellipse>`;
+      } else if (el.type === "circle") {
+        shape = `<ellipse cx="${el.x}" cy="${el.y}" rx="${el.r}" ry="${el.r}" fill="rgb(255 255 255 / .2)" stroke="${accent}" stroke-width="4" class="drawn" style="--dash:700"></ellipse>`;
+      } else if (el.type === "line") {
+        shape = `<path d="${linePath(el.x1, el.y1, el.x2, el.y2, seed)}" ${common}></path>`;
+      } else if (el.type === "arrow") {
+        shape = `<path d="${linePath(el.x1, el.y1, el.x2, el.y2, seed)}" ${common}></path><path d="${arrowHead(el.x1, el.y1, el.x2, el.y2)}" ${common}></path>`;
+      } else if (el.type === "scribble") {
+        const y = el.y + el.h / 2;
+        const d = Array.from({ length: 9 }, (_, n) => {
+          const x = el.x + (el.w / 8) * n;
+          const yy = y + Math.sin(n * 1.7) * el.h * .36;
+          return `${n ? "L" : "M"} ${jitter(x, seed + n, 8)} ${jitter(yy, seed + n + 10, 8)}`;
+        }).join(" ");
+        shape = `<path d="${d}" ${common}></path>`;
+      }
+      if (label) {
+        const hasBox = Number.isFinite(Number(el.x));
+        const lx = hasBox ? Number(el.x) + Number(el.w || 0) / 2 : (Number(el.x1 || 0) + Number(el.x2 || 0)) / 2;
+        const ly = hasBox ? Number(el.y) + Number(el.h || 0) / 2 + 7 : (Number(el.y1 || 0) + Number(el.y2 || 0)) / 2 - 12;
+        shape += `<text x="${lx}" y="${ly}" text-anchor="middle" direction="rtl" fill="#000" font-size="25" font-weight="850">${escapeHtml(label)}</text>`;
+      }
+      return `<g class="sketch-item" data-sketch-id="${escapeHtml(el.id)}">${shape}</g>`;
+    }
+
+    function renderSketch(slide) {
+      const accent = slide.theme.accent;
+      return `<svg class="sketch" viewBox="0 0 ${SIZE.w} ${SIZE.h}" role="img" aria-label="${escapeHtml(slide.title)}">
+        <g class="sketch-camera">${slide.sketch.map((el, i) => sketchElement(el, i, accent)).join("")}</g>
+      </svg>`;
+    }
+
+    function render() {
+      const slide = slides[index];
+      els.stage.style.setProperty("--slide-paper", slide.theme.paper);
+      els.stage.style.setProperty("--slide-ink", slide.theme.ink);
+      els.stage.style.setProperty("--slide-accent", slide.theme.accent);
+      els.stage.innerHTML = `
+        <div class="paper-grid"></div>
+        ${renderSketch(slide)}
+        <div class="slide-copy">
+          <div class="kicker">${escapeHtml(slide.kicker)}</div>
+          <h1>${escapeHtml(slide.title)}</h1>
+          <p class="subtitle">${escapeHtml(slide.subtitle)}</p>
+          <ul class="bullets">${slide.bullets.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+        </div>
+        <div class="slide-number">${String(index + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}</div>
+      `;
+      els.notesText.value = slide.notes;
+      els.notesMeta.textContent = `שקף ${index + 1}`;
+      els.progress.style.setProperty("--progress", `${((index + 1) / slides.length) * 100}%`);
+      els.status.textContent = `${index + 1} / ${slides.length}`;
+      els.notesPanel.hidden = !notesOpen;
+      els.notesBtn.setAttribute("aria-pressed", String(notesOpen));
+      renderOverview();
+      animateSlide();
+    }
+
+    function animateSlide() {
+      if (!hasGsap) {
+        els.stage.querySelectorAll(".drawn").forEach(el => { el.style.strokeDashoffset = 0; });
+        els.stage.querySelectorAll(".sketch-item, .bullets li").forEach(el => { el.style.opacity = 1; el.style.transform = "none"; });
+        return;
+      }
+      const q = gsap.utils.selector(els.stage);
+      gsap.killTweensOf([els.stage, ...q("*")]);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.fromTo(els.stage, { autoAlpha: 0, y: 28, rotateX: 3, scale: .98, filter: "blur(8px)" }, { autoAlpha: 1, y: 0, rotateX: 0, scale: 1, filter: "blur(0px)", duration: .62 });
+      tl.fromTo(q(".kicker"), { autoAlpha: 0, x: 22 }, { autoAlpha: 1, x: 0, duration: .36 }, "-=.32");
+      tl.fromTo(q("h1"), { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: .58 }, "-=.18");
+      tl.fromTo(q(".subtitle"), { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: .42 }, "-=.28");
+      tl.fromTo(q(".bullets li"), { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: .34, stagger: .07 }, "-=.16");
+      q(".sketch-item").forEach((item, i) => {
+        const strokes = item.querySelectorAll(".drawn");
+        const at = .42 + i * .06;
+        tl.fromTo(item, { autoAlpha: 0, y: 14, scale: .98 }, { autoAlpha: 1, y: 0, scale: 1, duration: .36 }, at);
+        tl.fromTo(strokes, { strokeDashoffset: 1200 }, { strokeDashoffset: 0, duration: .72, ease: "power2.inOut" }, at + .03);
+      });
+      tl.fromTo(q(".slide-number"), { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: .24 }, "-=.24");
+    }
+
+    function renderOverview() {
+      els.overviewGrid.innerHTML = slides.map((slide, i) => `
+        <button class="thumb ${i === index ? "is-current" : ""}" data-index="${i}">
+          <small>${String(i + 1).padStart(2, "0")} · ${escapeHtml(slide.frameName)}</small>
+          <strong>${escapeHtml(slide.title)}</strong>
+          <span>${escapeHtml(slide.subtitle)}</span>
+        </button>
+      `).join("");
+      els.overviewGrid.querySelectorAll(".thumb").forEach(btn => {
+        btn.addEventListener("click", () => {
+          index = Number(btn.dataset.index);
+          closeOverview();
+          render();
+        });
+      });
+    }
+
+    function go(delta) {
+      index = Math.max(0, Math.min(slides.length - 1, index + delta));
+      render();
+    }
+    function openOverview() {
+      els.overview.classList.add("is-open");
+      els.overview.setAttribute("aria-hidden", "false");
+    }
+    function closeOverview() {
+      els.overview.classList.remove("is-open");
+      els.overview.setAttribute("aria-hidden", "true");
+      els.stage.focus();
+    }
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("is-visible");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("is-visible"), 1600);
+    }
+    function downloadBlob(blob, filename) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    function exportJson() {
+      downloadBlob(new Blob([JSON.stringify({ deckTitle: "WeatherV1 Next", language: "he", direction: "rtl", slides }, null, 2)], { type: "application/json" }), "weatherv1-hebrew-presentation.json");
+      showToast("JSON יוצא.");
+    }
+    function deckToExcalidraw() {
+      const elements = [];
+      slides.forEach((slide, i) => {
+        const frame = {
+          id: `frame-${slide.id}`,
+          type: "frame",
+          x: i * (SIZE.w + 180),
+          y: 0,
+          width: SIZE.w,
+          height: SIZE.h,
+          angle: 0,
+          strokeColor: "#000000",
+          backgroundColor: "transparent",
+          fillStyle: "solid",
+          strokeWidth: 2,
+          strokeStyle: "solid",
+          roughness: 1,
+          opacity: 100,
+          groupIds: [],
+          frameId: null,
+          roundness: null,
+          seed: 1 + i,
+          version: 1,
+          versionNonce: 1000 + i,
+          isDeleted: false,
+          boundElements: null,
+          updated: Date.now(),
+          link: null,
+          locked: false,
+          name: slide.frameName
+        };
+        const textBase = { type: "text", angle: 0, strokeColor: slide.theme.ink, backgroundColor: "transparent", fillStyle: "solid", strokeWidth: 1, strokeStyle: "solid", roughness: 1, opacity: 100, groupIds: [], frameId: frame.id, roundness: null, version: 1, isDeleted: false, boundElements: null, updated: Date.now(), link: null, locked: false, fontFamily: 1, textAlign: "right", verticalAlign: "top", containerId: null, lineHeight: 1.18 };
+        elements.push(
+          { ...textBase, id: `${frame.id}-kicker`, x: frame.x + 840, y: 76, width: 360, height: 28, seed: 20 + i, versionNonce: 2000 + i, fontSize: 20, text: slide.kicker, originalText: slide.kicker, baseline: 18, strokeColor: slide.theme.accent },
+          { ...textBase, id: `${frame.id}-title`, x: frame.x + 720, y: 128, width: 480, height: 86, seed: 30 + i, versionNonce: 3000 + i, fontSize: 58, text: slide.title, originalText: slide.title, baseline: 50 },
+          { ...textBase, id: `${frame.id}-subtitle`, x: frame.x + 720, y: 238, width: 480, height: 92, seed: 40 + i, versionNonce: 4000 + i, fontSize: 25, text: slide.subtitle, originalText: slide.subtitle, baseline: 22 },
+          ...slide.bullets.map((bullet, b) => ({ ...textBase, id: `${frame.id}-bullet-${b + 1}`, x: frame.x + 760, y: 380 + b * 40, width: 430, height: 32, seed: 50 + b + i, versionNonce: 5000 + b + i, fontSize: 24, text: `• ${bullet}`, originalText: `• ${bullet}`, baseline: 21 }))
+        );
+        slide.sketch.forEach((el, s) => {
+          if (!["box", "frame", "callout"].includes(el.type)) return;
+          elements.push({
+            id: el.id,
+            type: "rectangle",
+            x: frame.x + el.x,
+            y: frame.y + el.y,
+            width: el.w,
+            height: el.h,
+            angle: 0,
+            strokeColor: slide.theme.accent,
+            backgroundColor: "transparent",
+            fillStyle: "hachure",
+            strokeWidth: 2,
+            strokeStyle: "solid",
+            roughness: 1.6,
+            opacity: 100,
+            groupIds: [],
+            frameId: frame.id,
+            roundness: { type: 3 },
+            seed: 800 + s,
+            version: 1,
+            versionNonce: 900 + s,
+            isDeleted: false,
+            boundElements: null,
+            updated: Date.now(),
+            link: null,
+            locked: false
+          });
+        });
+        elements.push(frame);
+      });
+      return { type: "excalidraw", version: 2, source: "claude-creative-stack/weatherv1-hebrew-presentation", elements, appState: { viewBackgroundColor: "#F4F3EF", exportEmbedScene: true, currentItemFontFamily: 1 }, files: {} };
+    }
+    function exportExcalidraw() {
+      downloadBlob(new Blob([JSON.stringify(deckToExcalidraw(), null, 2)], { type: "application/json" }), "weatherv1-hebrew-presentation.excalidraw");
+      showToast("Excalidraw יוצא.");
+    }
+    async function exportPng() {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE.w}" height="${SIZE.h}" viewBox="0 0 ${SIZE.w} ${SIZE.h}">
+        <rect width="1280" height="720" fill="${slides[index].theme.paper}"/>
+        <foreignObject x="70" y="50" width="1140" height="620">
+          <div xmlns="http://www.w3.org/1999/xhtml" dir="rtl" style="font: 700 28px Heebo, system-ui; color:${slides[index].theme.ink}">
+            <div style="color:${slides[index].theme.accent};font-size:22px;font-weight:900">${escapeHtml(slides[index].kicker)}</div>
+            <h1 style="font-size:72px;line-height:1;margin:20px 0">${escapeHtml(slides[index].title)}</h1>
+            <p style="max-width:620px;font-weight:500">${escapeHtml(slides[index].subtitle)}</p>
+            <ul>${slides[index].bullets.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          </div>
+        </foreignObject>
+      </svg>`;
+      const blob = new Blob([svg], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = SIZE.w * 2;
+      canvas.height = SIZE.h * 2;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      await new Promise(resolve => canvas.toBlob(blobOut => {
+        if (blobOut) downloadBlob(blobOut, `${slides[index].id}.png`);
+        resolve();
+      }, "image/png"));
+      showToast("PNG יוצא.");
+    }
+
+    els.prev.addEventListener("click", () => go(-1));
+    els.next.addEventListener("click", () => go(1));
+    els.overviewBtn.addEventListener("click", openOverview);
+    els.closeOverview.addEventListener("click", closeOverview);
+    els.notesBtn.addEventListener("click", () => { notesOpen = !notesOpen; render(); });
+    els.notesText.addEventListener("input", () => { slides[index].notes = els.notesText.value; });
+    els.fullBtn.addEventListener("click", () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    });
+    els.png.addEventListener("click", exportPng);
+    els.json.addEventListener("click", exportJson);
+    els.excalidraw.addEventListener("click", exportExcalidraw);
+    window.addEventListener("keydown", event => {
+      if (event.target === els.notesText) return;
+      if (event.key === "ArrowLeft" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        go(1);
+      } else if (event.key === "ArrowRight" || event.key === "PageUp") {
+        event.preventDefault();
+        go(-1);
+      } else if (event.key.toLowerCase() === "o") {
+        openOverview();
+      } else if (event.key.toLowerCase() === "n") {
+        notesOpen = !notesOpen;
+        render();
+      } else if (event.key === "Escape") {
+        closeOverview();
+      }
+    });
+
+    window.__weatherV1Presentation = { getSlides: () => slides, deckToExcalidraw };
+    render();
+    els.stage.focus();
+  </script>
+</body>
+</html>
