@@ -2,7 +2,7 @@
 
 ## Context
 
-We've completed comprehensive research for a **monkey/banana-themed beat sequencer** (documented in `research-findings-monkey-sequencer.md`). All architectural decisions are made. This plan covers the full build: asset generation → single-file HTML artifact → verification.
+We've completed comprehensive research for a **monkey/banana-themed beat sequencer** (documented in `research-monkey-sequencer.md`). All architectural decisions are made. This plan covers the full build: asset generation → single-file HTML artifact → verification.
 
 The goal: a playable, visually rich 8-track beat sequencer running as a Claude artifact, with procedural audio (Euclidean rhythms + Markov melodies), an animated monkey character, particle effects, and jungle theming.
 
@@ -11,8 +11,8 @@ The goal: a playable, visually rich 8-track beat sequencer running as a Claude a
 ## Pre-Implementation: Documentation
 
 ### Step 0: Save plan + handoff to repo
-1. Save this plan as `banana-beats-plan.md` in the repo root
-2. Create `banana-beats-handoff.md` — a concise agent-executable handoff document containing:
+1. Save this plan as `plan-v1.md` in the repo root
+2. Create `handoff-v1.md` — a concise agent-executable handoff document containing:
    - Project summary (what to build, target file path)
    - Stack & CDN URLs (exact versions)
    - Build order (numbered steps with checkpoints)
@@ -201,7 +201,7 @@ AppState { bpm, seed, isPlaying, activeTab, vibe, tracks[8], fx[4], master, char
 
 | File | Purpose |
 |------|---------|
-| `research-findings-monkey-sequencer.md` | Complete spec: tracks, state, FSM, animation matrix, prompts |
+| `research-monkey-sequencer.md` | Complete spec: tracks, state, FSM, animation matrix, prompts |
 | `artifacts/html/tone-procmusic.html` | Tone.js audio pattern (euclidean, Transport, synths) |
 | `artifacts/html/phaser4-platformer.html` | Phaser 4 pattern (Game config, sprites, squash/stretch) |
 | `artifacts/html/last-radio-station.html` | Complex HTML artifact reference (oklch, Tone.js, storage) |

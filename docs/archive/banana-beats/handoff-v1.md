@@ -288,11 +288,11 @@ async function loadState() {
 
 | Doc | What to look up |
 |-----|----------------|
-| `research-findings-monkey-sequencer.md` §1 | TL;DR architecture summary |
-| `research-findings-monkey-sequencer.md` §2 Track 1 | Pattern generation API, 8-track table, audio sync pattern |
-| `research-findings-monkey-sequencer.md` §2 Track 3 | Animation routing matrix, character FSM, particle specs |
-| `research-findings-monkey-sequencer.md` §2 Track 4 | Asset matrix, AI prompts, color palette CSS block |
-| `research-findings-monkey-sequencer.md` §2 Track 5 | UI wireframes, state shape (TypeScript), reducer actions, keyboard map |
+| `research-monkey-sequencer.md` §1 | TL;DR architecture summary |
+| `research-monkey-sequencer.md` §2 Track 1 | Pattern generation API, 8-track table, audio sync pattern |
+| `research-monkey-sequencer.md` §2 Track 3 | Animation routing matrix, character FSM, particle specs |
+| `research-monkey-sequencer.md` §2 Track 4 | Asset matrix, AI prompts, color palette CSS block |
+| `research-monkey-sequencer.md` §2 Track 5 | UI wireframes, state shape (TypeScript), reducer actions, keyboard map |
 | `knowledge/03-artifacts.md` | Sandbox constraints (CDN allowlist, storage API, blocked APIs) |
 
 ---

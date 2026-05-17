@@ -232,8 +232,8 @@ Even with `isPlaying = false`, the world layer keeps ticking at 0.3× speed:
 | File | Role |
 |---|---|
 | `artifacts/html/banana-beats.html` | **Output target** — extend `createStage` to compose `worldEngine` + existing chars + new HUD |
-| `banana-beats-handoff.md` | v3 build spec (still valid for layer A) |
-| `research-findings-monkey-sequencer.md` §3 | Animation routing matrix — extended to RPG verbs in this plan |
+| `handoff-v1.md` | v3 build spec (still valid for layer A) |
+| `research-monkey-sequencer.md` §3 | Animation routing matrix — extended to RPG verbs in this plan |
 | `knowledge/06-games.md` | RPG primitives (BSP/CA/Verlet/spring) — reused throughout |
 | `skills/procgen-toolkit/SKILL.md` | CA + BSP + Poisson reference for enemy formations |
 

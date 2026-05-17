@@ -43,7 +43,7 @@
 |----------------|---------|
 | **[`knowledge/`](knowledge/)** | Routed reference docs (`01`–`17`, `99`) — upload into the Project KB |
 | **[`skills/`](skills/)** | **12** `SKILL.md` agents (games, motion, shaders, UI, decks, diagrams, …) |
-| **[`artifacts/`](artifacts/)** | **27** sandbox-correct HTML / JSX starters |
+| **[`artifacts/`](artifacts/)** | **28** sandbox-correct HTML / JSX starters |
 | **[`prompts/`](prompts/)** | Copy-paste scaffolds — catalog **[`prompts/README.md`](prompts/README.md)** |
 | **[`recipes/`](recipes/)** | End-to-end narratives — index **[`recipes/README.md`](recipes/README.md)** |
 | **[`mcp/servers/`](mcp/servers/)** | **3** TypeScript MCP servers + **[`mcp/configs/creative-stack.mcp.json`](mcp/configs/creative-stack.mcp.json)** |
@@ -92,7 +92,7 @@ Priority adapted from [`knowledge/00-index.md`](knowledge/00-index.md):
 ```
 knowledge/     19 Markdown guides — 00-index, 01–17, 99-caveats  → Project knowledge payload
 skills/        12 Agent Skills (SKILL.md)
-artifacts/     27 single-file starters (HTML + React/JSX)
+artifacts/     28 single-file starters (HTML + React/JSX)
 prompts/       13 prompt scaffolds + README
 recipes/       6 workflow narratives + README
 mcp/servers/   3 TypeScript MCP servers + drop-in config

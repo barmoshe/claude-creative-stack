@@ -4,7 +4,7 @@
 
 The user requested a **full reinvention** of `artifacts/html/banana-beats.html`. Three axes need to land at once:
 
-1. **STAGE** — RPG-game-running-in-the-background with algorithmic mappings from pattern data → scene events. (Detailed research already in `banana-beats-v4-plan.md`.)
+1. **STAGE** — RPG-game-running-in-the-background with algorithmic mappings from pattern data → scene events. (Detailed research already in `plan-v4.md`.)
 2. **SEQ + MUSIC** — richer expression: velocity, probability, swing, humanization, melodic key/octave control, pattern banks.
 3. **UX/UI** — bigger stage, smaller-but-denser sequencer, better transport (slider+tap-tempo, visual playhead, quick-action buttons), discoverable interactions.
 
@@ -37,7 +37,7 @@ No other file modifications.
 
 ## Locked design — Axis 1: STAGE (RPG world engine)
 
-Per `banana-beats-v4-plan.md` and the earlier-locked decisions in this session. Key implementation primitives:
+Per `plan-v4.md` and the earlier-locked decisions in this session. Key implementation primitives:
 
 - **3-layer architecture** — Layer A (existing v3 chars) + Layer B (NEW world engine: enemies, projectiles, biome BG, critters, weather, day/night) + Layer C (NEW HUD: phase banner, boss warning).
 - **5 master maps**:
