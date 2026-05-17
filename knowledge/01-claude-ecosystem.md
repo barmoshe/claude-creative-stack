@@ -2,14 +2,16 @@
 
 ## 1.1 Current Claude models — IDs, context, pricing
 
-| Model | Primary API ID | Aliases / Snapshots | Context | Max Output | Input $/MTok | Output $/MTok | 5m Cache Write | 1h Cache Write | Cache Read |
-|---|---|---|---|---|---|---|---|---|---|
-| Claude Opus 4.7 | `claude-opus-4-7` | dated snapshot tbd | 1M | 128k | $5 | $25 | $6.25 | $10 | $0.50 |
-| Claude Opus 4.6 | `claude-opus-4-6` | — | 1M | 128k | $5 | $25 | $6.25 | $10 | $0.50 |
-| Claude Opus 4.5 | `claude-opus-4-5` | — | 200k | 64k | $5 | $25 | $6.25 | $10 | $0.50 |
-| Claude Sonnet 4.6 | `claude-sonnet-4-6` | — | 1M | 64k | $3 | $15 | $3.75 | $6 | $0.30 |
-| Claude Sonnet 4.5 | `claude-sonnet-4-5` | `claude-sonnet-4-5-20250929` | 1M (beta) | 64k | $3 | $15 | $3.75 | $6 | $0.30 |
-| Claude Haiku 4.5 | `claude-haiku-4-5` | `claude-haiku-4-5-20251001` | 200k | 64k | $1 | $5 | $1.25 | $2 | $0.10 |
+| Model | Primary API ID | Context | Max Output | Input $/MTok | Output $/MTok | 5m Cache Write | 1h Cache Write | Cache Read |
+|---|---|---|---|---|---|---|---|---|
+| Claude Opus 4.7 | `claude-opus-4-7` | 1M | 128k | $5 | $25 | $6.25 | $10 | $0.50 |
+| Claude Opus 4.6 | `claude-opus-4-6` | 1M | 128k | $5 | $25 | $6.25 | $10 | $0.50 |
+| Claude Opus 4.5 | `claude-opus-4-5` | 200k | 64k | $5 | $25 | $6.25 | $10 | $0.50 |
+| Claude Sonnet 4.6 | `claude-sonnet-4-6` | 1M | 64k | $3 | $15 | $3.75 | $6 | $0.30 |
+| Claude Sonnet 4.5 | `claude-sonnet-4-5` | 1M (beta) | 64k | $3 | $15 | $3.75 | $6 | $0.30 |
+| Claude Haiku 4.5 | `claude-haiku-4-5` | 200k | 64k | $1 | $5 | $1.25 | $2 | $0.10 |
+
+Dated snapshots when you need pin-perfect reproducibility: `claude-sonnet-4-5-20250929`, `claude-haiku-4-5-20251001`. Opus snapshots not yet published.
 
 **Cache pricing rule**: 5m write = 1.25× base input; 1h write = 2.0× base input; cache read = 0.1× base input.
 **Batch API**: 50% discount on input and output (stacks with caching).
