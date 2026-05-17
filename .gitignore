@@ -37,4 +37,11 @@ graphify-out/
 # Coverage / test
 coverage/
 .nyc_output/
+
+# IDE (Cursor)
+.cursor/
+
+# Child repos (independent clones, not submodules — see CLAUDE.md "Child repos")
 joomsy-app/
+weatherV1/
+weatherv1-next/
