@@ -15,6 +15,7 @@ Twelve agent skills that layer on top of the official Anthropic skills. Each is 
 | [`procgen-toolkit`](procgen-toolkit/SKILL.md) | "procedural", "dungeon", "map gen", "wfc", "bsp" | `knowledge/06-games.md` §6.6 | [`artifacts/html/procgen-dungeon.html`](../artifacts/html/procgen-dungeon.html), [`references/algorithms.md`](procgen-toolkit/references/algorithms.md) |
 | [`asset-generator`](asset-generator/SKILL.md) | "generate {image,voice,music,video}", "concept art" | `knowledge/13-asset-pipelines.md` | [`mcp/servers/asset-router/`](../mcp/servers/asset-router/), [`recipes/agentic-asset-pipeline.md`](../recipes/agentic-asset-pipeline.md) |
 | [`critique-loop`](critique-loop/SKILL.md) | "critique this", "review", "iterate" | `knowledge/09-prompting.md` | [`artifacts/react/claudeception-critic.jsx`](../artifacts/react/claudeception-critic.jsx), [`artifacts/react/shader-jam.jsx`](../artifacts/react/shader-jam.jsx) |
+| [`viral-news-scanner`](viral-news-scanner/SKILL.md) | "trending", "viral", "what's hot", "news scan" | `knowledge/13-asset-pipelines.md` | [`recipes/agentic-asset-pipeline.md`](../recipes/agentic-asset-pipeline.md) |
 
 ## Philosophy
 

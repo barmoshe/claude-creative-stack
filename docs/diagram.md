@@ -19,7 +19,7 @@ flowchart LR
   end
 
   subgraph "Surfaces"
-    A["artifacts/<br/>27 single-file starters<br/>HTML + JSX"]
+    A["artifacts/<br/>28 single-file starters<br/>HTML + JSX"]
     PG["playground/<br/>Vite + R3F + TS"]
   end
 
